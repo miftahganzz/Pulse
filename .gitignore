@@ -33,3 +33,5 @@ dist/*.pkg
 *.pem
 agent.json
 macos/app-build/
+macos/build/
+macos/build_old/

@@ -21,6 +21,11 @@ public final class AppSettingsStore: ObservableObject {
     private let notifyCriticalKey = "pulse.settings.notify_critical"
     private let notifyWarningKey = "pulse.settings.notify_warning"
     private let notifyRecoveryKey = "pulse.settings.notify_recovery"
+    private let showLaunchMotionKey = "pulse.settings.show_launch_motion"
+
+    @Published public var showLaunchMotion: Bool {
+        didSet { UserDefaults.standard.set(showLaunchMotion, forKey: showLaunchMotionKey) }
+    }
 
     @Published public var launchAtLogin: Bool {
         didSet {
@@ -97,6 +102,7 @@ public final class AppSettingsStore: ObservableObject {
         self.notifyCritical = defaults.object(forKey: notifyCriticalKey) as? Bool ?? true
         self.notifyWarning = defaults.object(forKey: notifyWarningKey) as? Bool ?? true
         self.notifyRecovery = defaults.object(forKey: notifyRecoveryKey) as? Bool ?? true
+        self.showLaunchMotion = defaults.object(forKey: showLaunchMotionKey) as? Bool ?? true
     }
 
     private func updateLaunchAtLogin(enabled: Bool) {

@@ -66,6 +66,7 @@ public struct AppSettingsView: View {
                 Toggle("Launch Pulse at login", isOn: $settings.launchAtLogin)
                 Toggle("Show icon in Menu Bar", isOn: $settings.showInMenuBar)
                 Toggle("Keep Pulse monitoring in background when window is closed (⌘W)", isOn: $settings.keepRunningInBackground)
+                Toggle("Show startup motion animation", isOn: $settings.showLaunchMotion)
             }
 
             Section("Software Updates") {

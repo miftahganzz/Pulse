@@ -41,7 +41,7 @@ public struct OnboardingView: View {
             // Feature Highlights Box
             VStack(alignment: .leading, spacing: 16) {
                 FeatureHighlightRow(
-                    icon: "shield.checkered",
+                    icon: "lock.shield.fill",
                     iconColor: .blue,
                     title: "Zero Inbound Exposure",
                     description: "Mutual TLS & SHA-256 fingerprint pinning over direct, Tailscale, or Cloudflare Tunnels."

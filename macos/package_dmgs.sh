@@ -8,12 +8,8 @@ echo "=== Packaging Pulse DMGs ==="
 mkdir -p app-build
 
 BASE_APP="app-build/Pulse.app"
-mkdir -p "${BASE_APP}/Contents/MacOS"
-mkdir -p "${BASE_APP}/Contents/Resources"
-mkdir -p "${BASE_APP}/Contents/Frameworks"
-
-cp Resources/AppIcon.icns "${BASE_APP}/Contents/Resources/AppIcon.icns"
-cp -R .build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework "${BASE_APP}/Contents/Frameworks/"
+rm -rf "${BASE_APP}"
+cp -R build/Pulse.app "${BASE_APP}"
 
 build_arch_dmg() {
     local ARCH="$1"
@@ -35,14 +31,14 @@ build_arch_dmg() {
     create-dmg \
       --volname "Pulse" \
       --volicon "Resources/AppIcon.icns" \
-      --background "dmg-assets/${BG_TIFF}" \
+      --background "dmg-assets/dmg_minimal.tiff" \
       --window-pos 200 120 \
-      --window-size 660 400 \
-      --icon-size 128 \
+      --window-size 600 360 \
+      --icon-size 120 \
       --text-size 12 \
-      --icon "Pulse.app" 175 195 \
+      --icon "Pulse.app" 160 170 \
       --hide-extension "Pulse.app" \
-      --app-drop-link 485 195 \
+      --app-drop-link 440 170 \
       --no-internet-enable \
       "app-build/${OUT_DMG}" \
       "${STAGING_DIR}"
@@ -52,17 +48,17 @@ build_arch_dmg() {
 }
 
 # 1. Universal 2
-build_arch_dmg "universal" ".build/apple/Products/Release/Pulse" "dmg_universal.tiff" "Pulse-0.8.0-Universal.dmg"
+build_arch_dmg "universal" ".build/apple/Products/Release/Pulse" "dmg_minimal.tiff" "Pulse-0.8.0-Universal.dmg"
 
 # 2. Apple Silicon ARM64
-build_arch_dmg "arm64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/arm64/Binary/Pulse" "dmg_arm64.tiff" "Pulse-0.8.0-arm64.dmg"
+build_arch_dmg "arm64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/arm64/Binary/Pulse" "dmg_minimal.tiff" "Pulse-0.8.0-arm64.dmg"
 
 # 3. Intel x86_64
-build_arch_dmg "x86_64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/x86_64/Binary/Pulse" "dmg_x86_64.tiff" "Pulse-0.8.0-x86_64.dmg"
+build_arch_dmg "x86_64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/x86_64/Binary/Pulse" "dmg_minimal.tiff" "Pulse-0.8.0-x86_64.dmg"
 
 # 4. Standard default link
 cp "app-build/Pulse-0.8.0-Universal.dmg" "app-build/Pulse-0.8.0.dmg"
-rm -f "app-build/test-fancy.dmg"
+rm -f "app-build/test-*.dmg"
 
 echo "=== All DMGs created successfully! ==="
 ls -lh app-build/*.dmg

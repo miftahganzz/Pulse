@@ -5,9 +5,11 @@ public struct ServerListView: View {
     @ObservedObject private var store = ServerStore.shared
     @ObservedObject private var pool = ServerConnectionPool.shared
     @ObservedObject private var navState = NavigationState.shared
+    @ObservedObject private var settings = AppSettingsStore.shared
 
     @State private var showAddServerSheet = false
     @State private var serverToEdit: ServerModel?
+    @State private var isShowingLaunchMotion = true
 
     public init() {}
 
@@ -167,6 +169,13 @@ public struct ServerListView: View {
         .onAppear {
             if store.servers.isEmpty {
                 navState.selectedServerId = "ALL_SERVERS"
+            }
+        }
+        .overlay {
+            if isShowingLaunchMotion && settings.showLaunchMotion {
+                AppLaunchMotionView(isPresented: $isShowingLaunchMotion)
+                    .transition(.opacity)
+                    .zIndex(999)
             }
         }
     }

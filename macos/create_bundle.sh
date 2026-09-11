@@ -17,6 +17,7 @@ rm -rf build
 mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}" "${FRAMEWORKS_DIR}"
 
 cp .build/apple/Products/Release/Pulse "${MACOS_DIR}/${APP_NAME}"
+install_name_tool -add_rpath @executable_path/../Frameworks "${MACOS_DIR}/${APP_NAME}" 2>/dev/null || true
 if [ -f "Resources/AppIcon.icns" ]; then
     cp "Resources/AppIcon.icns" "${RESOURCES_DIR}/"
 fi
