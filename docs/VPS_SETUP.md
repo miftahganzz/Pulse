@@ -55,6 +55,69 @@ If `pulse-agent` is already running or installed on your VPS:
 
 ---
 
+## Method 3 — Private WireGuard Network (Tailscale, Zero Open Ports)
+
+If your VPS is in a private VPC or you do not want to expose port `8443` publicly:
+
+1. **Install and connect Tailscale**:
+   ```bash
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up
+   ```
+2. **Find the 100.x.y.z Tailscale IP**:
+   ```bash
+   tailscale ip -4
+   ```
+3. **Restrict firewall access (UFW)**:
+   ```bash
+   # Permit incoming traffic on the tailscale0 interface only
+   sudo ufw allow in on tailscale0 to any port 8443 proto tcp
+   # Deny public incoming traffic on port 8443
+   sudo ufw deny 8443/tcp
+   ```
+4. **Connect from Pulse on your Mac**:
+   Enter your server's Tailscale IP (`100.x.y.z`) and port `8443`, or use a 1-click deep link:
+   ```text
+   pulse://add?name=Private-Node&host=100.x.y.z&port=8443&token=<YOUR_TOKEN>
+   ```
+
+---
+
+## Method 4 — Cloudflare Tunnel (`cloudflared`, Custom Domain over Port 443)
+
+Ideal for servers behind CGNAT, home labs with dynamic IPs, or enterprise firewalls where inbound ports cannot be opened:
+
+1. **Install `cloudflared`**:
+   ```bash
+   # Debian / Ubuntu
+   curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+   echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
+   sudo apt update && sudo apt install -y cloudflared
+   ```
+2. **Configure Cloudflare Zero Trust Tunnel**:
+   - In Cloudflare Zero Trust Dashboard → **Networks** → **Tunnels** → **Create Tunnel**.
+   - Under **Public Hostname**, configure:
+     - **Subdomain**: `pulse`
+     - **Domain**: `yourdomain.com`
+     - **Service Type**: `HTTPS`
+     - **URL**: `127.0.0.1:8443`
+   - In **Additional application settings** → **TLS**:
+     - Turn **No TLS Verify** = `ON` (Pulse uses internal self-signed TLS).
+3. **Start Pulse Agent**:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port 8443 --token <YOUR_TOKEN>
+   ```
+   *(No need to open firewall port 8443 since cloudflared proxies traffic locally).*
+4. **Connect from Pulse on Mac**:
+   - Host: `pulse.yourdomain.com`
+   - Port: `443`
+   - 1-Click Deep Link:
+     ```text
+     pulse://add?name=Cloudflare-Node&host=pulse.yourdomain.com&port=443&token=<YOUR_TOKEN>
+     ```
+
+---
+
 ## Diagnostics & Troubleshooting (`pulse-agent doctor`)
 
 To inspect agent service status, port bindings, TLS certificates, and firewall availability at any time:

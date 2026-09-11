@@ -91,6 +91,97 @@ If you prefer not to pass tokens over command-line arguments:
 
 ---
 
+## Connecting Over Private Networks (Zero Open Ports)
+
+If you do not want to expose port `8443` to the public internet, Pulse natively supports zero-trust and private mesh setups.
+
+### Option A: Tailscale (Private WireGuard Mesh — Recommended)
+
+Tailscale provides an encrypted, peer-to-peer WireGuard mesh without opening any inbound ports on your server firewall or router.
+
+1. **Install Tailscale on your server**:
+   ```bash
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up
+   ```
+2. **Find your server's Tailscale IPv4 address**:
+   ```bash
+   tailscale ip -4
+   # Example: 100.115.82.45
+   ```
+   *(Alternatively, use the server's MagicDNS name, e.g. `ubuntu-prod.tailnet-xyz.ts.net`).*
+3. **Lock down server firewall (Optional but Recommended)**:
+   Restrict agent access so only machines on your Tailscale network can reach port `8443`:
+   ```bash
+   # Allow traffic from Tailscale interface only
+   sudo ufw allow in on tailscale0 to any port 8443 proto tcp
+   # Block all public incoming traffic to 8443
+   sudo ufw deny 8443/tcp
+   ```
+4. **Connect from your Mac**:
+   Ensure your Mac has the Tailscale client running on the same tailnet.
+   - In Pulse, click `⌘N` (Add Server).
+   - Enter **Host**: `100.115.82.45` (or MagicDNS hostname) and **Port**: `8443`.
+   - Paste your agent token and click **Connect Server**.
+   - *Pro-tip*: You can also use a **1-click deep link**:
+     ```text
+     pulse://add?name=My-Tailscale-Node&host=100.115.82.45&port=8443&token=<YOUR_TOKEN>
+     ```
+
+---
+
+### Option B: Cloudflare Tunnel (`cloudflared` — Custom Domain via Port 443)
+
+Cloudflare Tunnels create an outbound-only reverse tunnel from your VPS to Cloudflare's global edge network. This allows you to connect Pulse using a custom domain (e.g. `pulse.yourdomain.com`) over standard HTTPS/WSS port `443`, with zero incoming ports open on your firewall. It also works seamlessly behind NAT, CGNAT, or dynamic home IPs.
+
+1. **Install `cloudflared` on your Linux host**:
+   ```bash
+   # Debian / Ubuntu:
+   curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+   echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
+   sudo apt update && sudo apt install -y cloudflared
+   ```
+2. **Set up the tunnel in Cloudflare Zero Trust**:
+   - Go to the **Cloudflare Zero Trust Dashboard** → **Networks** → **Tunnels** → **Create Tunnel**.
+   - Select **Cloudflared** and run the provided connector command on your VPS.
+   - Under the **Public Hostname** tab, configure:
+     - **Subdomain**: `pulse`
+     - **Domain**: `yourdomain.com` (your Cloudflare managed domain)
+     - **Service Type**: `HTTPS`
+     - **URL**: `127.0.0.1:8443`
+   - In **Additional application settings** → **TLS**:
+     - Enable **"No TLS Verify"** = `ON` (Pulse Agent uses self-signed local TLS; Cloudflare edge terminates valid public SSL to your Mac).
+   - Click **Save Hostname**.
+3. **Install & Run Pulse Agent**:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port 8443 --token <YOUR_TOKEN>
+   ```
+   *(Note: You do NOT need to open port 8443 in your firewall—cloudflared talks to it locally on `127.0.0.1`)*.
+4. **Connect from Pulse on your Mac**:
+   - In Pulse, press `⌘N` (Add Server).
+   - Enter **Host**: `pulse.yourdomain.com`
+   - Enter **Port**: `443`
+   - Paste your agent token and click **Connect Server**.
+   - *Pro-tip*: Use a **1-click deep link**:
+     ```text
+     pulse://add?name=Cloudflare-Node&host=pulse.yourdomain.com&port=443&token=<YOUR_TOKEN>
+     ```
+   - Cloudflare terminates public SSL on port 443 and streams encrypted WebSockets directly into Pulse.
+
+---
+
+### 1-Click Server Onboarding (`pulse://` Deep Linking)
+
+Pulse registers the `pulse://` URL scheme on macOS. You can generate one-click onboarding links for your team or internal documentation:
+
+```text
+pulse://add?name=<SERVER_NAME>&host=<HOST_OR_DOMAIN>&port=<PORT>&token=<TOKEN>
+```
+
+When clicked in Safari, Slack, or terminal (`open "pulse://..."`), Pulse automatically pops open the Add Server sheet with the host, port, and security token pre-filled.
+
+---
+
 ## Features
 
 ### Menu Bar and Inspector
@@ -107,6 +198,18 @@ If you prefer not to pass tokens over command-line arguments:
 - **Dependency graphs**: Map relationships between your infrastructure layers (for example: `Frontend` depends on `API`, which depends on `PostgreSQL`).
 - **Cascade suppression**: When a physical host goes down, child alerts for 20 running containers collapse into a single root-cause notification.
 - **Flapping mitigation**: Suppresses alert storms when a service rapidly cycles between up and down states.
+
+### Security & Open Ports Inspector
+- **Socket & port inventory**: Real-time auditing of listening TCP/UDP sockets with process names, PIDs, and binding addresses.
+- **Exposure classification**: Distinguishes between `Public` (`0.0.0.0`), `Private` (`100.x.y.z` Tailscale / RFC 1918), and `Localhost` (`127.0.0.1`).
+- **Sensitive port alerts**: Instantly flags exposed databases (Redis, Postgres, MySQL, MongoDB, Docker API) with actionable remediation steps.
+- **Firewall inspector**: Reports host firewall status (UFW, iptables, pf) and default incoming policy directly on your dashboard.
+
+### Pro-Grade macOS Experience
+- **Native Sparkle 2 Auto-Updates**: Seamless background update checks and one-click in-app upgrades.
+- **Launch at Login (`SMAppService`)**: Deep integration with macOS 13+ native ServiceManagement.
+- **Custom URL Scheme (`pulse://`)**: Friction-free server onboarding and deep routing from internal documentation.
+- **Pixel-perfect Apple HIG design**: Native macOS typography, SF Symbols, multi-level shadows, and responsive split views.
 
 ### Remediation Safety Gates
 - **Dry-run previews**: Review command side-effects before restarting services.
