@@ -7,29 +7,56 @@ public struct AppSettingsView: View {
     public init() {}
 
     public var body: some View {
-        TabView {
-            generalTab
-                .tabItem {
-                    Label("General", systemImage: "gearshape")
+        VStack(spacing: 0) {
+            // Header with title and explicit Close button
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.accentColor)
+                    Text("Settings")
+                        .font(.system(size: 15, weight: .bold))
                 }
 
-            notificationsTab
-                .tabItem {
-                    Label("Notifications", systemImage: "bell")
-                }
+                Spacer()
 
-            appearanceTab
-                .tabItem {
-                    Label("Appearance", systemImage: "paintbrush")
+                Button("Done") {
+                    dismiss()
                 }
+                .keyboardShortcut(.defaultAction)
+                .keyboardShortcut(.cancelAction)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(Color(NSColor.windowBackgroundColor))
 
-            advancedTab
-                .tabItem {
-                    Label("Advanced", systemImage: "slider.horizontal.3")
-                }
+            Divider()
+
+            // Settings Tabs
+            TabView {
+                generalTab
+                    .tabItem {
+                        Label("General", systemImage: "gearshape")
+                    }
+
+                notificationsTab
+                    .tabItem {
+                        Label("Notifications", systemImage: "bell")
+                    }
+
+                appearanceTab
+                    .tabItem {
+                        Label("Appearance", systemImage: "paintbrush")
+                    }
+
+                advancedTab
+                    .tabItem {
+                        Label("Advanced", systemImage: "slider.horizontal.3")
+                    }
+            }
+            .padding(16)
         }
-        .padding(20)
-        .frame(width: 480, height: 320)
+        .frame(width: 520, height: 380)
     }
 
     private var generalTab: some View {
@@ -40,66 +67,82 @@ public struct AppSettingsView: View {
                 Toggle("Keep Pulse monitoring in background when window is closed (⌘W)", isOn: $settings.keepRunningInBackground)
             }
         }
-        .padding(10)
+        .formStyle(.grouped)
     }
 
     private var notificationsTab: some View {
         Form {
             Section {
-                Toggle("Notify on Critical incidents (🔴)", isOn: $settings.notifyCritical)
-                Toggle("Notify on Warning / Degraded states (🟠)", isOn: $settings.notifyWarning)
-                Toggle("Notify when service or server recovers (🟢)", isOn: $settings.notifyRecovery)
+                Toggle(isOn: $settings.notifyCritical) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 8))
+                            .foregroundColor(.red)
+                        Text("Notify on Critical incidents")
+                    }
+                }
+
+                Toggle(isOn: $settings.notifyWarning) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 8))
+                            .foregroundColor(.orange)
+                        Text("Notify on Warning or Degraded states")
+                    }
+                }
+
+                Toggle(isOn: $settings.notifyRecovery) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 8))
+                            .foregroundColor(.green)
+                        Text("Notify when a service or server recovers")
+                    }
+                }
             }
         }
-        .padding(10)
+        .formStyle(.grouped)
     }
 
     private var appearanceTab: some View {
         Form {
-            Picker("App Appearance:", selection: $settings.theme) {
-                ForEach(AppTheme.allCases) { theme in
-                    Text(theme.rawValue).tag(theme)
+            Section {
+                Picker("App Appearance:", selection: $settings.theme) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Text(theme.rawValue).tag(theme)
+                    }
                 }
-            }
-            .pickerStyle(.radioGroup)
+                .pickerStyle(.radioGroup)
 
-            Text("Select between macOS System default, Light, or Dark mode.")
-                .font(.caption)
-                .foregroundColor(.secondary)
+                Text("Select between macOS System default, Light, or Dark mode.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
-        .padding(10)
+        .formStyle(.grouped)
     }
 
     private var advancedTab: some View {
         Form {
-            HStack {
-                Text("Metrics polling interval:")
-                Spacer()
-                Picker("", selection: $settings.metricIntervalSeconds) {
+            Section {
+                Picker("Metrics polling interval:", selection: $settings.metricIntervalSeconds) {
                     Text("5 seconds (Fast)").tag(5)
                     Text("10 seconds (Default)").tag(10)
                     Text("30 seconds (Eco)").tag(30)
                 }
-                .frame(width: 170)
-            }
 
-            HStack {
-                Text("Health check probe interval:")
-                Spacer()
-                Picker("", selection: $settings.healthCheckIntervalSeconds) {
+                Picker("Health check probe interval:", selection: $settings.healthCheckIntervalSeconds) {
                     Text("15 seconds").tag(15)
                     Text("30 seconds (Default)").tag(30)
                     Text("60 seconds").tag(60)
                 }
-                .frame(width: 170)
+            } footer: {
+                Text("Pulse stores all connection keys and database credentials safely inside the Apple Keychain.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
             }
-
-            Divider()
-
-            Text("Pulse stores all connection keys and database credentials safely inside the Apple Keychain.")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
-        .padding(10)
+        .formStyle(.grouped)
     }
 }

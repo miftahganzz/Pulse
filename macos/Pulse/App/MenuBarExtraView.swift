@@ -17,7 +17,7 @@ public struct MenuBarExtraView: View {
                     .font(.headline)
             } else if !incidents.isEmpty {
                 HStack {
-                    Text("🔴 \(incidents.count) Active Incident\(incidents.count > 1 ? "s" : "")")
+                    Text("\(incidents.count) Active Incident\(incidents.count > 1 ? "s" : "")")
                         .font(.headline)
                         .foregroundColor(.red)
                 }
@@ -29,7 +29,7 @@ public struct MenuBarExtraView: View {
                 }
             } else {
                 HStack {
-                    Text("✓ All systems operational")
+                    Text("All systems operational")
                         .font(.headline)
                         .foregroundColor(.green)
                 }

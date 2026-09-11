@@ -48,7 +48,7 @@ public final class IncidentEngine {
 
                     if !policy.isEffectivelyMuted && policy.notifyOnCritical {
                         NotificationService.shared.sendAlert(
-                            title: "🔴 \(serverName) is Unreachable",
+                            title: "Server Unreachable: \(serverName)",
                             body: "Pulse lost connection to \(serverName). All services affected.",
                             identifier: "incident.server.\(serverId.uuidString)"
                         )
@@ -124,9 +124,8 @@ public final class IncidentEngine {
                     // Post notification with flapping suppression
                     if !policy.isEffectivelyMuted {
                         if (severity == .critical && policy.notifyOnCritical) || (severity == .warning && policy.notifyOnWarning) {
-                            let icon = severity == .critical ? "🔴" : "🟠"
                             NotificationService.shared.sendAlert(
-                                title: "\(icon) \(monitor.name) is \(monitor.status.displayName)",
+                                title: "\(monitor.name) is \(monitor.status.displayName)",
                                 body: "\(serverName) · \(monitor.message ?? monitor.target)",
                                 identifier: "incident.\(monitor.id)"
                             )

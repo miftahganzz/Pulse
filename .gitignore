@@ -32,3 +32,4 @@ dist/*.pkg
 *.key
 *.pem
 agent.json
+macos/app-build/

@@ -432,7 +432,12 @@ public struct AddServerSheet: View {
                         withAnimation { self.step = .agentGuide }
                     }
                 case .failure(let err):
-                    self.errorMessage = "Pairing failed: \(err.localizedDescription)"
+                    let desc = err.localizedDescription
+                    if desc.localizedCaseInsensitiveContains("timed out") {
+                        self.errorMessage = "Connection timed out. Check that '\(cleanAddress)' is your server's public IP (run 'curl -4 ifconfig.me' on VPS) and port \(port) is open."
+                    } else {
+                        self.errorMessage = "Pairing failed: \(desc)"
+                    }
                     withAnimation { self.step = .agentGuide }
                 }
             }

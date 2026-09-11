@@ -728,7 +728,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
         if lastOfflineAlertAt == nil || now.timeIntervalSince(lastOfflineAlertAt!) > alertCooldown {
             lastOfflineAlertAt = now
             NotificationService.shared.sendAlert(
-                title: "🔴 Server Offline: \(serverName)",
+                title: "Server Offline: \(serverName)",
                 body: "Pulse lost connection to \(serverName) (\(address):\(port)). Reconnecting...",
                 identifier: "alert.offline.\(serverId.uuidString)"
             )
