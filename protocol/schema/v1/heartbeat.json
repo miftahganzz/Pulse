@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentHeartbeatPayload",
+  "type": "object",
+  "required": ["agent_id", "uptime_seconds", "sequence"],
+  "properties": {
+    "agent_id": {
+      "type": "string"
+    },
+    "uptime_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

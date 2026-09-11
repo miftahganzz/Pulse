@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DockerContainersPayload",
+  "type": "object",
+  "required": ["available", "containers"],
+  "properties": {
+    "available": { "type": "boolean" },
+    "version": { "type": "string" },
+    "containers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "image", "state", "status", "created_at", "ports"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "image": { "type": "string" },
+          "state": { "type": "string" },
+          "status": { "type": "string" },
+          "created_at": { "type": "integer" },
+          "ports": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

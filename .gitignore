@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Xcode / Swift
+.build/
+Packages/
+Package.pins
+Package.resolved
+*.xcodeproj
+*.xcworkspace
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# Go
+agent/pulse-agent/bin/pulse-agent-darwin-*
+agent/pulse-agent/bin/*.pem
+agent/pulse-agent/bin/test-agent.json
+agent/pulse-agent/agent.json
+*.test
+*.out
+
+# Distribution artifacts (large binaries uploaded via GitHub Releases)
+dist/*.dmg
+dist/*.pkg
+
+# Sensitive configs & certificates
+*.key
+*.pem
+agent.json

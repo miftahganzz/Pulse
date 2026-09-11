@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentHelloPayload",
+  "type": "object",
+  "required": [
+    "agent_id",
+    "agent_version",
+    "hostname",
+    "os",
+    "kernel_version",
+    "architecture",
+    "cpu_cores",
+    "protocol_version"
+  ],
+  "properties": {
+    "agent_id": { "type": "string" },
+    "agent_version": { "type": "string" },
+    "hostname": { "type": "string" },
+    "os": { "type": "string" },
+    "kernel_version": { "type": "string" },
+    "architecture": { "type": "string" },
+    "cpu_cores": { "type": "integer", "minimum": 1 },
+    "protocol_version": { "type": "integer", "minimum": 1 }
+  }
+}

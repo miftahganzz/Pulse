@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PulseProtocolEnvelope",
+  "type": "object",
+  "required": ["type", "version", "timestamp", "payload"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Message type identifier (e.g. agent.hello, agent.heartbeat, connection.accepted)"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Protocol version, starting at 1"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 UTC timestamp"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Typed payload data"
+    }
+  }
+}

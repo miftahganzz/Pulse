@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ActionPayloads",
+  "definitions": {
+    "ProcessKillRequest": {
+      "type": "object",
+      "required": ["signal"],
+      "properties": {
+        "signal": {
+          "type": "string",
+          "enum": ["SIGTERM", "SIGKILL"]
+        }
+      }
+    },
+    "ServiceActionRequest": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["start", "stop", "restart"]
+        }
+      }
+    },
+    "ActionResponse": {
+      "type": "object",
+      "required": ["success", "message"],
+      "properties": {
+        "success": { "type": "boolean" },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

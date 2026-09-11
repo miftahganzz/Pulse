@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ServiceDiscoveryAndHealthPayloads",
+  "definitions": {
+    "DiscoveredService": {
+      "type": "object",
+      "required": ["id", "provider_type", "name", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "provider_type": { "type": "string", "enum": ["systemd", "docker", "pm2", "process"] },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "metadata": { "type": "object" }
+      }
+    },
+    "DiscoveryResult": {
+      "type": "object",
+      "required": ["services"],
+      "properties": {
+        "services": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DiscoveredService" }
+        }
+      }
+    },
+    "MonitorDefinition": {
+      "type": "object",
+      "required": ["id", "type", "target"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["systemd", "docker", "pm2", "process", "http", "tcp"] },
+        "target": { "type": "string" }
+      }
+    },
+    "HealthCheckResult": {
+      "type": "object",
+      "required": ["id", "status", "message", "last_checked"],
+      "properties": {
+        "id": { "type": "string" },
+        "status": { "type": "string", "enum": ["healthy", "warning", "critical", "down", "unknown"] },
+        "message": { "type": "string" },
+        "latency_ms": { "type": "integer" },
+        "last_checked": { "type": "string" }
+      }
+    }
+  }
+}

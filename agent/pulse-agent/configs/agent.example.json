@@ -1,0 +1,8 @@
+{
+  "agent_id": "pulse_01j9example000000000",
+  "auth_token": "a1b2c3d4e5f6exampletoken",
+  "listen_address": "0.0.0.0",
+  "port": 8443,
+  "cert_file": "/etc/pulse/cert.pem",
+  "key_file": "/etc/pulse/key.pem"
+}

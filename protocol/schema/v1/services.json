@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ServicesSnapshotPayload",
+  "type": "object",
+  "required": ["services"],
+  "properties": {
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "load_state", "active_state", "sub_state"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "load_state": { "type": "string" },
+          "active_state": { "type": "string" },
+          "sub_state": { "type": "string" }
+        }
+      }
+    }
+  }
+}

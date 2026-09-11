@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProcessesSnapshotPayload",
+  "type": "object",
+  "required": ["processes"],
+  "properties": {
+    "processes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["pid", "name", "user", "cpu_percent", "memory_rss_bytes", "state", "command"],
+        "properties": {
+          "pid": { "type": "integer" },
+          "ppid": { "type": "integer" },
+          "name": { "type": "string" },
+          "user": { "type": "string" },
+          "cpu_percent": { "type": "number", "minimum": 0 },
+          "memory_rss_bytes": { "type": "integer", "minimum": 0 },
+          "state": { "type": "string" },
+          "command": { "type": "string" }
+        }
+      }
+    }
+  }
+}
