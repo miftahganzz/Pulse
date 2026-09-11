@@ -1,155 +1,150 @@
 <div align="center">
 
+<img src="docs/images/pulse-icon.png" alt="Pulse App Icon" width="128" height="128" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 12px;" />
+
 # Pulse
 
-### Native, Lightning-Fast Infrastructure Monitoring & Auto-Remediation for macOS & Linux VPS
+### Native, peer-to-peer infrastructure observability and remediation for macOS and Linux.
 
 [![macOS](https://img.shields.io/badge/macOS-13.0%2B-blue?logo=apple&style=flat-square)](https://apple.com)
 [![Architecture](https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-success?style=flat-square)](#)
 [![Go Agent](https://img.shields.io/badge/Go%20Agent-1.22+-00ADD8?logo=go&style=flat-square)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-*Pulse gives you total observability over your servers directly from your Mac menu bar and desktop dashboard — without heavy SaaS subscriptions, agent bloat, or cloud lock-in.*
+Pulse connects your Mac directly to your servers over encrypted WebSockets and mutual TLS. No cloud accounts, no third-party telemetry, and no heavy Java or Python dependencies on your host machines.
 
-[Quick Start](#-quick-start) • [Features](#-key-features) • [Installation Guide](#-installation--connection-methods) • [Diagnostics](#-pulse-doctor) • [Architecture](#-architecture) • [FAQ](#-frequently-asked-questions)
+[Quick Start](#quick-start) • [Installation Methods](#installation-methods) • [Features](#features) • [Diagnostics](#diagnostics) • [Architecture](#architecture) • [FAQ](#frequently-asked-questions)
 
 </div>
 
 ---
 
-## ⚡️ Highlights
+## Overview
 
-- **Direct End-to-End Encryption**: Zero intermediary third-party servers. Your Mac connects straight to your VPS over pinned TLS and bidirectional WebSockets.
-- **Microscopic Footprint**: Single static Go binary on Linux (`< 15 MB RAM`, `< 0.1% CPU`), native Swift & SwiftUI app on macOS.
-- **1-Command Zero-Touch Setup**: Run one command via SSH or use a 6-digit numeric pairing code — no manual token copying or firewall gymnastics.
-- **Autonomous Remediation Engine**: Controlled operation safety gates (cooldowns, rate limits, maintenance mute, dry-run previews, and flapping protection).
-- **Extensible Service Providers**: Live discovery and management for **Docker containers, Systemd units, PM2 processes, PostgreSQL, Redis, MySQL, MongoDB, Nginx/Caddy, Cloudflare Tunnels, and TCP/HTTP health probes**.
-- **Deterministic Incident Intelligence**: Outage cascade correlation and heuristic root-cause analysis (e.g. *identifies PostgreSQL downtime as the true culprit behind API 502 failures*).
+Most infrastructure monitoring tools force a choice between two bad options: expensive SaaS dashboards that send your server data to third parties, or clunky self-hosted setups that consume half a gigabyte of memory just to show CPU percentages.
 
----
-
-## 🚀 Quick Start
-
-### 1. Download & Install Pulse for Mac
-Download the latest prebuilt release installer:
-- **[Pulse-0.7.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.7.0.dmg)** (Recommended: Native drag-and-drop installer)
-- **[Pulse-0.7.0.pkg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.7.0.pkg)** (Standard macOS package installer)
-
-Open the `.dmg`, drag **Pulse.app** into your **Applications** folder, and launch it.
-
-### 2. Connect Your Server
-Press `⌘N` (or click **+ Add Server**) in Pulse, then choose either **1-Line Command** or **6-Digit Pair Code**.
+Pulse takes a different approach:
+- **Direct connection**: Your Mac opens an encrypted link directly to your server. No intermediary relay, no SaaS middleman.
+- **Low memory footprint**: The Go daemon uses under 15 MB of RSS memory on Linux. It runs comfortably on 512 MB VPS instances.
+- **Controlled operations**: Inspect Docker logs, restart crashed processes, or trigger safe remediation rules directly from your menu bar.
 
 ---
 
-## 🔌 Installation & Connection Methods
+## Quick Start
 
-Pulse supports two seamless pairing methods designed for developer speed:
+### 1. Download Pulse for Mac
 
-### Method A: ⚡️ 1-Line Command (Instant & Automated)
+Prebuilt universal binaries run natively on both Apple Silicon (M1/M2/M3/M4) and Intel Macs:
 
-In the **Add Server** window on your Mac, enter your server IP and copy the generated one-line command:
+- **[Download Pulse-0.7.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.7.0.dmg)** (Drag-and-Drop installer)
+- **[Download Pulse-0.7.0.pkg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.7.0.pkg)** (Standard macOS package)
+
+Open the `.dmg`, drag **Pulse** to `/Applications`, and open it.
+
+### 2. Connect Your First Server
+
+Press `⌘N` in Pulse, then pick one of the two pairing flows below.
+
+---
+
+## Installation Methods
+
+### Method 1: 1-Line Automated Command
+
+The fastest way to install the daemon on a fresh Linux server:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port 8443 --token <YOUR_GENERATED_TOKEN>
+curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port 8443 --token <YOUR_TOKEN>
 ```
 
-**What the installer does automatically:**
-1. Detects system architecture (`x86_64` or `arm64`).
-2. Creates an isolated system user `pulse`.
-3. Installs `/usr/local/bin/pulse-agent` with strictly permissioned configs (`chmod 600 /etc/pulse/agent.json`).
-4. Generates unique self-signed TLS certificates locally.
-5. Automatically opens port `8443/tcp` if `ufw` firewall is active.
-6. Registers and starts the `pulse-agent.service` systemd daemon.
-7. Signals your Mac app to immediately establish the encrypted telemetry stream.
+The script:
+1. Detects your CPU architecture (`x86_64` or `arm64`) and pulls the static binary.
+2. Creates an unprivileged `pulse` system account.
+3. Generates TLS certificates and configures permissions (`chmod 600`).
+4. Adds a rule for port `8443/tcp` if UFW is enabled.
+5. Starts the background systemd service (`pulse-agent.service`).
+6. Displays the server's public IP address for quick entry into Pulse.
 
 ---
 
-### Method B: 🔢 6-Digit Pairing Code (No Long Token Pasting)
+### Method 2: 6-Digit Pairing Code
 
-If `pulse-agent` is already installed on your server, simply run:
+If you prefer not to pass tokens over command-line arguments:
 
-```bash
-pulse-agent pair
-```
-
-Your server terminal will generate a temporary 6-digit code valid for 10 minutes:
-
-```text
-================================================================
-🔗 Pulse 6-Digit Pairing Mode
-================================================================
-Pairing Code: 207906
-Server Host:  vps.example.com
-Server Port:  8443
-Expires in:   10 minutes
-----------------------------------------------------------------
-In your Mac Pulse App, choose '6-Digit Pair Code', then:
-Enter this server's IP address and Pairing Code: 207906
-================================================================
-```
-
-In the Mac App:
-1. Select the **"6-Digit Pair Code"** tab.
-2. Enter your server's IP address and the 6-digit code (`207906`).
-3. Click **"Verify & Pair"**.
-4. The token is claimed, stored in your macOS Keychain, and real-time monitoring begins.
+1. Install the agent on your server:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash
+   ```
+2. Request a pairing code on your server terminal:
+   ```bash
+   pulse-agent pair
+   ```
+   Output:
+   ```text
+   ┌────────────────────────────────────────────────────────┐
+   │  Pulse 6-Digit Pairing Mode                            │
+   │  Pairing Code: 653557                                  │
+   │  Expires in:   10 minutes                              │
+   └────────────────────────────────────────────────────────┘
+   ```
+3. In Pulse on your Mac, select **6-Digit Pair Code**, enter your server's public IP and the code `653557`, then click **Verify & Pair**.
 
 ---
 
-## 🩺 Pulse Doctor
+## Features
 
-Encountering firewall restrictions or closed ports? Run the built-in diagnostic tool on your server:
+### Menu Bar and Inspector
+- **Live Menu Bar widget**: Shows real-time CPU, RAM, and alert badges without occupying dock space.
+- **Process manager**: Sort processes by CPU or memory usage; send `SIGTERM` or `SIGKILL` directly from the UI.
+- **Hardware telemetry**: Load averages, disk write spikes, network throughput, and memory pressure breakdown.
+
+### Container and Service Discovery
+- **Docker engine integration**: Track container status, inspect memory limits, and stream live stdout/stderr logs.
+- **Supported providers**: Built-in modules for Systemd services, PM2 instances, PostgreSQL, Redis, MySQL, MongoDB, Nginx, Caddy, Cloudflare Tunnels, and TCP/HTTP health probes.
+- **Automatic discovery**: Discovers active databases and web servers on startup with one-click monitor setup.
+
+### Root-Cause Correlation
+- **Dependency graphs**: Map relationships between your infrastructure layers (for example: `Frontend` depends on `API`, which depends on `PostgreSQL`).
+- **Cascade suppression**: When a physical host goes down, child alerts for 20 running containers collapse into a single root-cause notification.
+- **Flapping mitigation**: Suppresses alert storms when a service rapidly cycles between up and down states.
+
+### Remediation Safety Gates
+- **Dry-run previews**: Review command side-effects before restarting services.
+- **Circuit breaker**: Automatically halts remediation rules if a command fails three consecutive times.
+- **Maintenance windows**: Mute alert triggers during scheduled software upgrades.
+
+---
+
+## Diagnostics
+
+To troubleshoot connectivity, port bindings, or systemd status directly on your server:
 
 ```bash
 pulse-agent doctor
 ```
 
+Sample output:
+
 ```text
-================================================================
-🩺 Pulse Agent System Doctor (v0.7.0)
-================================================================
-[✔] Pulse Agent Version        : v0.7.0
-[✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_e9a18d)
-[✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
-[✔] Systemd Service            : pulse-agent.service is active and running
-[✔] Port 8443 Binding          : pulse-agent is actively accepting TCP connections on port 8443
-[✔] HTTPS & Token Auth         : Endpoint responds with TLS and enforces token authentication
-[✔] Firewall (UFW)             : Port 8443 is explicitly allowed in UFW
-================================================================
+┌────────────────────────────────────────────────────────┐
+│  Pulse Agent System Doctor (v0.7.0)                    │
+└────────────────────────────────────────────────────────┘
+ [✔] Pulse Agent Version        : v0.7.0
+ [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_05ae3c)
+ [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
+ [✔] Systemd Service            : pulse-agent.service is active and running
+ [✔] Port 8443 Binding          : pulse-agent is actively accepting TCP connections on port 8443
+ [✔] HTTPS & Token Auth         : Endpoint responds with TLS and enforces token authentication
+ [✔] Firewall (UFW)             : Port 8443 is explicitly allowed in UFW
 ```
 
 ---
 
-## ✨ Key Features
-
-### 🖥️ Native macOS Experience
-- **Menu Bar Extra**: Pin real-time CPU, RAM, and alert badges directly in your macOS menu bar.
-- **Detailed Server Inspector**: Full hardware utilization metrics, historical CPU/RAM charts, network throughput, disk space projection, and load averages.
-- **System Service & Process Explorer**: Inspect top processes by CPU and memory; gracefully signal (`SIGTERM` / `SIGKILL`) unresponsive workloads.
-
-### 🐳 Container & Infrastructure Ecosystem
-- **Docker Integration**: Inspect container CPU, memory limits, health statuses, restart policies, and stream tail logs in real time.
-- **Extensible Providers**: Native support for **Systemd, Docker, PM2, PostgreSQL, MySQL, MongoDB, Redis, Web Servers (Nginx/Apache/Caddy), Cloudflare Tunnels**, and synthetic HTTP/TCP probes.
-- **Automatic Service Discovery**: Detects database ports, web proxies, and active background services on startup and prompts for one-click monitor creation.
-
-### 🧠 Incident Correlation & Root-Cause Intelligence
-- **Graph Dependency Mapping**: Link services together (e.g. `Backend API` $\rightarrow$ `PostgreSQL` $\rightarrow$ `VPS Host`).
-- **Cascade Suppression**: If the host VPS goes down, child alerts for 20 containers and services are clustered into a single root-cause notification rather than spamming your phone.
-- **Flapping Protection**: Prevents alert storms when services flicker up and down rapidly.
-
-### 🛡️ Controlled Operation & Remediation Safety
-- **Dry-Run & Impact Previews**: Review command implications before triggering container restarts or service reloads.
-- **Automated Circuit Breaker**: Disables automated auto-remediation if an action fails 3 consecutive times, preventing boot loops.
-- **Maintenance Windows**: Silence monitoring checks during planned software upgrades.
-
----
-
-## 🏛 Architecture
+## Architecture
 
 ```text
 ┌────────────────────────────────────────────────────────┐
-│                   macOS (Pulse.app)                    │
+│                    macOS (Pulse.app)                   │
 │                                                        │
 │  [MenuBar Extra]  [Fleet Dashboard]  [Remediation UI]  │
 │  [Keychain Store] [Incident Graph]   [Telemetry Store] │
@@ -159,7 +154,7 @@ pulse-agent doctor
                             │ WSS (Encrypted Binary Telemetry Stream)
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│               Linux Host (pulse-agent)                 │
+│                Linux Host (pulse-agent)                │
 │                                                        │
 │  [Pairing Manager] [System Collector] [Action Engine]  │
 │  [Docker Client]   [Service Probes]   [Provider Reg]   │
@@ -171,73 +166,25 @@ pulse-agent doctor
 
 ---
 
-## 🛠 Manual Build Instructions
+## Frequently Asked Questions
 
-### Building the macOS App
-- **Requirements**: macOS 13.0+, Xcode 15+, Swift 5.9+
+**Is any metric data sent to external cloud servers?**  
+No. Pulse uses a direct peer-to-peer model. All metrics stream straight from your Linux host to your Mac.
 
-```bash
-cd macos
+**How does authentication work?**  
+Each server generates a 32-character authentication token on first initialization. Requests require a bearer token header, and tokens are stored in the macOS hardware-backed Keychain.
 
-# Run unit & integration test suites
-swift test
+**Which ports need to be open on my server?**  
+Only port `8443/tcp` (or whichever custom port you configure). Both HTTPS requests and WebSocket streams share this single port.
 
-# Build release application bundle
-swift build -c release
-cp -f .build/release/Pulse build/Pulse.app/Contents/MacOS/Pulse
-codesign --force --deep --sign - build/Pulse.app
+**Can the agent run arbitrary shell scripts?**  
+No. The agent does not expose an open shell. Actions are restricted to pre-defined operations (such as `systemctl restart <unit>` or `docker restart <container>`) that pass through explicit safety checks.
 
-# Package as DMG & PKG
-create-dmg dist/Pulse-0.7.0.dmg macos/build/Pulse.app
-```
-
-### Building the Linux Agent
-- **Requirements**: Go 1.22+
-
-```bash
-cd agent/pulse-agent
-
-# Build for all target architectures (Linux amd64/arm64, Darwin amd64/arm64)
-make build-all
-```
-
-Binaries will be placed in `agent/pulse-agent/bin/`:
-- `pulse-agent-linux-amd64`
-- `pulse-agent-linux-arm64`
-- `pulse-agent-darwin-amd64`
-- `pulse-agent-darwin-arm64`
+**What are the minimum system requirements for the agent?**  
+Linux kernel 3.10+, systemd, and at least 32 MB of free RAM. Binary size is roughly 7 MB.
 
 ---
 
-## ❓ Frequently Asked Questions
+## License
 
-<details>
-<summary><b>1. Do I need to register an account or pay for a cloud backend?</b></summary>
-No. Pulse is 100% self-hosted, peer-to-peer, and local-first. Your metrics stream directly from your server to your Mac. No telemetry is ever uploaded to external cloud servers.
-</details>
-
-<details>
-<summary><b>2. How is my connection secured?</b></summary>
-Every agent automatically generates a cryptographic TLS certificate and a high-entropy authentication token on its first run. All HTTP and WebSocket traffic is encrypted over TLS. Credentials on macOS are safeguarded in the system's hardware-backed Keychain.
-</details>
-
-<details>
-<summary><b>3. What ports do I need to open on my VPS?</b></summary>
-Only one single port: **8443/tcp** (or whichever port you specify during configuration). Both HTTPS requests and WebSocket streams share this port.
-</details>
-
-<details>
-<summary><b>4. Does the agent allow arbitrary command execution on my server?</b></summary>
-No. The agent does not expose an arbitrary remote shell. Operations are constrained to explicitly whitelisted actions (such as `systemctl restart <unit>`, `docker restart <container>`, or database ping probes) that pass through strict safety verification.
-</details>
-
-<details>
-<summary><b>5. How much RAM does the Linux agent consume?</b></summary>
-The agent is compiled into a single static Go binary and typically uses less than **12 to 15 MB of RSS memory**, making it safe to run on even the smallest 512MB RAM VPS instances.
-</details>
-
----
-
-## 📄 License
-
-Pulse is open-source software released under the **[MIT License](LICENSE)**.
+Pulse is open-source software licensed under the [MIT License](LICENSE).

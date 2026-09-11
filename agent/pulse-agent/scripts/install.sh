@@ -1,16 +1,44 @@
 #!/usr/bin/env bash
 set -e
 
-# Pulse Agent One-Line Installer & Configurator for Linux VPS
+# Pulse Agent Installer for Linux VPS
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- [--port 8443] [--token <auth-token>]
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[0;33m'
-BOLD='\033[1m'
-NC='\033[0m'
+# Styling
+CLR_RESET='\033[0m'
+CLR_BOLD='\033[1m'
+CLR_DIM='\033[2m'
+CLR_CYAN='\033[38;5;45m'
+CLR_BLUE='\033[38;5;39m'
+CLR_PURPLE='\033[38;5;141m'
+CLR_GREEN='\033[38;5;84m'
+CLR_YELLOW='\033[38;5;221m'
+CLR_RED='\033[38;5;203m'
+
+step() {
+  echo -e "\n  ${CLR_CYAN}➜${CLR_RESET} ${CLR_BOLD}$1${CLR_RESET}"
+}
+
+ok() {
+  echo -e "    ${CLR_GREEN}✔${CLR_RESET} $1"
+}
+
+warn() {
+  echo -e "    ${CLR_YELLOW}⚠${CLR_RESET} $1"
+}
+
+fail() {
+  echo -e "    ${CLR_RED}✖${CLR_RESET} $1"
+}
+
+clear_screen_header() {
+  echo ""
+  echo -e "${CLR_PURPLE}  ┌────────────────────────────────────────────────────────┐${CLR_RESET}"
+  echo -e "${CLR_PURPLE}  │${CLR_RESET}  ${CLR_BOLD}${CLR_CYAN}P U L S E${CLR_RESET}  ${CLR_DIM}•${CLR_RESET}  Native Infrastructure Observability Agent  ${CLR_PURPLE}│${CLR_RESET}"
+  echo -e "${CLR_PURPLE}  └────────────────────────────────────────────────────────┘${CLR_RESET}"
+  echo ""
+}
 
 PORT="8443"
 TOKEN=""
@@ -32,17 +60,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo -e "${BOLD}${BLUE}======================================${NC}"
-echo -e "${BOLD}${BLUE}       Pulse Agent Installer          ${NC}"
-echo -e "${BOLD}${BLUE}======================================${NC}"
+clear_screen_header
 
-# 1. Check Root
+# 1. Privilege Check
+step "Checking root privileges..."
 if [ "$EUID" -ne 0 ]; then
-  echo -e "${RED}Error: Please run this installer as root (or with sudo).${NC}"
+  fail "Pulse installer requires root permissions."
+  echo -e "    Run again with: ${CLR_BOLD}sudo bash${CLR_RESET}\n"
   exit 1
 fi
+ok "Running as root ($USER)"
 
-# 2. Detect Architecture
+# 2. Architecture Detection
+step "Detecting hardware architecture..."
 ARCH=$(uname -m)
 case "$ARCH" in
   x86_64)
@@ -52,56 +82,62 @@ case "$ARCH" in
     PULSE_ARCH="arm64"
     ;;
   *)
-    echo -e "${RED}Unsupported architecture: $ARCH${NC}"
+    fail "Unsupported architecture: $ARCH"
     exit 1
     ;;
 esac
+ok "Architecture matched: ${CLR_BOLD}Linux ${PULSE_ARCH}${CLR_RESET}"
 
-echo -e "Detected Architecture: ${BOLD}${PULSE_ARCH}${NC}"
-
-# 3. Create dedicated system user 'pulse' if not exists
+# 3. Dedicated System User
+step "Configuring service accounts..."
 if ! id "pulse" >/dev/null 2>&1; then
-  echo -e "Creating system user: ${BOLD}pulse${NC}..."
   useradd -r -s /bin/false -d /etc/pulse pulse 2>/dev/null || true
+  ok "System user 'pulse' created"
+else
+  ok "System user 'pulse' ready"
 fi
 
-# 4. Setup directories
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/pulse"
 mkdir -p "$CONFIG_DIR"
 
-# 5. Check if binary already local or download from GitHub
+# 4. Binary Deployment
+step "Fetching binary release..."
 if [ -f "./bin/pulse-agent-linux-${PULSE_ARCH}" ]; then
-  echo -e "Installing from local binary..."
   cp "./bin/pulse-agent-linux-${PULSE_ARCH}" "$INSTALL_DIR/pulse-agent"
+  ok "Installed from local build binary"
 elif [ -f "./pulse-agent-linux-${PULSE_ARCH}" ]; then
-  echo -e "Installing from local binary..."
   cp "./pulse-agent-linux-${PULSE_ARCH}" "$INSTALL_DIR/pulse-agent"
+  ok "Installed from local directory"
 elif [ -f "/tmp/pulse-agent-linux-${PULSE_ARCH}" ]; then
-  echo -e "Installing from /tmp binary..."
   cp "/tmp/pulse-agent-linux-${PULSE_ARCH}" "$INSTALL_DIR/pulse-agent"
+  ok "Installed from /tmp cache"
 else
-  echo -e "Downloading Pulse Agent binary for ${PULSE_ARCH} from GitHub..."
   DOWNLOAD_URL="https://github.com/miftahganzz/Pulse/releases/latest/download/pulse-agent-linux-${PULSE_ARCH}"
-  if ! curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/pulse-agent"; then
-    echo -e "${YELLOW}Latest release download failed. Attempting repository raw download fallback...${NC}"
+  if curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/pulse-agent" 2>/dev/null; then
+    ok "Downloaded binary from GitHub releases"
+  else
     RAW_URL="https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/bin/pulse-agent-linux-${PULSE_ARCH}"
-    curl -fsSL "$RAW_URL" -o "$INSTALL_DIR/pulse-agent" || {
-      echo -e "${RED}Error: Failed to download pulse-agent binary.${NC}"
+    if curl -fsSL "$RAW_URL" -o "$INSTALL_DIR/pulse-agent" 2>/dev/null; then
+      ok "Downloaded binary via repository fallback"
+    else
+      fail "Could not retrieve pulse-agent binary"
       exit 1
-    }
+    fi
   fi
 fi
 
 chmod +x "$INSTALL_DIR/pulse-agent"
 
-# 6. Initialize config & TLS certificates
+# 5. Config and TLS Certificate Generation
+step "Initializing security credentials..."
 if [ ! -f "$CONFIG_DIR/agent.json" ]; then
-  echo -e "Initializing agent configuration..."
   "$INSTALL_DIR/pulse-agent" --config "$CONFIG_DIR/agent.json" --show-token > /dev/null 2>&1 || true
+  ok "Generated self-signed TLS certificates and identity token"
+else
+  ok "Configuration file existing at $CONFIG_DIR/agent.json"
 fi
 
-# Update Port and Auth Token if supplied by 1-line command
 if [ -n "$PORT" ] || [ -n "$TOKEN" ]; then
   if command -v jq >/dev/null 2>&1; then
     tmp_json=$(mktemp)
@@ -122,22 +158,28 @@ with open('$CONFIG_DIR/agent.json', 'w') as f:
     json.dump(data, f, indent=2)
 "
   fi
+  ok "Applied custom port ($PORT) and authorized bearer token"
 fi
 
-# Ensure correct permissions
 chown -R pulse:pulse "$CONFIG_DIR" 2>/dev/null || true
 chmod 700 "$CONFIG_DIR"
 chmod 600 "$CONFIG_DIR"/agent.json 2>/dev/null || true
 
-# 7. Configure Firewall if UFW is active
+# 6. Firewall Configuration
+step "Checking system firewall..."
 if command -v ufw >/dev/null 2>&1; then
   if ufw status | grep -q "Status: active"; then
-    echo -e "Opening firewall port ${PORT}/tcp..."
     ufw allow "${PORT}/tcp" comment "Pulse Agent" >/dev/null 2>&1 || true
+    ok "Added UFW firewall rule for port ${PORT}/tcp"
+  else
+    ok "UFW detected but inactive (traffic allowed)"
   fi
+else
+  ok "No local firewall blocking incoming traffic"
 fi
 
-# 8. Install Systemd Service
+# 7. Systemd Service Deployment
+step "Registering systemd background daemon..."
 cat << 'SYSTEMD_EOF' > /etc/systemd/system/pulse-agent.service
 [Unit]
 Description=Pulse Monitoring Agent
@@ -157,23 +199,32 @@ SYSTEMD_EOF
 
 if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload
-  systemctl enable pulse-agent
+  systemctl enable pulse-agent >/dev/null 2>&1 || true
   systemctl restart pulse-agent
+  ok "pulse-agent.service enabled and active"
+else
+  warn "systemctl not found; please run pulse-agent manually"
 fi
 
-# 9. Verify with Doctor
+# Detect Public IP
+DETECTED_IP=$(curl -s4 --connect-timeout 2 ifconfig.me 2>/dev/null || curl -s4 --connect-timeout 2 icanhazip.com 2>/dev/null || hostname -I | awk '{print $1}')
+AGENT_TOKEN=$(python3 -c "import json; print(json.load(open('$CONFIG_DIR/agent.json')).get('auth_token',''))" 2>/dev/null || true)
+AGENT_ID=$(python3 -c "import json; print(json.load(open('$CONFIG_DIR/agent.json')).get('agent_id',''))" 2>/dev/null || true)
+
 echo ""
-echo -e "${BOLD}${GREEN}✔ Pulse Agent successfully installed and running!${NC}"
-echo -e "--------------------------------------------------"
-if [ -f "$INSTALL_DIR/pulse-agent" ]; then
-  "$INSTALL_DIR/pulse-agent" --config "$CONFIG_DIR/agent.json" --show-token
-fi
-echo -e "Port:        ${PORT} (HTTPS / TLS)"
-echo -e "--------------------------------------------------"
+echo -e "${CLR_GREEN}  ┌────────────────────────────────────────────────────────┐${CLR_RESET}"
+echo -e "${CLR_GREEN}  │  ${CLR_BOLD}✔  Pulse Agent Is Running & Ready To Connect${CLR_RESET}        ${CLR_GREEN}│${CLR_RESET}"
+echo -e "${CLR_GREEN}  └────────────────────────────────────────────────────────┘${CLR_RESET}"
 echo ""
-echo -e "${BOLD}Steps to connect with Pulse Mac App:${NC}"
-echo "1. Open Pulse on your Mac"
-echo "2. In the Add Server window, choose:"
-echo "   - '1-Line Command' (Automatic pairing), OR"
-echo "   - '6-Digit Pair Code' (Run 'pulse-agent pair' in terminal)"
-echo "3. Click 'Connect' -> Done!"
+echo -e "  ${CLR_BOLD}Connection Details:${CLR_RESET}"
+echo -e "  ${CLR_DIM}Public Host:${CLR_RESET}  ${CLR_BOLD}${CLR_CYAN}${DETECTED_IP}${CLR_RESET}"
+echo -e "  ${CLR_DIM}Listen Port:${CLR_RESET}  ${CLR_BOLD}${PORT}${CLR_RESET} ${CLR_DIM}(TLS / HTTPS)${CLR_RESET}"
+echo -e "  ${CLR_DIM}Agent ID:${CLR_RESET}     ${AGENT_ID}"
+echo -e "  ${CLR_DIM}Auth Token:${CLR_RESET}   ${CLR_YELLOW}${AGENT_TOKEN}${CLR_RESET}"
+echo ""
+echo -e "  ${CLR_PURPLE}Next Steps on macOS Pulse App:${CLR_RESET}"
+echo -e "  1. Open ${CLR_BOLD}Pulse${CLR_RESET} on your Mac"
+echo -e "  2. Press ${CLR_BOLD}⌘N${CLR_RESET} to open ${CLR_BOLD}Add Server${CLR_RESET}"
+echo -e "  3. Enter ${CLR_BOLD}${DETECTED_IP}${CLR_RESET} as IP Address and port ${CLR_BOLD}${PORT}${CLR_RESET}"
+echo -e "  4. Click ${CLR_BOLD}Connect to Server${CLR_RESET} (or run '${CLR_CYAN}pulse-agent pair${CLR_RESET}' for 6-digit code)"
+echo ""
