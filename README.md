@@ -34,12 +34,18 @@ Pulse takes a different approach:
 
 ### 1. Download Pulse for Mac
 
-Prebuilt universal binaries run natively on both Apple Silicon (M1/M2/M3/M4) and Intel Macs:
+Prebuilt styled DMG installers with native Finder drag-and-drop:
 
-- **[Download Pulse-0.8.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0.dmg)** (Drag-and-Drop installer)
-- **[Download Pulse-0.8.0.pkg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0.pkg)** (Standard macOS package)
+- **[Pulse-0.8.0-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
+- **[Pulse-0.8.0-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0-x86_64.dmg)** — Intel 64-bit Macs
+- **[Pulse-0.8.0-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0-Universal.dmg)** — Universal 2 (runs on all Macs)
+- **[Pulse-0.8.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0.dmg)** — Default Universal installer
 
 Open the `.dmg`, drag **Pulse** to `/Applications`, and open it.
+
+<div align="center" style="margin: 16px 0;">
+  <img src="docs/images/dmg-installer-preview.png" alt="Pulse DMG Installer Preview" width="580" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" />
+</div>
 
 ### 2. Connect Your First Server
 
