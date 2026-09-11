@@ -41,6 +41,8 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     @Published public private(set) var remediationPolicies: [RemediationPolicy] = []
     @Published public private(set) var verificationStatuses: [String: VerificationStatus] = [:]
     @Published public var isDeploymentWindowActive: Bool = false
+    @Published public private(set) var securitySnapshot: SecuritySnapshot?
+    @Published public private(set) var isLoadingSecurity = false
 
     @Published public private(set) var lastError: String?
 
@@ -568,6 +570,23 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
                     self.services = svcs
                 case .failure(let err):
                     PulseLog.agent.error("Failed to fetch services: \(err.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    public func refreshSecurity() {
+        guard let client = client, state.isConnected else { return }
+        isLoadingSecurity = true
+        client.fetchSecurityPorts { result in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.isLoadingSecurity = false
+                switch result {
+                case .success(let snapshot):
+                    self.securitySnapshot = snapshot
+                case .failure(let err):
+                    PulseLog.agent.error("Failed to fetch security ports: \(err.localizedDescription)")
                 }
             }
         }

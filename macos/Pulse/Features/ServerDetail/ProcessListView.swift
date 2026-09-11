@@ -30,23 +30,30 @@ public struct ProcessListView: View {
         VStack(spacing: 12) {
             // Filter and Sort Toolbar
             HStack(spacing: 12) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.secondary)
                     TextField("Search processes or PID...", text: $searchText)
                         .textFieldStyle(.plain)
+                        .font(.system(size: 12))
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(6)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.2)))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
 
                 Picker("Sort by", selection: $sortBy) {
                     Text("CPU %").tag("cpu")
@@ -85,6 +92,7 @@ public struct ProcessListView: View {
                     TableColumn("PID") { proc in
                         Text("\(proc.pid)")
                             .font(.system(size: 11, design: .monospaced))
+                            .monospacedDigit()
                             .foregroundColor(.secondary)
                     }
                     .width(min: 50, ideal: 60, max: 80)
@@ -113,6 +121,7 @@ public struct ProcessListView: View {
                     TableColumn("CPU %") { proc in
                         Text(String(format: "%.1f%%", proc.cpuPercent))
                             .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .monospacedDigit()
                             .foregroundColor(proc.cpuPercent > 50 ? .red : (proc.cpuPercent > 20 ? .orange : .primary))
                     }
                     .width(min: 65, ideal: 75, max: 90)
@@ -120,18 +129,25 @@ public struct ProcessListView: View {
                     TableColumn("Memory") { proc in
                         Text(FormatUtils.bytes(proc.memoryRSSBytes))
                             .font(.system(size: 11, design: .monospaced))
+                            .monospacedDigit()
                     }
                     .width(min: 75, ideal: 90, max: 110)
 
                     TableColumn("State") { proc in
-                        Text(proc.state)
-                            .font(.system(size: 10, weight: .medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(stateColor(proc.state).opacity(0.12))
-                            .foregroundColor(stateColor(proc.state))
-                            .cornerRadius(4)
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(stateColor(proc.state))
+                                .frame(width: 5, height: 5)
+                            Text(proc.state)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(stateColor(proc.state))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background(stateColor(proc.state).opacity(0.12))
+                        .clipShape(Capsule())
                     }
+
                     TableColumn("Actions") { proc in
                         Menu {
                             Button("Terminate (SIGTERM)") {

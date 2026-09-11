@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/pulse-icon.png" alt="Pulse App Icon" width="128" height="128" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 12px;" />
+<img src="docs/images/pulse-icon.png" alt="Pulse App Icon" width="128" height="128" style="margin-bottom: 8px;" />
 
 # Pulse
 
@@ -36,8 +36,8 @@ Pulse takes a different approach:
 
 Prebuilt universal binaries run natively on both Apple Silicon (M1/M2/M3/M4) and Intel Macs:
 
-- **[Download Pulse-0.7.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.7.0.dmg)** (Drag-and-Drop installer)
-- **[Download Pulse-0.7.0.pkg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.7.0.pkg)** (Standard macOS package)
+- **[Download Pulse-0.8.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0.dmg)** (Drag-and-Drop installer)
+- **[Download Pulse-0.8.0.pkg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0.pkg)** (Standard macOS package)
 
 Open the `.dmg`, drag **Pulse** to `/Applications`, and open it.
 
@@ -127,9 +127,9 @@ Sample output:
 
 ```text
 ┌────────────────────────────────────────────────────────┐
-│  Pulse Agent System Doctor (v0.7.0)                    │
+│  Pulse Agent System Doctor (v0.8.0)                    │
 └────────────────────────────────────────────────────────┘
- [✔] Pulse Agent Version        : v0.7.0
+ [✔] Pulse Agent Version        : v0.8.0
  [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_05ae3c)
  [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
  [✔] Systemd Service            : pulse-agent.service is active and running

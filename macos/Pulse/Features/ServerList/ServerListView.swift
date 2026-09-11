@@ -136,8 +136,17 @@ public struct ServerListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .sheet(isPresented: $showAddServerSheet) {
-            AddServerSheet()
+        .sheet(isPresented: Binding(
+            get: { showAddServerSheet || navState.showAddServerSheet },
+            set: { newValue in
+                showAddServerSheet = newValue
+                navState.showAddServerSheet = newValue
+                if !newValue {
+                    navState.pendingServerDraft = nil
+                }
+            }
+        )) {
+            AddServerSheet(draft: navState.pendingServerDraft)
         }
         .sheet(isPresented: $navState.showSettings) {
             AppSettingsView()

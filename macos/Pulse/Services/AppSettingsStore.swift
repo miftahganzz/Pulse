@@ -73,7 +73,18 @@ public final class AppSettingsStore: ObservableObject {
 
     private init() {
         let defaults = UserDefaults.standard
-        self.launchAtLogin = defaults.object(forKey: launchAtLoginKey) as? Bool ?? false
+        if #available(macOS 13.0, *) {
+            let status = SMAppService.mainApp.status
+            if status == .enabled {
+                self.launchAtLogin = true
+            } else if status == .notRegistered {
+                self.launchAtLogin = false
+            } else {
+                self.launchAtLogin = defaults.object(forKey: launchAtLoginKey) as? Bool ?? false
+            }
+        } else {
+            self.launchAtLogin = defaults.object(forKey: launchAtLoginKey) as? Bool ?? false
+        }
         self.showInMenuBar = defaults.object(forKey: showInMenuBarKey) as? Bool ?? true
         self.keepRunningInBackground = defaults.object(forKey: keepRunningInBackgroundKey) as? Bool ?? true
 
@@ -92,9 +103,13 @@ public final class AppSettingsStore: ObservableObject {
         if #available(macOS 13.0, *) {
             do {
                 if enabled {
-                    try SMAppService.mainApp.register()
+                    if SMAppService.mainApp.status != .enabled {
+                        try SMAppService.mainApp.register()
+                    }
                 } else {
-                    try SMAppService.mainApp.unregister()
+                    if SMAppService.mainApp.status == .enabled {
+                        try SMAppService.mainApp.unregister()
+                    }
                 }
             } catch {
                 PulseLog.agent.error("SMAppService toggle failed: \(error.localizedDescription)")

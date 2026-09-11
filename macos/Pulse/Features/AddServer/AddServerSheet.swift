@@ -20,6 +20,15 @@ public struct AddServerSheet: View {
     @State private var pairCode: String = ""
     @State private var errorMessage: String?
 
+    public init(draft: ServerDraft? = nil) {
+        if let draft = draft {
+            _name = State(initialValue: draft.name)
+            _address = State(initialValue: draft.host)
+            _portString = State(initialValue: draft.port.isEmpty ? "8443" : draft.port)
+            _token = State(initialValue: draft.token)
+        }
+    }
+
     @State private var testingClient: PulseAgentClient?
     @State private var isConnecting = false
     @State private var connectedIdentity: AgentIdentity?
@@ -37,6 +46,35 @@ public struct AddServerSheet: View {
             return UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
         }
         return token
+    }
+
+    private var normalizedHost: String {
+        var str = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        if str.hasPrefix("https://") {
+            str = String(str.dropFirst(8))
+        } else if str.hasPrefix("http://") {
+            str = String(str.dropFirst(7))
+        }
+        if let slashIdx = str.firstIndex(of: "/") {
+            str = String(str[..<slashIdx])
+        }
+        return str
+    }
+
+    private var isCloudflareDomain: Bool {
+        let h = normalizedHost.lowercased()
+        return (h.contains(".") && !h.contains(":") && !isIPAddress(h))
+    }
+
+    private var isTailscaleIP: Bool {
+        let h = normalizedHost
+        return h.hasPrefix("100.") || h.hasSuffix(".ts.net")
+    }
+
+    private func isIPAddress(_ str: String) -> Bool {
+        let parts = str.split(separator: ".")
+        guard parts.count == 4 else { return false }
+        return parts.allSatisfy { Int($0) != nil }
     }
 
     private var installCommand: String {
@@ -119,6 +157,7 @@ public struct AddServerSheet: View {
                 switch step {
                 case .enterDetails:
                     Button("Continue") {
+                        applySmartNetworkDefaults()
                         if token.isEmpty {
                             token = generatedToken
                         }
@@ -180,23 +219,66 @@ public struct AddServerSheet: View {
     }
 
     private var enterDetailsView: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Enter Your Server Address")
                     .font(.system(size: 14, weight: .bold))
-                Text("Pulse connects directly to the agent over secure HTTPS & WebSockets.")
+                Text("Connect via Public IP, Tailscale private IP, or Cloudflare Tunnel.")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
 
             Form {
-                TextField("Server Name", text: $name, prompt: Text("e.g. VPS Jakarta / Production"))
-                TextField("IP Address or Domain", text: $address, prompt: Text("e.g. 103.187.144.20 or myvps.com"))
-                TextField("Port (Default 8443)", text: $portString)
+                TextField("Server Name", text: $name, prompt: Text("e.g. Production Jakarta or My VPS"))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    TextField("Host Address", text: $address, prompt: Text("e.g. 103.187.144.20, 100.x.y.z, or pulse.mycorp.com"))
+                        .onChange(of: address) { _ in
+                            checkAddressHints()
+                        }
+
+                    if isCloudflareDomain {
+                        HStack(spacing: 6) {
+                            Image(systemName: "cloud.fill")
+                                .foregroundColor(.blue)
+                                .font(.system(size: 10))
+                            Text("Cloudflare Tunnel hostname detected. Port 443 HTTPS will be used.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.blue)
+                        }
+                    } else if isTailscaleIP {
+                        HStack(spacing: 6) {
+                            Image(systemName: "lock.shield.fill")
+                                .foregroundColor(.green)
+                                .font(.system(size: 10))
+                            Text("Tailscale private network detected. Zero open public ports required.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.green)
+                        }
+                    }
+                }
+
+                TextField("Port", text: $portString)
             }
             .formStyle(.grouped)
 
             Spacer()
+        }
+    }
+
+    private func checkAddressHints() {
+        let clean = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if clean.hasPrefix("https://") && !clean.contains(":") {
+            portString = "443"
+        } else if isCloudflareDomain && portString == "8443" {
+            portString = "443"
+        }
+    }
+
+    private func applySmartNetworkDefaults() {
+        let clean = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if (clean.hasPrefix("https://") || isCloudflareDomain) && portString == "8443" {
+            portString = "443"
         }
     }
 
@@ -206,7 +288,7 @@ public struct AddServerSheet: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Run This Single Command on Your VPS:")
                     .font(.system(size: 13, weight: .bold))
-                Text("Open SSH to \(address.isEmpty ? "your VPS" : address) and paste this line:")
+                Text("Open SSH to \(normalizedHost.isEmpty ? "your VPS" : normalizedHost) and paste this line:")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
@@ -416,7 +498,7 @@ public struct AddServerSheet: View {
         errorMessage = nil
         withAnimation { step = .testingConnection }
 
-        let cleanAddress = address.trimmingCharacters(in: .whitespaces)
+        let cleanAddress = normalizedHost
         let cleanCode = pairCode.trimmingCharacters(in: .whitespaces)
 
         PulseAgentClient.pairWithCode(host: cleanAddress, port: port, pairCode: cleanCode) { result in
@@ -453,8 +535,10 @@ public struct AddServerSheet: View {
         errorMessage = nil
         withAnimation { step = .testingConnection }
 
+        let cleanAddress = normalizedHost
+
         let client = PulseAgentClient(
-            host: address.trimmingCharacters(in: .whitespaces),
+            host: cleanAddress,
             port: port,
             token: token.trimmingCharacters(in: .whitespaces)
         )
@@ -469,7 +553,7 @@ public struct AddServerSheet: View {
                     do {
                         try store.addServer(
                             name: name.trimmingCharacters(in: .whitespaces),
-                            address: address.trimmingCharacters(in: .whitespaces),
+                            address: cleanAddress,
                             port: port,
                             token: token.trimmingCharacters(in: .whitespaces)
                         )
@@ -479,7 +563,7 @@ public struct AddServerSheet: View {
                         withAnimation { self.step = .agentGuide }
                     }
                 case .failure(let err):
-                    self.errorMessage = "Connection failed: \(err.localizedDescription). Ensure the installer command completed on your VPS and port \(portString) is open."
+                    self.errorMessage = "Connection failed: \(err.localizedDescription). Ensure the agent is running and port \(portString) is open."
                     withAnimation { self.step = .agentGuide }
                 }
             }

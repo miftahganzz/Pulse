@@ -19,6 +19,7 @@ import (
 	"github.com/pulse/pulse-agent/internal/pairing"
 	"github.com/pulse/pulse-agent/internal/security"
 	"github.com/pulse/pulse-agent/internal/server"
+	"github.com/pulse/pulse-agent/internal/tunnel"
 )
 
 func main() {
@@ -26,10 +27,11 @@ func main() {
 	showTokenFlag := flag.Bool("show-token", false, "display agent ID and auth token, then exit")
 	versionFlag := flag.Bool("version", false, "display agent version and exit")
 	doctorFlag := flag.Bool("doctor", false, "run system and connectivity diagnostics")
+	tunnelFlag := flag.Bool("tunnel", false, "display Zero-Port Private Network guide (Tailscale / Cloudflare Tunnel)")
 	pairFlag := flag.String("pair", "", "generate or set 6-digit pairing code (use 'new' to generate or provide 6-digit code)")
 	flag.Parse()
 
-	// Handle subcommands if passed as first positional arg e.g. "pulse-agent pair", "pulse-agent doctor"
+	// Handle subcommands if passed as first positional arg e.g. "pulse-agent pair", "pulse-agent doctor", "pulse-agent tunnel"
 	args := flag.Args()
 	if len(args) > 0 {
 		switch args[0] {
@@ -37,6 +39,8 @@ func main() {
 			*versionFlag = true
 		case "doctor":
 			*doctorFlag = true
+		case "tunnel":
+			*tunnelFlag = true
 		case "pair":
 			if len(args) > 1 {
 				*pairFlag = args[1]
@@ -97,6 +101,12 @@ func main() {
 			fmt.Printf("[%s] %-26s : %s\n", icon, item.Name, item.Message)
 		}
 		fmt.Println("================================================================")
+		return
+	}
+
+	// 2. Run Tunnel Guide (Tailscale / Cloudflare)
+	if *tunnelFlag {
+		tunnel.PrintTunnelGuide(cfg.Port)
 		return
 	}
 

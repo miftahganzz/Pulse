@@ -66,9 +66,9 @@ pulse-agent doctor
 Example diagnostic report:
 ```text
 ================================================================
-🩺 Pulse Agent System Doctor (v0.7.0)
+🩺 Pulse Agent System Doctor (v0.8.0)
 ================================================================
-[✔] Pulse Agent Version        : v0.7.0
+[✔] Pulse Agent Version        : v0.8.0
 [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_xxx)
 [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
 [✔] Systemd Service            : pulse-agent.service is active and running

@@ -9,11 +9,15 @@ let package = Package(
     products: [
         .executable(name: "Pulse", targets: ["Pulse"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
+    ],
     targets: [
         .executableTarget(
             name: "Pulse",
-            dependencies: [],
+            dependencies: [
+                .product(name: "Sparkle", package: "Sparkle")
+            ],
             path: "Pulse"
         ),
         .testTarget(
@@ -23,3 +27,4 @@ let package = Package(
         )
     ]
 )
+

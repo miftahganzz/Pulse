@@ -32,33 +32,42 @@ public struct DockerContainersView: View {
         VStack(spacing: 12) {
             // Header Bar
             HStack(spacing: 12) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.secondary)
                     TextField("Search containers by name, image, or ID...", text: $searchText)
                         .textFieldStyle(.plain)
+                        .font(.system(size: 12))
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(6)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.2)))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
 
                 if let ver = manager.dockerVersion, !ver.isEmpty {
                     Text("v\(ver)")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .monospacedDigit()
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(4)
+                        .padding(.vertical, 3)
+                        .background(Color.secondary.opacity(0.08))
+                        .clipShape(Capsule())
                 }
+
 
                 Button(action: { manager.refreshDocker() }) {
                     Image(systemName: "arrow.clockwise")
@@ -120,15 +129,21 @@ public struct DockerContainersView: View {
                     .width(min: 160, ideal: 220)
 
                     TableColumn("State") { c in
-                        Text(c.state)
-                            .font(.system(size: 10, weight: .medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(stateColor(c.state).opacity(0.12))
-                            .foregroundColor(stateColor(c.state))
-                            .cornerRadius(4)
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(stateColor(c.state))
+                                .frame(width: 5, height: 5)
+                            Text(c.state)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(stateColor(c.state))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background(stateColor(c.state).opacity(0.12))
+                        .clipShape(Capsule())
                     }
-                    .width(min: 75, ideal: 85, max: 95)
+                    .width(min: 80, ideal: 90, max: 105)
+
 
                     TableColumn("Status") { c in
                         Text(c.status)

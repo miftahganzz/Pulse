@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct AppSettingsView: View {
     @ObservedObject private var settings = AppSettingsStore.shared
+    @ObservedObject private var updateManager = UpdateManager.shared
     @Environment(\.dismiss) private var dismiss
 
     public init() {}
@@ -61,10 +62,37 @@ public struct AppSettingsView: View {
 
     private var generalTab: some View {
         Form {
-            Section {
+            Section("Startup & Background") {
                 Toggle("Launch Pulse at login", isOn: $settings.launchAtLogin)
                 Toggle("Show icon in Menu Bar", isOn: $settings.showInMenuBar)
                 Toggle("Keep Pulse monitoring in background when window is closed (⌘W)", isOn: $settings.keepRunningInBackground)
+            }
+
+            Section("Software Updates") {
+                Toggle("Automatically check for updates", isOn: $updateManager.automaticallyChecksForUpdates)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Pulse v0.8.0 (Build 8)")
+                            .font(.system(size: 12, weight: .medium))
+                        if let lastCheck = updateManager.lastUpdateCheckDate {
+                            Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("Checks automatically in background")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    Button("Check Now") {
+                        updateManager.checkForUpdates()
+                    }
+                    .disabled(!updateManager.canCheckForUpdates)
+                }
             }
         }
         .formStyle(.grouped)

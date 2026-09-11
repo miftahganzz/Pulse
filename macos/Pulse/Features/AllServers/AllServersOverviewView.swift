@@ -87,15 +87,17 @@ public struct AllServersOverviewView: View {
 private struct ServerOverviewCard: View {
     let server: ServerModel
     @ObservedObject var manager: ServerConnectionManager
+    @State private var isHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(server.name)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 14, weight: .semibold))
                     Text("\(server.address):\(server.port)")
                         .font(.system(size: 11, design: .monospaced))
+                        .monospacedDigit()
                         .foregroundColor(.secondary)
                 }
 
@@ -104,78 +106,137 @@ private struct ServerOverviewCard: View {
                 ServerStatusBadge(state: manager.state)
             }
 
-            Divider()
+            Divider().opacity(0.4)
 
-            // Metrics Summary
+            // Metrics Summary with Mini Gauges
             if let metrics = manager.currentMetrics, manager.state.isConnected {
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("CPU")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.0f%%", metrics.cpu.usagePercent))
-                            .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                            .foregroundColor(metrics.cpu.usagePercent > 85 ? .red : .primary)
-                    }
+                HStack(spacing: 12) {
+                    MiniMetricColumn(
+                        label: "CPU",
+                        value: String(format: "%.0f%%", metrics.cpu.usagePercent),
+                        percent: metrics.cpu.usagePercent,
+                        tintColor: metrics.cpu.usagePercent > 85 ? .red : (metrics.cpu.usagePercent > 70 ? .orange : .blue)
+                    )
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("RAM")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.0f%%", metrics.memory.usagePercent))
-                            .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                            .foregroundColor(metrics.memory.usagePercent > 85 ? .red : .primary)
-                    }
+                    Divider().frame(height: 28).opacity(0.3)
+
+                    MiniMetricColumn(
+                        label: "RAM",
+                        value: String(format: "%.0f%%", metrics.memory.usagePercent),
+                        percent: metrics.memory.usagePercent,
+                        tintColor: metrics.memory.usagePercent > 90 ? .red : (metrics.memory.usagePercent > 75 ? .orange : .indigo)
+                    )
 
                     if let disk = metrics.primaryDisk {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("DISK")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.secondary)
-                            Text(String(format: "%.0f%%", disk.usagePercent))
-                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                        }
+                        Divider().frame(height: 28).opacity(0.3)
+
+                        MiniMetricColumn(
+                            label: "DISK",
+                            value: String(format: "%.0f%%", disk.usagePercent),
+                            percent: disk.usagePercent,
+                            tintColor: disk.usagePercent > 90 ? .red : (disk.usagePercent > 80 ? .orange : .teal)
+                        )
                     }
 
-                    Spacer()
+                    Spacer(minLength: 0)
                 }
             } else {
-                Text(manager.state.displayStatus)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 4)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.4))
+                        .frame(width: 6, height: 6)
+                    Text(manager.state.displayStatus)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
             }
 
-            // Incidents or Health Summary
+            Divider().opacity(0.4)
+
+            // Incidents or Health Status Footer
             let activeIncidents = manager.incidents.filter { $0.status != .resolved }
-            if !activeIncidents.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.red)
-                        .font(.system(size: 11))
-                    Text("\(activeIncidents.count) active incident\(activeIncidents.count > 1 ? "s" : "")")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.red)
-                }
-                .padding(.top, 2)
-            } else if manager.state.isConnected {
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark.circle")
-                        .foregroundColor(.green)
-                        .font(.system(size: 11))
-                    Text("\(manager.monitors.filter { $0.isEnabled }.count) monitors operational")
+            HStack {
+                if !activeIncidents.isEmpty {
+                    HStack(spacing: 5) {
+                        Image(systemName: "exclamationmark.octagon.fill")
+                            .foregroundColor(.red)
+                            .font(.system(size: 10))
+                        Text("\(activeIncidents.count) active incident\(activeIncidents.count > 1 ? "s" : "")")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.red)
+                    }
+                } else if manager.state.isConnected {
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.system(size: 10))
+                        Text("\(manager.monitors.filter { $0.isEnabled }.count) monitors active")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Text("Offline")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
-                .padding(.top, 2)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.secondary.opacity(isHovered ? 0.8 : 0.3))
             }
         }
         .padding(14)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(isHovered ? Color.accentColor.opacity(0.4) : Color.primary.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(isHovered ? 0.05 : 0.02), radius: isHovered ? 6 : 3, x: 0, y: 1)
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
     }
 }
+
+private struct MiniMetricColumn: View {
+    let label: String
+    let value: String
+    let percent: Double
+    let tintColor: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(.secondary)
+
+            Text(value)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundColor(.primary)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.primary.opacity(0.06))
+                        .frame(height: 3.5)
+
+                    Capsule()
+                        .fill(tintColor)
+                        .frame(width: max(2, min(geo.size.width, geo.size.width * CGFloat(percent / 100.0))), height: 3.5)
+                }
+            }
+            .frame(width: 50, height: 3.5)
+        }
+    }
+}
+

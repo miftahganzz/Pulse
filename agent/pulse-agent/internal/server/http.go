@@ -128,6 +128,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/v1/actions/execute", s.handleActionExecute)
 	mux.HandleFunc("/api/v1/providers", s.handleProviders)
 	mux.HandleFunc("/api/v1/agent/health", s.handleAgentHealth)
+	mux.HandleFunc("/api/v1/security/ports", s.handleSecurityPorts)
 	mux.HandleFunc("/api/v1/intelligence/suggested-dependencies", s.handleSuggestedDependencies)
 	mux.HandleFunc("/ws/v1/stream", s.handleStream)
 
@@ -700,3 +701,21 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 		"hostname":   session.Hostname,
 	})
 }
+
+func (s *Server) handleSecurityPorts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	snap := security.CollectPortsSnapshot()
+	env, err := transport.NewEnvelope("security.ports_snapshot", snap)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(env)
+}
+

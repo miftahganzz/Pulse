@@ -82,11 +82,12 @@ public struct ServerDetailView: View {
                     Text("Processes").tag(3)
                     Text("Services").tag(4)
                     Text("Docker").tag(5)
+                    Text(manager.securitySnapshot?.sensitiveCount ?? 0 > 0 ? "Security (\(manager.securitySnapshot!.sensitiveCount))" : "Security").tag(8)
                     Text("Map").tag(7)
                     Text("Activity").tag(6)
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 680)
+                .frame(maxWidth: 760)
             }
             .padding([.top, .horizontal], 20)
             .padding(.bottom, 12)
@@ -115,6 +116,8 @@ public struct ServerDetailView: View {
                     ActivityLogView(manager: manager)
                 case 7:
                     InfrastructureMapView(manager: manager)
+                case 8:
+                    SecurityPortsView(manager: manager)
                 default:
                     EmptyView()
                 }
@@ -220,52 +223,87 @@ public struct ServerDetailView: View {
                         }
                     }
 
-                    // 2. Resource Trends & Disk Growth Analytics (Phase 7)
+                    // 2. Resource Trends & Disk Growth Analytics
                     let trends = MetricsHistoryStore.analyzeTrends(for: manager.metricsHistory)
                     HStack(spacing: 14) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
                                 Image(systemName: "chart.line.uptrend.xyaxis")
+                                    .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.accentColor)
-                                Text("Resource Trend")
+                                    .frame(width: 22, height: 22)
+                                    .background(Color.accentColor.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                                Text("Resource Trend (1h)")
                                     .font(.system(size: 13, weight: .semibold))
                             }
-                            HStack(spacing: 12) {
-                                Text(String(format: "CPU: %+.1f%%", trends.cpuDelta))
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .foregroundColor(trends.cpuDelta > 5 ? .red : (trends.cpuDelta < -5 ? .green : .secondary))
+                            HStack(spacing: 16) {
+                                HStack(spacing: 4) {
+                                    Text("CPU:")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                    Text(String(format: "%+.1f%%", trends.cpuDelta))
+                                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                        .monospacedDigit()
+                                        .foregroundColor(trends.cpuDelta > 5 ? .red : (trends.cpuDelta < -5 ? .green : .secondary))
+                                }
 
-                                Text(String(format: "RAM: %+.1f%%", trends.memoryDelta))
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .foregroundColor(trends.memoryDelta > 5 ? .red : (trends.memoryDelta < -5 ? .green : .secondary))
+                                HStack(spacing: 4) {
+                                    Text("RAM:")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                    Text(String(format: "%+.1f%%", trends.memoryDelta))
+                                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                        .monospacedDigit()
+                                        .foregroundColor(trends.memoryDelta > 5 ? .red : (trends.memoryDelta < -5 ? .green : .secondary))
+                                }
                             }
                         }
-                        .padding(12)
+                        .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                        )
 
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "internaldrive.fill")
-                                    .foregroundColor(.accentColor)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "internaldrive")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.teal)
+                                    .frame(width: 22, height: 22)
+                                    .background(Color.teal.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
                                 Text("Estimated Disk Growth")
                                     .font(.system(size: 13, weight: .semibold))
                             }
                             if let days = trends.estimatedDaysToFull, days > 0 {
                                 Text(String(format: "%+.1f MB/day · ~%.0f days to full", trends.diskGrowthPerDayBytes / 1024 / 1024, days))
-                                    .font(.system(size: 11, design: .monospaced))
+                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                    .monospacedDigit()
                                     .foregroundColor(days < 14 ? .orange : .secondary)
                             } else {
-                                Text("Disk usage stable or rate not yet determined")
-                                    .font(.system(size: 11))
+                                Text("Usage rate steady or baseline calculating")
+                                    .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                             }
                         }
-                        .padding(12)
+                        .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                        )
                     }
 
                     // 3. Historical Charts (1h trends via Swift Charts)
@@ -274,93 +312,107 @@ public struct ServerDetailView: View {
                     Divider()
                 }
 
-                // 3. System & Agent Identity Information
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Server Identity")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.secondary)
+                // 4. System & Agent Identity Information
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        Text("Server Identity")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
 
                     if let identity = manager.identity {
-                        Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
-                            GridRow {
-                                Text("Hostname")
-                                    .foregroundColor(.secondary)
-                                Text(identity.hostname)
-                                    .fontWeight(.medium)
-                            }
-                            GridRow {
-                                Text("OS")
-                                    .foregroundColor(.secondary)
-                                Text(identity.os)
-                                    .fontWeight(.medium)
-                            }
-                            GridRow {
-                                Text("Kernel")
-                                    .foregroundColor(.secondary)
-                                Text(identity.kernelVersion)
-                                    .fontWeight(.medium)
-                            }
-                            GridRow {
-                                Text("Architecture")
-                                    .foregroundColor(.secondary)
-                                Text(identity.architecture)
-                                    .fontWeight(.medium)
-                            }
-                            GridRow {
-                                Text("CPU Cores")
-                                    .foregroundColor(.secondary)
-                                Text("\(identity.cpuCores) cores")
-                                    .fontWeight(.medium)
-                            }
-                            GridRow {
-                                Text("Agent Version")
-                                    .foregroundColor(.secondary)
-                                Text("v\(identity.agentVersion)")
-                                    .fontWeight(.medium)
-                            }
-                            GridRow {
-                                Text("Agent ID")
-                                    .foregroundColor(.secondary)
-                                Text(identity.agentID)
-                                    .font(.system(.body, design: .monospaced))
-                            }
+                        VStack(spacing: 0) {
+                            ServerIdentityRow(label: "Hostname", value: identity.hostname, canCopy: true)
+                            Divider().padding(.horizontal, 14).opacity(0.3)
+                            ServerIdentityRow(label: "Operating System", value: identity.os)
+                            Divider().padding(.horizontal, 14).opacity(0.3)
+                            ServerIdentityRow(label: "Kernel Release", value: identity.kernelVersion, isMonospace: true)
+                            Divider().padding(.horizontal, 14).opacity(0.3)
+                            ServerIdentityRow(label: "Architecture", value: identity.architecture)
+                            Divider().padding(.horizontal, 14).opacity(0.3)
+                            ServerIdentityRow(label: "CPU Cores", value: "\(identity.cpuCores) Cores")
+                            Divider().padding(.horizontal, 14).opacity(0.3)
+                            ServerIdentityRow(label: "Agent Version", value: "v\(identity.agentVersion)", isMonospace: true)
+                            Divider().padding(.horizontal, 14).opacity(0.3)
+                            ServerIdentityRow(label: "Agent UUID", value: identity.agentID, isMonospace: true, canCopy: true)
                         }
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                        )
                     } else {
-                        HStack {
+                        HStack(spacing: 8) {
                             ProgressView()
                                 .controlSize(.small)
                             Text("Waiting for server identity...")
                                 .foregroundColor(.secondary)
-                                .font(.system(size: 13))
+                                .font(.system(size: 12))
                         }
-                        .padding(.vertical, 4)
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                        )
                     }
                 }
 
                 if let heartbeat = manager.lastHeartbeat {
-                    Divider()
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "waveform.path.ecg")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            Text("Connection Telemetry")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Connection Health")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 14) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text("Uptime")
-                                    .font(.caption)
+                                    .font(.system(size: 10, weight: .medium))
                                     .foregroundColor(.secondary)
                                 Text(formatDuration(seconds: heartbeat.uptimeSeconds))
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                    .monospacedDigit()
                             }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color(nsColor: .controlBackgroundColor))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                            )
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text("Heartbeat Sequence")
-                                    .font(.caption)
+                                    .font(.system(size: 10, weight: .medium))
                                     .foregroundColor(.secondary)
                                 Text("#\(heartbeat.sequence)")
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                    .monospacedDigit()
                             }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color(nsColor: .controlBackgroundColor))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                            )
                         }
                     }
                 }
@@ -370,6 +422,7 @@ public struct ServerDetailView: View {
             .padding(20)
         }
     }
+
 
     private func formatDuration(seconds: Int64) -> String {
         let days = seconds / 86400
@@ -383,3 +436,46 @@ public struct ServerDetailView: View {
         return String(format: "%02dm %02ds", mins, seconds % 60)
     }
 }
+
+private struct ServerIdentityRow: View {
+    let label: String
+    let value: String
+    var isMonospace: Bool = false
+    var canCopy: Bool = false
+    @State private var copied = false
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Text(value)
+                .font(isMonospace ? .system(size: 12, design: .monospaced) : .system(size: 12, weight: .medium))
+                .monospacedDigit()
+                .foregroundColor(.primary)
+
+            if canCopy {
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(value, forType: .string)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        copied = false
+                    }
+                } label: {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 11))
+                        .foregroundColor(copied ? .green : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Copy \(label)")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+    }
+}
+

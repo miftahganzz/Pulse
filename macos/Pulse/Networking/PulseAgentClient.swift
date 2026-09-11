@@ -110,6 +110,34 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         }.resume()
     }
 
+    public func fetchSecurityPorts(completion: @escaping @Sendable (Result<SecuritySnapshot, Error>) -> Void) {
+        guard let url = URL(string: "https://\(host):\(port)/api/v1/security/ports") else {
+            completion(.failure(URLError(.badURL)))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        session.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data else {
+                completion(.failure(PulseClientError.httpError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 500)))
+                return
+            }
+            do {
+                let env = try JSONDecoder().decode(ProtocolEnvelope<SecuritySnapshot>.self, from: data)
+                completion(.success(env.payload))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
     public func killProcess(pid: Int, signal: String, completion: @escaping @Sendable (Result<String, Error>) -> Void) {
         guard let url = URL(string: "https://\(host):\(port)/api/v1/processes/\(pid)/kill") else {
             completion(.failure(URLError(.badURL)))

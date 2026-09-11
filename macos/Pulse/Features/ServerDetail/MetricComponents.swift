@@ -7,46 +7,48 @@ public struct CPUMetricCard: View {
         MetricCardView(
             title: "CPU (\(cpu.cores) Cores)",
             systemImage: "cpu",
+            tintColor: cpuColor(cpu.usagePercent),
             subtitle: String(format: "%.1f%%", cpu.usagePercent)
         ) {
-            VStack(alignment: .leading, spacing: 10) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.secondary.opacity(0.15))
-                            .frame(height: 8)
+            VStack(alignment: .leading, spacing: 12) {
+                // Prominent Usage & Progress Bar
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(String(format: "%.1f", cpu.usagePercent))
+                            .font(.system(size: 24, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                        Text("%")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundColor(.secondary)
 
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(cpuColor(cpu.usagePercent))
-                            .frame(width: max(0, min(geo.size.width, geo.size.width * CGFloat(cpu.usagePercent / 100.0))), height: 8)
+                        Spacer()
                     }
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.primary.opacity(0.06))
+                                .frame(height: 6)
+
+                            Capsule()
+                                .fill(cpuColor(cpu.usagePercent))
+                                .frame(width: max(4, min(geo.size.width, geo.size.width * CGFloat(cpu.usagePercent / 100.0))), height: 6)
+                        }
+                    }
+                    .frame(height: 6)
                 }
-                .frame(height: 8)
 
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("User")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.1f%%", cpu.userPercent))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("System")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.1f%%", cpu.systemPercent))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Steal")
-                            .font(.system(size: 10))
-                            .foregroundColor(cpu.stealPercent > 5.0 ? .red : .secondary)
-                        Text(String(format: "%.1f%%", cpu.stealPercent))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                            .foregroundColor(cpu.stealPercent > 5.0 ? .red : .primary)
-                    }
-                    Spacer()
+                // Stats Columns
+                HStack(spacing: 0) {
+                    MetricStatColumn(label: "User", value: String(format: "%.1f%%", cpu.userPercent))
+                    Divider().frame(height: 18).opacity(0.3)
+                    MetricStatColumn(label: "System", value: String(format: "%.1f%%", cpu.systemPercent))
+                    Divider().frame(height: 18).opacity(0.3)
+                    MetricStatColumn(
+                        label: "Steal",
+                        value: String(format: "%.1f%%", cpu.stealPercent),
+                        highlightColor: cpu.stealPercent > 5.0 ? .red : nil
+                    )
                 }
             }
         }
@@ -66,47 +68,46 @@ public struct MemoryMetricCard: View {
         MetricCardView(
             title: "Memory",
             systemImage: "memorychip",
+            tintColor: memColor(mem.usagePercent),
             subtitle: "\(FormatUtils.bytes(mem.usedBytes)) / \(FormatUtils.bytes(mem.totalBytes))"
         ) {
-            VStack(alignment: .leading, spacing: 10) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.secondary.opacity(0.15))
-                            .frame(height: 8)
-
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(memColor(mem.usagePercent))
-                            .frame(width: max(0, min(geo.size.width, geo.size.width * CGFloat(mem.usagePercent / 100.0))), height: 8)
-                    }
-                }
-                .frame(height: 8)
-
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Usage")
-                            .font(.system(size: 10))
+            VStack(alignment: .leading, spacing: 12) {
+                // Prominent Usage & Progress Bar
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(String(format: "%.1f", mem.usagePercent))
+                            .font(.system(size: 24, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                        Text("%")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
                             .foregroundColor(.secondary)
-                        Text(String(format: "%.1f%%", mem.usagePercent))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+
+                        Spacer()
                     }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Available")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                        Text(FormatUtils.bytes(mem.availableBytes))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    }
-                    if mem.swapTotalBytes > 0 {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Swap")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                            Text("\(FormatUtils.bytes(mem.swapUsedBytes)) / \(FormatUtils.bytes(mem.swapTotalBytes))")
-                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.primary.opacity(0.06))
+                                .frame(height: 6)
+
+                            Capsule()
+                                .fill(memColor(mem.usagePercent))
+                                .frame(width: max(4, min(geo.size.width, geo.size.width * CGFloat(mem.usagePercent / 100.0))), height: 6)
                         }
                     }
-                    Spacer()
+                    .frame(height: 6)
+                }
+
+                // Stats Columns
+                HStack(spacing: 0) {
+                    MetricStatColumn(label: "Used", value: FormatUtils.bytes(mem.usedBytes))
+                    Divider().frame(height: 18).opacity(0.3)
+                    MetricStatColumn(label: "Available", value: FormatUtils.bytes(mem.availableBytes))
+                    if mem.swapTotalBytes > 0 {
+                        Divider().frame(height: 18).opacity(0.3)
+                        MetricStatColumn(label: "Swap", value: FormatUtils.bytes(mem.swapUsedBytes))
+                    }
                 }
             }
         }
@@ -115,7 +116,7 @@ public struct MemoryMetricCard: View {
     private func memColor(_ pct: Double) -> Color {
         if pct > 90 { return .red }
         if pct > 75 { return .orange }
-        return .green
+        return .indigo
     }
 }
 
@@ -126,47 +127,49 @@ public struct DiskMetricCard: View {
         MetricCardView(
             title: "Disk (\(disk.mountPoint))",
             systemImage: "internaldrive",
+            tintColor: diskColor(disk.usagePercent),
             subtitle: "\(FormatUtils.bytes(disk.usedBytes)) / \(FormatUtils.bytes(disk.totalBytes))"
         ) {
-            VStack(alignment: .leading, spacing: 10) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.secondary.opacity(0.15))
-                            .frame(height: 8)
-
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(diskColor(disk.usagePercent))
-                            .frame(width: max(0, min(geo.size.width, geo.size.width * CGFloat(disk.usagePercent / 100.0))), height: 8)
-                    }
-                }
-                .frame(height: 8)
-
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Usage")
-                            .font(.system(size: 10))
+            VStack(alignment: .leading, spacing: 12) {
+                // Prominent Usage & Progress Bar
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(String(format: "%.1f", disk.usagePercent))
+                            .font(.system(size: 24, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                        Text("%")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
                             .foregroundColor(.secondary)
-                        Text(String(format: "%.1f%%", disk.usagePercent))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+
+                        Spacer()
                     }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Free")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                        Text(FormatUtils.bytes(disk.freeBytes))
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    }
-                    if disk.readBytesPerSec > 0 || disk.writeBytesPerSec > 0 {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Disk I/O")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                            Text("R: \(FormatUtils.rate(disk.readBytesPerSec)) W: \(FormatUtils.rate(disk.writeBytesPerSec))")
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.primary.opacity(0.06))
+                                .frame(height: 6)
+
+                            Capsule()
+                                .fill(diskColor(disk.usagePercent))
+                                .frame(width: max(4, min(geo.size.width, geo.size.width * CGFloat(disk.usagePercent / 100.0))), height: 6)
                         }
                     }
-                    Spacer()
+                    .frame(height: 6)
+                }
+
+                // Stats Columns
+                HStack(spacing: 0) {
+                    MetricStatColumn(label: "Used", value: FormatUtils.bytes(disk.usedBytes))
+                    Divider().frame(height: 18).opacity(0.3)
+                    MetricStatColumn(label: "Free", value: FormatUtils.bytes(disk.freeBytes))
+                    if disk.readBytesPerSec > 0 || disk.writeBytesPerSec > 0 {
+                        Divider().frame(height: 18).opacity(0.3)
+                        MetricStatColumn(
+                            label: "I/O Rate",
+                            value: "↓\(FormatUtils.rate(disk.readBytesPerSec)) ↑\(FormatUtils.rate(disk.writeBytesPerSec))"
+                        )
+                    }
                 }
             }
         }
@@ -175,7 +178,7 @@ public struct DiskMetricCard: View {
     private func diskColor(_ pct: Double) -> Color {
         if pct > 90 { return .red }
         if pct > 80 { return .orange }
-        return .purple
+        return .teal
     }
 }
 
@@ -186,51 +189,93 @@ public struct NetworkMetricCard: View {
         MetricCardView(
             title: "Network I/O",
             systemImage: "network",
-            subtitle: "Total Interface Rate"
+            tintColor: .green,
+            subtitle: "All Interfaces"
         ) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 24) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 16) {
+                    // Download Block
                     HStack(spacing: 8) {
-                        Image(systemName: "arrow.down.circle.fill")
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.blue)
-                            .font(.system(size: 16))
-                        VStack(alignment: .leading, spacing: 2) {
+                            .frame(width: 22, height: 22)
+                            .background(Color.blue.opacity(0.12))
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 1) {
                             Text("Download")
-                                .font(.system(size: 10))
+                                .font(.system(size: 10, weight: .medium))
                                 .foregroundColor(.secondary)
                             Text(FormatUtils.rate(network.rxBytesPerSec))
-                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .monospacedDigit()
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
+                    Divider().frame(height: 28).opacity(0.3)
+
+                    // Upload Block
                     HStack(spacing: 8) {
-                        Image(systemName: "arrow.up.circle.fill")
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.green)
-                            .font(.system(size: 16))
-                        VStack(alignment: .leading, spacing: 2) {
+                            .frame(width: 22, height: 22)
+                            .background(Color.green.opacity(0.12))
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 1) {
                             Text("Upload")
-                                .font(.system(size: 10))
+                                .font(.system(size: 10, weight: .medium))
                                 .foregroundColor(.secondary)
                             Text(FormatUtils.rate(network.txBytesPerSec))
-                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .monospacedDigit()
                         }
                     }
-
-                    Spacer()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(spacing: 16) {
-                    Text("Total: ↓ \(FormatUtils.bytes(network.totalRxBytes))  ↑ \(FormatUtils.bytes(network.totalTxBytes))")
-                        .font(.system(size: 10, design: .monospaced))
+                HStack(spacing: 8) {
+                    Text("Total: ↓ \(FormatUtils.bytes(network.totalRxBytes)) · ↑ \(FormatUtils.bytes(network.totalTxBytes))")
+                        .font(.system(size: 11, design: .monospaced))
+                        .monospacedDigit()
                         .foregroundColor(.secondary)
 
+                    Spacer()
+
                     if network.errors > 0 {
-                        Text("Errors: \(network.errors)")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.red)
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 10))
+                            Text("\(network.errors) errors")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(.red)
                     }
                 }
             }
         }
     }
 }
+
+private struct MetricStatColumn: View {
+    let label: String
+    let value: String
+    var highlightColor: Color? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .monospacedDigit()
+                .foregroundColor(highlightColor ?? .primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+

@@ -22,6 +22,19 @@ struct PulseApp: App {
         .commands {
             SidebarCommands()
 
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates...") {
+                    UpdateManager.shared.checkForUpdates()
+                }
+            }
+
+            CommandGroup(after: .newItem) {
+                Button("Add Server...") {
+                    NavigationState.shared.showAddServerSheet = true
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
                     NavigationState.shared.showSettings = true

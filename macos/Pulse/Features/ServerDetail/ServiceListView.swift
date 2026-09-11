@@ -25,23 +25,30 @@ public struct ServiceListView: View {
         VStack(spacing: 12) {
             // Search and Refresh Header
             HStack(spacing: 12) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.secondary)
                     TextField("Search systemd services...", text: $searchText)
                         .textFieldStyle(.plain)
+                        .font(.system(size: 12))
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(6)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.2)))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
 
                 Button(action: { manager.refreshServices() }) {
                     Image(systemName: "arrow.clockwise")
@@ -58,9 +65,9 @@ public struct ServiceListView: View {
                 .frame(maxWidth: .infinity, maxHeight: 200)
             } else if filteredServices.isEmpty {
                 VStack(spacing: 8) {
-                    Image(systemName: "gearshape.2")
+                    Image(systemName: "slash.circle")
                         .foregroundColor(.secondary)
-                    Text("No services found.")
+                    Text("No services match the filter.")
                         .foregroundColor(.secondary)
                         .font(.caption)
                 }
@@ -86,13 +93,18 @@ public struct ServiceListView: View {
                         Spacer()
 
                         HStack(spacing: 8) {
-                            Text("\(svc.activeState) (\(svc.subState))")
-                                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .foregroundColor(statusColor(svc))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(statusColor(svc).opacity(0.1))
-                                .cornerRadius(4)
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(statusColor(svc))
+                                    .frame(width: 5, height: 5)
+                                Text("\(svc.activeState) (\(svc.subState))")
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(statusColor(svc))
+                            }
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2.5)
+                            .background(statusColor(svc).opacity(0.12))
+                            .clipShape(Capsule())
 
                             if activeServiceAction[svc.name] != nil {
                                 ProgressView()

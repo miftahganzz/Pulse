@@ -7,14 +7,26 @@ CONTENTS_DIR="${BUNDLE_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 
+FRAMEWORKS_DIR="${CONTENTS_DIR}/Frameworks"
+
 echo "Building Universal 2 binary..."
 swift build -c release --arch arm64 --arch x86_64
 
 echo "Creating ${APP_NAME}.app bundle..."
 rm -rf build
-mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
+mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}" "${FRAMEWORKS_DIR}"
 
 cp .build/apple/Products/Release/Pulse "${MACOS_DIR}/${APP_NAME}"
+if [ -f "Resources/AppIcon.icns" ]; then
+    cp "Resources/AppIcon.icns" "${RESOURCES_DIR}/"
+fi
+
+# Embed Sparkle.framework if available in build artifacts
+SPARKLE_FW=$(find .build -name "Sparkle.framework" -type d | head -n 1)
+if [ -n "${SPARKLE_FW}" ] && [ -d "${SPARKLE_FW}" ]; then
+    echo "Embedding Sparkle framework from ${SPARKLE_FW}..."
+    cp -R "${SPARKLE_FW}" "${FRAMEWORKS_DIR}/"
+fi
 
 cat << 'PLIST' > "${CONTENTS_DIR}/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -34,13 +46,34 @@ cat << 'PLIST' > "${CONTENTS_DIR}/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>0.8.0</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>8</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Pulse Contributors. Released under MIT License.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.pulse.Pulse.url</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>pulse</string>
+            </array>
+        </dict>
+    </array>
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/miftahganzz/Pulse/main/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
 </dict>
 </plist>
 PLIST
