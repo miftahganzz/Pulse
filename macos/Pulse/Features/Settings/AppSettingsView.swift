@@ -67,6 +67,12 @@ public struct AppSettingsView: View {
                 Toggle("Show icon in Menu Bar", isOn: $settings.showInMenuBar)
                 Toggle("Keep Pulse monitoring in background when window is closed (⌘W)", isOn: $settings.keepRunningInBackground)
                 Toggle("Show startup motion animation", isOn: $settings.showLaunchMotion)
+
+                Divider()
+
+                Button("Replay Welcome & Feature Tour") {
+                    settings.resetWelcomeGuide()
+                }
             }
 
             Section("Software Updates") {

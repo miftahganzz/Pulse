@@ -173,9 +173,14 @@ public struct ServerListView: View {
         }
         .overlay {
             if isShowingLaunchMotion && settings.showLaunchMotion {
-                AppLaunchMotionView(isPresented: $isShowingLaunchMotion)
-                    .transition(.opacity)
-                    .zIndex(999)
+                AppLaunchMotionView(
+                    isPresented: $isShowingLaunchMotion,
+                    onAddServerRequested: {
+                        showAddServerSheet = true
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(999)
             }
         }
     }
