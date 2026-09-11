@@ -13,7 +13,8 @@ struct PulseApp: App {
     var body: some Scene {
         WindowGroup {
             ServerListView()
-                .frame(minWidth: 780, minHeight: 500)
+                .frame(minWidth: 780, idealWidth: 960, maxWidth: 1280,
+                       minHeight: 500, idealHeight: 640, maxHeight: 860)
                 .preferredColorScheme(colorScheme)
                 .onOpenURL { url in
                     NavigationState.shared.handleDeepLink(url: url)
@@ -119,6 +120,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Pool connects automatically on startup
         ServerConnectionPool.shared.syncWithStore()
+
+        // Disable fullscreen — Pulse has a fixed max size, fullscreen doesn't make sense
+        DispatchQueue.main.async {
+            NSApp.windows.forEach { window in
+                // NSWindowCollectionBehaviorFullScreenNone (1 << 9) explicitly disables fullscreen
+                let fullScreenNone = NSWindow.CollectionBehavior(rawValue: 1 << 9)
+                window.collectionBehavior.insert(fullScreenNone)
+            }
+        }
 
         // Handle sleep / wake notifications to prevent fake incidents
         NSWorkspace.shared.notificationCenter.addObserver(
