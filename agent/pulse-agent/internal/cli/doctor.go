@@ -15,9 +15,8 @@ func RunDoctor(configPath string) {
 		return
 	}
 
-	fmt.Println("================================================================")
-	fmt.Printf("🩺 Pulse Agent System Doctor (v%s)\n", agent.CurrentAgentVersion)
-	fmt.Println("================================================================")
+	fmt.Println()
+	fmt.Printf("  %s🩺 Pulse Agent System Doctor (v%s)%s\n\n", Bold, agent.CurrentAgentVersion, Reset)
 	report := doctor.RunDiagnostics(configPath, cfg)
 	for _, item := range report.Items {
 		var icon string
@@ -29,7 +28,7 @@ func RunDoctor(configPath string) {
 		case doctor.StatusFail:
 			icon = Red + "✖" + Reset
 		}
-		fmt.Printf("[%s] %-26s : %s\n", icon, item.Name, item.Message)
+		fmt.Printf("  [%s] %-26s : %s\n", icon, item.Name, item.Message)
 	}
-	fmt.Println("================================================================")
+	fmt.Println()
 }

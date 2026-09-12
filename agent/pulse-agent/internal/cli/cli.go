@@ -21,11 +21,7 @@ const (
 )
 
 func PrintBanner() {
-	fmt.Println()
-	fmt.Printf("%s  ┌────────────────────────────────────────────────────────┐%s\n", Purple, Reset)
-	fmt.Printf("%s  │%s  %s%sP U L S E%s  %s•%s  Infrastructure Observability CLI        %s│%s\n", Purple, Reset, Bold, Cyan, Reset, Dim, Reset, Purple, Reset)
-	fmt.Printf("%s  └────────────────────────────────────────────────────────┘%s\n", Purple, Reset)
-	fmt.Println()
+	fmt.Printf("\n  %sPulse%s %s(v%s)%s  •  Infrastructure Observability CLI\n\n", Bold, Reset, Dim, agent.CurrentAgentVersion, Reset)
 }
 
 func PrintHelp() {

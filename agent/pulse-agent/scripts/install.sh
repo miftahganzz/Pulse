@@ -34,9 +34,7 @@ fail() {
 
 clear_screen_header() {
   echo ""
-  echo -e "${CLR_PURPLE}  ┌────────────────────────────────────────────────────────┐${CLR_RESET}"
-  echo -e "${CLR_PURPLE}  │${CLR_RESET}  ${CLR_BOLD}${CLR_CYAN}P U L S E${CLR_RESET}  ${CLR_DIM}•${CLR_RESET}  Native Infrastructure Observability Agent  ${CLR_PURPLE}│${CLR_RESET}"
-  echo -e "${CLR_PURPLE}  └────────────────────────────────────────────────────────┘${CLR_RESET}"
+  echo -e "  ${CLR_BOLD}${CLR_CYAN}Pulse${CLR_RESET}  ${CLR_DIM}•  Infrastructure Observability Agent${CLR_RESET}"
   echo ""
 }
 
@@ -227,9 +225,7 @@ AGENT_TOKEN=$(python3 -c "import json; print(json.load(open('$CONFIG_DIR/agent.j
 AGENT_ID=$(python3 -c "import json; print(json.load(open('$CONFIG_DIR/agent.json')).get('agent_id',''))" 2>/dev/null || true)
 
 echo ""
-echo -e "${CLR_GREEN}  ┌────────────────────────────────────────────────────────┐${CLR_RESET}"
-echo -e "${CLR_GREEN}  │  ${CLR_BOLD}✔  Pulse Agent Is Running & Ready To Connect${CLR_RESET}        ${CLR_GREEN}│${CLR_RESET}"
-echo -e "${CLR_GREEN}  └────────────────────────────────────────────────────────┘${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_GREEN}✔  Pulse Agent is running & ready to connect${CLR_RESET}"
 echo ""
 echo -e "  ${CLR_BOLD}Connection Details:${CLR_RESET}"
 echo -e "  ${CLR_DIM}Public Host:${CLR_RESET}  ${CLR_BOLD}${CLR_CYAN}${DETECTED_IP}${CLR_RESET}"

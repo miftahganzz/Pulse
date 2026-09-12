@@ -32,9 +32,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo ""
-echo -e "${CLR_PURPLE}  ┌──────────────────────────────────────────────────────────┐${CLR_RESET}"
-echo -e "${CLR_PURPLE}  │${CLR_RESET}  ${CLR_BOLD}${CLR_CYAN}PULSE${CLR_RESET} + ${CLR_BOLD}CLOUDFLARE TUNNEL${CLR_RESET}  •  Zero Inbound Ports     ${CLR_PURPLE}│${CLR_RESET}"
-echo -e "${CLR_PURPLE}  └──────────────────────────────────────────────────────────┘${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_CYAN}Pulse${CLR_RESET} + ${CLR_BOLD}Cloudflare Tunnel${CLR_RESET}  ${CLR_DIM}•  Zero Inbound Ports${CLR_RESET}"
 echo ""
 
 [ "$EUID" -ne 0 ] && fail "Run with sudo."
@@ -104,9 +102,7 @@ else
 fi
 
 echo ""
-echo -e "${CLR_GREEN}  ┌──────────────────────────────────────────────────────────┐${CLR_RESET}"
-echo -e "${CLR_GREEN}  │  ${CLR_BOLD}✔  Ready — Connect via Cloudflare Tunnel${CLR_RESET}              ${CLR_GREEN}│${CLR_RESET}"
-echo -e "${CLR_GREEN}  └──────────────────────────────────────────────────────────┘${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_GREEN}✔  Ready — Connect via Cloudflare Tunnel${CLR_RESET}"
 echo ""
 echo -e "  ${CLR_BOLD}Tunnel URL:${CLR_RESET}     ${CLR_CYAN}${TUNNEL_URL:-"check /tmp/cloudflared.log"}${CLR_RESET}"
 echo -e "  ${CLR_BOLD}Port:${CLR_RESET}           ${PORT_TO_USE} (Cloudflare terminates SSL)"

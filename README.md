@@ -101,11 +101,10 @@ If you prefer not to pass tokens over command-line arguments:
    ```
    Output:
    ```text
-   ┌────────────────────────────────────────────────────────┐
-   │  Pulse XXX-XXX Pairing Mode                            │
-   │  Pairing Code: 653-557                                 │
-   │  Expires in:   10 minutes                              │
-   └────────────────────────────────────────────────────────┘
+   Pair Code Ready:  653-557
+   Server Host:      ubuntu-srv
+   Port:             8443
+   Validity:         10 minutes (Single-use)
    ```
 3. In Pulse on your Mac, select **XXX-XXX Pair Code**, enter your server's public IP and the code `653-557`, then click **Verify & Pair**.
 
@@ -301,9 +300,8 @@ pulse-agent doctor
 Sample output:
 
 ```text
-┌────────────────────────────────────────────────────────┐
-│  Pulse Agent System Doctor (v1.0.0)                    │
-└────────────────────────────────────────────────────────┘
+Pulse Agent System Doctor (v1.0.0)
+
  [✔] Pulse Agent Version        : v1.0.0
  [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_05ae3c)
  [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem

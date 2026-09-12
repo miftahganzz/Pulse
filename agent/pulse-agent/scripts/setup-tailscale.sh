@@ -19,9 +19,7 @@ warn() { echo -e "    ${CLR_YELLOW}⚠${CLR_RESET} $1"; }
 fail() { echo -e "    ${CLR_RED}✖${CLR_RESET} $1"; exit 1; }
 
 echo ""
-echo -e "${CLR_PURPLE}  ┌──────────────────────────────────────────────────────────┐${CLR_RESET}"
-echo -e "${CLR_PURPLE}  │${CLR_RESET}  ${CLR_BOLD}${CLR_CYAN}PULSE${CLR_RESET} + ${CLR_BOLD}TAILSCALE${CLR_RESET}  •  Private WireGuard Mesh Setup      ${CLR_PURPLE}│${CLR_RESET}"
-echo -e "${CLR_PURPLE}  └──────────────────────────────────────────────────────────┘${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_CYAN}Pulse${CLR_RESET} + ${CLR_BOLD}Tailscale${CLR_RESET}  ${CLR_DIM}•  Private WireGuard Mesh Setup${CLR_RESET}"
 echo ""
 
 [ "$EUID" -ne 0 ] && fail "Run with sudo."
@@ -83,9 +81,7 @@ if [ -f "/etc/pulse/agent.json" ]; then
 fi
 
 echo ""
-echo -e "${CLR_GREEN}  ┌──────────────────────────────────────────────────────────┐${CLR_RESET}"
-echo -e "${CLR_GREEN}  │  ${CLR_BOLD}✔  Ready — Connect via Tailscale${CLR_RESET}                      ${CLR_GREEN}│${CLR_RESET}"
-echo -e "${CLR_GREEN}  └──────────────────────────────────────────────────────────┘${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_GREEN}✔  Ready — Connect via Tailscale${CLR_RESET}"
 echo ""
 if [ -n "$TS_IP" ]; then
   echo -e "  ${CLR_BOLD}Tailscale IP:${CLR_RESET}   ${CLR_CYAN}${TS_IP}${CLR_RESET}"
