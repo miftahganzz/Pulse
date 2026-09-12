@@ -129,14 +129,14 @@ func main() {
 		}
 
 		fmt.Println("================================================================")
-		fmt.Println("🔗 Pulse 6-Digit Pairing Mode")
+		fmt.Println("🔗 Pulse Pairing Mode")
 		fmt.Println("================================================================")
 		fmt.Printf("Pairing Code: %s\n", pairCode)
 		fmt.Printf("Server Host:  %s\n", identity.Hostname)
 		fmt.Printf("Server Port:  %d\n", cfg.Port)
 		fmt.Println("Expires in:   10 minutes")
 		fmt.Println("----------------------------------------------------------------")
-		fmt.Println("In your Mac Pulse App, choose '🔢 6-Digit Pair Code', then:")
+		fmt.Println("In your Mac Pulse App, choose '🔢 XXX-XXX Pair Code', then:")
 		fmt.Printf("Enter this server's IP address and Pairing Code: %s\n", pairCode)
 		fmt.Println("================================================================")
 
