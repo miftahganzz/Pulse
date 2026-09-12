@@ -2,8 +2,12 @@ package pairing
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,13 +15,13 @@ import (
 )
 
 type PairSession struct {
-	PairCode    string    `json:"pair_code"`
-	AuthToken   string    `json:"auth_token"`
-	AgentID     string    `json:"agent_id"`
-	Hostname    string    `json:"hostname"`
-	CreatedAt   time.Time `json:"created_at"`
-	ExpiresAt   time.Time `json:"expires_at"`
-	IsClaimed   bool      `json:"is_claimed"`
+	PairCode  string    `json:"pair_code"`
+	AuthToken string    `json:"auth_token"`
+	AgentID   string    `json:"agent_id"`
+	Hostname  string    `json:"hostname"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	IsClaimed bool      `json:"is_claimed"`
 }
 
 type Manager struct {
@@ -39,6 +43,47 @@ func InitGlobalManager(configPath string) *Manager {
 		}
 	})
 	return GlobalManager
+}
+
+func (m *Manager) sessionFilePaths() []string {
+	var paths []string
+	if m.configPath != "" {
+		paths = append(paths, filepath.Join(filepath.Dir(m.configPath), "pairing.json"))
+	}
+	paths = append(paths, "/etc/pulse/pairing.json", "/tmp/pulse-pairing.json")
+	return paths
+}
+
+func (m *Manager) saveSessionToFile(sess *PairSession) {
+	data, err := json.Marshal(sess)
+	if err != nil {
+		return
+	}
+	for _, p := range m.sessionFilePaths() {
+		_ = os.MkdirAll(filepath.Dir(p), 0755)
+		_ = os.WriteFile(p, data, 0666)
+	}
+}
+
+func (m *Manager) loadSessionFromFile() *PairSession {
+	for _, p := range m.sessionFilePaths() {
+		data, err := os.ReadFile(p)
+		if err == nil {
+			var sess PairSession
+			if err := json.Unmarshal(data, &sess); err == nil {
+				if time.Now().Before(sess.ExpiresAt) && !sess.IsClaimed {
+					return &sess
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Manager) clearSessionFiles() {
+	for _, p := range m.sessionFilePaths() {
+		_ = os.Remove(p)
+	}
 }
 
 // GenerateCode creates a XXX-XXX one-time pairing code valid for 10 minutes
@@ -65,6 +110,8 @@ func (m *Manager) GenerateCode(cfg *agent.Config, hostname string) (string, erro
 		IsClaimed: false,
 	}
 
+	m.saveSessionToFile(m.session)
+
 	return code, nil
 }
 
@@ -84,12 +131,22 @@ func (m *Manager) SetExplicitCode(code string, cfg *agent.Config, hostname strin
 		ExpiresAt: now.Add(10 * time.Minute),
 		IsClaimed: false,
 	}
+
+	m.saveSessionToFile(m.session)
 }
 
-// VerifyAndClaim verifies the 6-digit code and returns the auth token if valid
+// VerifyAndClaim verifies the code (with or without hyphens) and returns the auth token if valid
 func (m *Manager) VerifyAndClaim(code string) (*PairSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	// If no in-memory session, attempt to read from disk (cross-process CLI pair)
+	if m.session == nil {
+		if fileSess := m.loadSessionFromFile(); fileSess != nil {
+			m.session = fileSess
+			m.activeCode = fileSess.PairCode
+		}
+	}
 
 	if m.session == nil || m.activeCode == "" {
 		return nil, fmt.Errorf("no active pairing session. Run 'pulse-agent pair' on VPS first")
@@ -98,10 +155,15 @@ func (m *Manager) VerifyAndClaim(code string) (*PairSession, error) {
 	if time.Now().After(m.session.ExpiresAt) {
 		m.activeCode = ""
 		m.session = nil
+		m.clearSessionFiles()
 		return nil, fmt.Errorf("pairing code has expired. Please generate a new code")
 	}
 
-	if m.session.PairCode != code {
+	// Normalize comparison: ignore hyphens and whitespaces so both "788-504" and "788504" match
+	cleanExpected := strings.ReplaceAll(m.session.PairCode, "-", "")
+	cleanInput := strings.ReplaceAll(strings.TrimSpace(code), "-", "")
+
+	if cleanExpected != cleanInput {
 		return nil, fmt.Errorf("invalid pairing code")
 	}
 
@@ -115,6 +177,7 @@ func (m *Manager) VerifyAndClaim(code string) (*PairSession, error) {
 	// Clear active session to prevent reuse
 	m.activeCode = ""
 	m.session = nil
+	m.clearSessionFiles()
 
 	return &claimed, nil
 }
@@ -125,6 +188,9 @@ func (m *Manager) GetStatus() (bool, time.Duration) {
 	defer m.mu.RUnlock()
 
 	if m.session == nil || time.Now().After(m.session.ExpiresAt) {
+		if fileSess := m.loadSessionFromFile(); fileSess != nil {
+			return true, time.Until(fileSess.ExpiresAt)
+		}
 		return false, 0
 	}
 	return true, time.Until(m.session.ExpiresAt)

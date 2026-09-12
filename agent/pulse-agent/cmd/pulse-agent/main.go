@@ -140,17 +140,21 @@ func main() {
 		fmt.Printf("Enter this server's IP address and Pairing Code: %s\n", pairCode)
 		fmt.Println("================================================================")
 
-		// Also notify active running daemon if listening locally
-		go func() {
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		// Notify active running daemon if listening locally
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr, Timeout: 1 * time.Second}
+		body, _ := json.Marshal(map[string]string{"pair_code": pairCode})
+		req, reqErr := http.NewRequest("POST", fmt.Sprintf("https://127.0.0.1:%d/api/v1/pair/register", cfg.Port), bytes.NewReader(body))
+		if reqErr == nil {
+			req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+			req.Header.Set("Content-Type", "application/json")
+			if resp, err := client.Do(req); err == nil {
+				_ = resp.Body.Close()
 			}
-			client := &http.Client{Transport: tr, Timeout: 1 * time.Second}
-			body, _ := json.Marshal(map[string]string{"pair_code": pairCode})
-			_, _ = client.Post(fmt.Sprintf("https://127.0.0.1:%d/api/v1/pair/register", cfg.Port), "application/json", bytes.NewReader(body))
-		}()
+		}
 
-		// If called standalone, wait up to 10 mins or exit if running as service
 		return
 	}
 

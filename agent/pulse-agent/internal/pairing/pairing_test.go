@@ -89,3 +89,30 @@ func TestPairingExpiration(t *testing.T) {
 		t.Fatal("expected error on expired code")
 	}
 }
+
+func TestPairingCrossProcessAndNormalization(t *testing.T) {
+	mgr1 := &Manager{}
+	cfg := &agent.Config{
+		AgentID:   "test-agent-cross",
+		AuthToken: "token-cross-secret",
+	}
+
+	code, err := mgr1.GenerateCode(cfg, "vps-cross")
+	if err != nil {
+		t.Fatalf("failed to generate code: %v", err)
+	}
+
+	// mgr2 simulates a completely separate process (like the background daemon)
+	mgr2 := &Manager{}
+
+	// Test claiming without hyphen
+	noHyphen := code[:3] + code[4:]
+	claimed, err := mgr2.VerifyAndClaim(noHyphen)
+	if err != nil {
+		t.Fatalf("failed to claim without hyphen: %v", err)
+	}
+
+	if claimed.AuthToken != cfg.AuthToken {
+		t.Fatalf("expected token %s, got %s", cfg.AuthToken, claimed.AuthToken)
+	}
+}

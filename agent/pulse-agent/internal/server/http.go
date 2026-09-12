@@ -137,6 +137,7 @@ func (s *Server) Handler() http.Handler {
 	// Root mux with public pairing endpoint
 	rootMux := http.NewServeMux()
 	rootMux.HandleFunc("/api/v1/pair", s.handlePair)
+	rootMux.HandleFunc("/api/v1/pair/register", s.handlePairRegister)
 	rootMux.Handle("/", protectedHandler)
 
 	return rootMux
@@ -700,6 +701,40 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 		"agent_id":   session.AgentID,
 		"hostname":   session.Hostname,
 	})
+}
+
+func (s *Server) handlePairRegister(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Only allow local connections or authenticated requests
+	isLocal := strings.HasPrefix(r.RemoteAddr, "127.0.0.1:") || strings.HasPrefix(r.RemoteAddr, "[::1]:")
+	authHeader := r.Header.Get("Authorization")
+	hasValidToken := authHeader == "Bearer "+s.cfg.AuthToken
+
+	if !isLocal && !hasValidToken {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		PairCode string `json:"pair_code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PairCode == "" {
+		http.Error(w, "invalid request body: pair_code required", http.StatusBadRequest)
+		return
+	}
+
+	if pairing.GlobalManager != nil {
+		pairing.GlobalManager.SetExplicitCode(req.PairCode, s.cfg, s.identity.Hostname)
+		s.logger.Info("pairing code registered into daemon", "pair_code", req.PairCode)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "registered", "pair_code": req.PairCode})
 }
 
 func (s *Server) handleSecurityPorts(w http.ResponseWriter, r *http.Request) {
