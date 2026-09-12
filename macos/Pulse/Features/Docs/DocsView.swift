@@ -536,7 +536,7 @@ private struct AboutSection: View {
 
             GroupBox("App") {
                 VStack(alignment: .leading, spacing: 8) {
-                    infoRow("App Version", "1.0.1 (Build 11)")
+                    infoRow("App Version", "1.0.2 (Build 12)")
                     infoRow("Minimum macOS", "macOS 13 Ventura")
                     infoRow("License", "MIT — free to use and modify")
                     infoRow("Source", "github.com/miftahganzz/Pulse")

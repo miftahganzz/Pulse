@@ -36,10 +36,10 @@ Pulse takes a different approach:
 
 Prebuilt styled DMG installers with native Finder drag-and-drop:
 
-- **[Pulse-1.0.1-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.1-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
-- **[Pulse-1.0.1-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.1-x86_64.dmg)** — Intel 64-bit Macs
-- **[Pulse-1.0.1-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.1-Universal.dmg)** — Universal 2 (runs on all Macs)
-- **[Pulse-1.0.1.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.1.dmg)** — Default Universal installer
+- **[Pulse-1.0.2-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.2-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
+- **[Pulse-1.0.2-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.2-x86_64.dmg)** — Intel 64-bit Macs
+- **[Pulse-1.0.2-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.2-Universal.dmg)** — Universal 2 (runs on all Macs)
+- **[Pulse-1.0.2.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.2.dmg)** — Default Universal installer
 
 Open the `.dmg`, drag **Pulse** to `/Applications`, and open it.
 
@@ -309,9 +309,9 @@ pulse-agent doctor
 Sample output:
 
 ```text
-Pulse Agent System Doctor (v1.0.1)
+Pulse Agent System Doctor (v1.0.2)
 
- [✔] Pulse Agent Version        : v1.0.1
+ [✔] Pulse Agent Version        : v1.0.2
  [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_05ae3c)
  [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
  [✔] Systemd Service            : pulse-agent.service is active and running

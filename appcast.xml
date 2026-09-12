@@ -6,6 +6,30 @@
     <description>Pulse updates and release channel</description>
     <language>en</language>
     <item>
+      <title>Pulse 1.0.2</title>
+      <pubDate>Sat, 12 Sep 2026 22:25:00 +0700</pubDate>
+      <sparkle:version>12</sparkle:version>
+      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>Pulse v1.0.2</h2>
+        <ul>
+          <li><strong>Non-Root User Mode:</strong> Full standalone support for non-root VPS accounts and shared environments. Installs to <code>~/.local/bin</code> and <code>~/.pulse</code> without requiring <code>sudo</code>.</li>
+          <li><strong>User-Level Systemd & Crontab Fallback:</strong> Automatically deploys and manages daemon via <code>systemctl --user</code> with auto-linger or crontab <code>@reboot</code> persistence.</li>
+          <li><strong>Add Server Mode Selector:</strong> Added Root (sudo) vs. Non-Root mode selector in the macOS 1-Line setup dialog.</li>
+          <li><strong>CLI Mode Auto-Detection:</strong> <code>pulse restart</code>, <code>pulse stop/start</code>, <code>pulse logs</code>, <code>pulse update</code>, and <code>pulse uninstall</code> seamlessly operate in both root and user modes.</li>
+          <li><strong>Docs & Guide Updates:</strong> Comprehensive non-root setup instructions in README and built-in Pulse Docs.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/miftahganzz/Pulse/releases/download/v1.0.2/Pulse-1.0.2.dmg"
+        length="7757238"
+        sparkle:edSignature="asW0B9diwqZjRmzQLB1+ZJ9J4MYr2bl0IPGc8ltksDukbcyDuYUYg/nBDSmaNI4IRFgDKmeCNwwTS0WAxPnVAQ=="
+        sparkle:version="12"
+        sparkle:shortVersionString="1.0.2"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Pulse 1.0.1</title>
       <pubDate>Sat, 12 Sep 2026 19:30:00 +0700</pubDate>
       <sparkle:version>11</sparkle:version>
