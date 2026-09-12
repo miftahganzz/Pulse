@@ -71,6 +71,8 @@ cat << 'PLIST' > "${CONTENTS_DIR}/Info.plist"
     </array>
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/miftahganzz/Pulse/main/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>kxhjPNnUe3JUBmZ3JRH2a88QDG17T6ITWWRu1m/QYaE=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
     <key>SUScheduledCheckInterval</key>
