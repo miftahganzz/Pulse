@@ -95,7 +95,7 @@ private struct ServerOverviewCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(server.name)
                         .font(.system(size: 14, weight: .semibold))
-                    Text("\(server.address):\(server.port)")
+                    Text(verbatim: "\(server.address):\(server.port)")
                         .font(.system(size: 11, design: .monospaced))
                         .monospacedDigit()
                         .foregroundColor(.secondary)

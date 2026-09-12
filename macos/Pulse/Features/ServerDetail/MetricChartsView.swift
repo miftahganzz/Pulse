@@ -14,13 +14,15 @@ public struct MetricChartsView: View {
 
                 Spacer()
 
-                Picker("Metric", selection: $selectedMetric) {
+                Picker("", selection: $selectedMetric) {
                     Text("CPU").tag(0)
                     Text("Memory").tag(1)
                     Text("Network").tag(2)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 220)
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
             }
 
             if history.count < 2 {

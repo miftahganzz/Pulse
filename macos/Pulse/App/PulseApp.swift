@@ -130,7 +130,7 @@ struct PulseApp: App {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Pool connects automatically on startup
         ServerConnectionPool.shared.syncWithStore()
@@ -142,8 +142,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSWindow.didBecomeKeyNotification,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWindowDidBecomeKey(_:)),
+            name: NSWindow.didBecomeMainNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppDidBecomeActive),
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
 
         DispatchQueue.main.async {
+            self.disableFullScreenMenuItems()
             NSApp.windows.forEach { self.configureFixedWindow($0) }
         }
 
@@ -163,17 +176,109 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    @objc private func handleAppDidBecomeActive() {
+        disableFullScreenMenuItems()
+        NSApp.windows.forEach { configureFixedWindow($0) }
+    }
+
     @objc private func handleWindowDidBecomeKey(_ notification: Notification) {
         if let window = notification.object as? NSWindow {
             configureFixedWindow(window)
         }
     }
 
+    private func disableFullScreenMenuItems() {
+        guard let mainMenu = NSApp.mainMenu else { return }
+        for item in mainMenu.items {
+            if let submenu = item.submenu {
+                for subItem in submenu.items {
+                    if subItem.action == #selector(NSWindow.toggleFullScreen(_:)) {
+                        subItem.target = nil
+                        subItem.isEnabled = false
+                        subItem.isHidden = true
+                    }
+                }
+            }
+        }
+    }
+
     private func configureFixedWindow(_ window: NSWindow) {
-        // Prevent fullscreen and disable green zoom expand button
+        guard !(window is NSPanel) else { return }
+
+        // Exit fullscreen immediately if window was restored in fullscreen mode
+        if window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+        }
+
+        // Hard lock window size in AppKit
+        window.maxSize = NSSize(width: 1040, height: 720)
+        window.minSize = NSSize(width: 860, height: 560)
+
+        // Clamp current frame if it exceeds limits
+        var currentFrame = window.frame
+        var frameChanged = false
+        if currentFrame.width > 1040 {
+            currentFrame.size.width = 1040
+            frameChanged = true
+        }
+        if currentFrame.height > 720 {
+            currentFrame.size.height = 720
+            frameChanged = true
+        }
+        if currentFrame.width < 860 {
+            currentFrame.size.width = 860
+            frameChanged = true
+        }
+        if currentFrame.height < 560 {
+            currentFrame.size.height = 560
+            frameChanged = true
+        }
+        if frameChanged {
+            window.setFrame(currentFrame, display: true, animate: false)
+        }
+
+        // Remove fullscreen collection capability
+        window.collectionBehavior.remove(.fullScreenPrimary)
+        window.collectionBehavior.remove(.fullScreenAuxiliary)
         let fullScreenNone = NSWindow.CollectionBehavior(rawValue: 1 << 9)
-        window.collectionBehavior = [fullScreenNone]
-        window.standardWindowButton(.zoomButton)?.isEnabled = false
+        window.collectionBehavior.insert(fullScreenNone)
+        window.styleMask.remove(.fullScreen)
+
+        // Disable and hide green zoom / fullscreen button
+        if let zoomBtn = window.standardWindowButton(.zoomButton) {
+            zoomBtn.isEnabled = false
+            zoomBtn.isHidden = true
+        }
+
+        window.delegate = self
+    }
+
+    // Clamp resize interactions to the fixed bounds
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        let clampedW = min(max(frameSize.width, 860), 1040)
+        let clampedH = min(max(frameSize.height, 560), 720)
+        return NSSize(width: clampedW, height: clampedH)
+    }
+
+    // Ensure zoom button remains hidden after resize
+    func windowDidResize(_ notification: Notification) {
+        if let window = notification.object as? NSWindow {
+            if let zoomBtn = window.standardWindowButton(.zoomButton) {
+                zoomBtn.isEnabled = false
+                zoomBtn.isHidden = true
+            }
+        }
+    }
+
+    // Prevent double-clicking titlebar from maximizing
+    func windowShouldZoom(_ window: NSWindow, toFrame newFrame: NSRect) -> Bool {
+        return false
+    }
+
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        if let window = notification.object as? NSWindow {
+            window.toggleFullScreen(nil)
+        }
     }
 
     @objc private func handleWorkspaceWillSleep() {

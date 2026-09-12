@@ -256,7 +256,9 @@ public struct IncidentsView: View {
                             }
                         }
                         .pickerStyle(.segmented)
-                        .frame(maxWidth: 240)
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .fixedSize()
                     }
 
                     if filteredIncidents.isEmpty {

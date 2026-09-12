@@ -157,7 +157,7 @@ public struct SecurityPortsView: View {
                         .stroke(Color.primary.opacity(0.08), lineWidth: 1)
                 )
 
-                Picker("Filter", selection: $filterMode) {
+                Picker("", selection: $filterMode) {
                     Text("All (\(allPorts.count))").tag(0)
                     Text("Public (\(publicPorts))").tag(1)
                     Text("Sensitive (\(sensitivePorts))").tag(2)
@@ -165,7 +165,8 @@ public struct SecurityPortsView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(minWidth: 260, idealWidth: 290, maxWidth: 320)
+                .controlSize(.small)
+                .fixedSize()
 
                 Button(action: { manager.refreshSecurity() }) {
                     Image(systemName: "arrow.clockwise")
@@ -195,7 +196,7 @@ public struct SecurityPortsView: View {
                 Table(filteredPorts) {
                     TableColumn("Port / Proto") { item in
                         HStack(spacing: 6) {
-                            Text("\(item.port)")
+                            Text(verbatim: "\(item.port)")
                                 .font(.system(size: 12, weight: .bold, design: .monospaced))
                                 .monospacedDigit()
                             Text(item.protocolType.uppercased())
@@ -214,14 +215,14 @@ public struct SecurityPortsView: View {
                             Text(item.processName)
                                 .font(.system(size: 12, weight: .medium))
                             if item.pid > 0 {
-                                Text("PID: \(item.pid)")
+                                Text(verbatim: "PID: \(item.pid)")
                                     .font(.system(size: 10, design: .monospaced))
                                     .monospacedDigit()
                                     .foregroundColor(.secondary)
                             }
                         }
                     }
-                    .width(min: 120, ideal: 160)
+                    .width(min: 110, ideal: 140)
 
                     TableColumn("Binding Address") { item in
                         Text(item.ip)
@@ -229,7 +230,7 @@ public struct SecurityPortsView: View {
                             .monospacedDigit()
                             .foregroundColor(.secondary)
                     }
-                    .width(min: 110, ideal: 130)
+                    .width(min: 95, ideal: 115, max: 130)
 
                     TableColumn("Exposure") { item in
                         HStack(spacing: 4) {
@@ -244,7 +245,7 @@ public struct SecurityPortsView: View {
                         .background(item.exposure.badgeColor.opacity(0.12))
                         .clipShape(Capsule())
                     }
-                    .width(min: 110, ideal: 125, max: 140)
+                    .width(min: 95, ideal: 110, max: 125)
 
                     TableColumn("Recommendation") { item in
                         if item.isSensitive {

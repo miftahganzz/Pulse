@@ -61,13 +61,14 @@ public struct ProcessListView: View {
                         .foregroundColor(.secondary)
                         .fixedSize()
 
-                    Picker("Sort by", selection: $sortBy) {
+                    Picker("", selection: $sortBy) {
                         Text("CPU %").tag("cpu")
                         Text("Memory").tag("memory")
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(width: 145)
+                    .controlSize(.small)
+                    .fixedSize()
                     .onChange(of: sortBy) { newSort in
                         manager.refreshProcesses(sortBy: newSort)
                     }
@@ -98,7 +99,7 @@ public struct ProcessListView: View {
             } else {
                 Table(filteredProcesses) {
                     TableColumn("PID") { proc in
-                        Text("\(proc.pid)")
+                        Text(verbatim: "\(proc.pid)")
                             .font(.system(size: 11, design: .monospaced))
                             .monospacedDigit()
                             .foregroundColor(.secondary)
@@ -204,7 +205,7 @@ public struct ProcessListView: View {
             }
         } message: {
             if let proc = selectedProcessForKill {
-                Text("Are you sure you want to send \(killSignal) to process \(proc.name) (PID \(proc.pid))?")
+                Text(verbatim: "Are you sure you want to send \(killSignal) to process \(proc.name) (PID \(proc.pid))?")
             }
         }
         .alert("Process Action Failed", isPresented: $showActionError) {
