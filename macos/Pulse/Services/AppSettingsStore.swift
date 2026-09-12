@@ -24,6 +24,16 @@ public final class AppSettingsStore: ObservableObject {
     private let notifyRecoveryKey = "pulse.settings.notify_recovery"
     private let showLaunchMotionKey = "pulse.settings.show_launch_motion"
     private let hasCompletedWelcomeGuideKey = "pulse.settings.has_completed_welcome_guide"
+    private let requireBiometricForDestructiveActionsKey = "pulse.settings.require_biometric_destructive"
+    private let autoClearClipboardKey = "pulse.settings.auto_clear_clipboard"
+
+    @Published public var requireBiometricForDestructiveActions: Bool {
+        didSet { UserDefaults.standard.set(requireBiometricForDestructiveActions, forKey: requireBiometricForDestructiveActionsKey) }
+    }
+
+    @Published public var autoClearClipboard: Bool {
+        didSet { UserDefaults.standard.set(autoClearClipboard, forKey: autoClearClipboardKey) }
+    }
 
     @Published public var showLaunchMotion: Bool {
         didSet { UserDefaults.standard.set(showLaunchMotion, forKey: showLaunchMotionKey) }
@@ -118,6 +128,8 @@ public final class AppSettingsStore: ObservableObject {
         self.notifyRecovery = defaults.object(forKey: notifyRecoveryKey) as? Bool ?? true
         self.showLaunchMotion = defaults.object(forKey: showLaunchMotionKey) as? Bool ?? true
         self.hasCompletedWelcomeGuide = defaults.bool(forKey: hasCompletedWelcomeGuideKey)
+        self.requireBiometricForDestructiveActions = defaults.bool(forKey: requireBiometricForDestructiveActionsKey)
+        self.autoClearClipboard = defaults.object(forKey: autoClearClipboardKey) as? Bool ?? true
     }
 
     public func resetWelcomeGuide() {

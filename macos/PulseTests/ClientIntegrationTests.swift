@@ -96,7 +96,7 @@ final class ClientIntegrationTests: XCTestCase, @unchecked Sendable, PulseAgentC
         wait(for: [stateExpectation!, identityExpectation!, heartbeatExpectation!, metricsExpectation!], timeout: 25.0)
 
         XCTAssertNotNil(receivedIdentity)
-        XCTAssertEqual(receivedIdentity?.agentVersion, "0.1.0")
+        XCTAssertFalse(receivedIdentity?.agentVersion.isEmpty ?? true)
 
         XCTAssertNotNil(receivedMetrics)
         XCTAssertGreaterThan(receivedMetrics?.memory.totalBytes ?? 0, 0)

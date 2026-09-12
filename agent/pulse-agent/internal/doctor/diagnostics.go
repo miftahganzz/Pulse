@@ -78,6 +78,40 @@ func RunDiagnostics(configPath string, cfg *agent.Config) Report {
 		})
 	}
 
+	// 4. File Permission Security Audit (chmod 0600)
+	if fi, err := os.Stat(configPath); err == nil {
+		mode := fi.Mode().Perm()
+		if mode&0077 != 0 {
+			items = append(items, DiagnosticItem{
+				Name:    "Config File Security",
+				Status:  StatusWarn,
+				Message: fmt.Sprintf("Permissions are %04o (group/world readable). Enforce 'chmod 0600 %s'", mode, configPath),
+			})
+		} else {
+			items = append(items, DiagnosticItem{
+				Name:    "Config File Security",
+				Status:  StatusOK,
+				Message: fmt.Sprintf("Secure permissions (%04o)", mode),
+			})
+		}
+	}
+	if fi, err := os.Stat(cfg.KeyFile); err == nil {
+		mode := fi.Mode().Perm()
+		if mode&0077 != 0 {
+			items = append(items, DiagnosticItem{
+				Name:    "TLS Key Security",
+				Status:  StatusWarn,
+				Message: fmt.Sprintf("Permissions are %04o. Enforce 'chmod 0600 %s'", mode, cfg.KeyFile),
+			})
+		} else {
+			items = append(items, DiagnosticItem{
+				Name:    "TLS Key Security",
+				Status:  StatusOK,
+				Message: fmt.Sprintf("Private key secure (%04o)", mode),
+			})
+		}
+	}
+
 	// 4. Systemd Service check (if on Linux)
 	if _, err := exec.LookPath("systemctl"); err == nil {
 		out, err := exec.Command("systemctl", "is-active", "pulse-agent").Output()

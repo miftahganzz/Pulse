@@ -12,6 +12,7 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
     public let host: String
     public let port: Int
     public let token: String
+    public let serverId: UUID?
 
     public weak var delegate: PulseAgentClientDelegate?
 
@@ -26,16 +27,17 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
 
     private let queue = DispatchQueue(label: "com.pulse.client", qos: .userInitiated)
 
-    public init(host: String, port: Int, token: String) {
+    public init(host: String, port: Int, token: String, serverId: UUID? = nil) {
         self.host = host
         self.port = port
         self.token = token
+        self.serverId = serverId
         super.init()
 
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10
         config.timeoutIntervalForResource = 30
-        self.session = URLSession(configuration: config, delegate: PinnedURLSessionDelegate(), delegateQueue: nil)
+        self.session = URLSession(configuration: config, delegate: PinnedURLSessionDelegate(serverId: serverId), delegateQueue: nil)
     }
 
     public func connect() {

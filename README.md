@@ -36,10 +36,10 @@ Pulse takes a different approach:
 
 Prebuilt styled DMG installers with native Finder drag-and-drop:
 
-- **[Pulse-1.0.3-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.3-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
-- **[Pulse-1.0.3-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.3-x86_64.dmg)** — Intel 64-bit Macs
-- **[Pulse-1.0.3-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.3-Universal.dmg)** — Universal 2 (runs on all Macs)
-- **[Pulse-1.0.3.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.3.dmg)** — Default Universal installer
+- **[Pulse-1.0.4-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.4-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
+- **[Pulse-1.0.4-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.4-x86_64.dmg)** — Intel 64-bit Macs
+- **[Pulse-1.0.4-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.4-Universal.dmg)** — Universal 2 (runs on all Macs)
+- **[Pulse-1.0.4.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.4.dmg)** — Default Universal installer
 
 Open the `.dmg`, drag **Pulse** to `/Applications`, and open it.
 
@@ -292,11 +292,19 @@ When clicked in Safari, Slack, or terminal (`open "pulse://..."`), Pulse automat
 - **Cascade suppression**: When a physical host goes down, child alerts for 20 running containers collapse into a single root-cause notification.
 - **Flapping mitigation**: Suppresses alert storms when a service rapidly cycles between up and down states.
 
-### Security & Open Ports Inspector
-- **Socket & port inventory**: Real-time auditing of listening TCP/UDP sockets with process names, PIDs, and binding addresses.
-- **Exposure classification**: Distinguishes between `Public` (`0.0.0.0`), `Private` (`100.x.y.z` Tailscale / RFC 1918), and `Localhost` (`127.0.0.1`).
-- **Sensitive port alerts**: Instantly flags exposed databases (Redis, Postgres, MySQL, MongoDB, Docker API) with actionable remediation steps.
-- **Firewall inspector**: Reports host firewall status (UFW, iptables, pf) and default incoming policy directly on your dashboard.
+### Security Hardening & Zero-Trust Architecture
+- **Brute-Force & Port Scanning Defense**: Built-in sliding-window rate limiter on the agent automatically blocks abusive IP addresses (HTTP 429) for 15 minutes after repeated failed authentication or pairing attempts.
+- **Pairing Lockout Protection**: Pairing sessions are immediately revoked and destroyed after 5 failed PIN attempts.
+- **Cross-Site WebSocket Hijacking (CSWSH) Defense**: Strict origin inspection prevents malicious browser origins from hijacking open WebSocket sessions.
+- **Security Headers & Strict File Permissions**: Injects HSTS, CSP, and X-Content-Type headers; `pulse doctor` audits private keys (`0600`) and configuration permissions.
+- **Tamper-Resistant Action Audit Trail**: Linux daemon records every executed runbook, container command, and action to an append-only `$PULSE_DIR/audit.log`.
+- **TOFU TLS Certificate Pinning**: macOS app securely stores and validates server TLS certificates via Keychain on first connect; alerts instantly if MITM or certificate tampering occurs.
+- **Biometric Security Gate (Touch ID)**: Protect high-impact server operations (rebooting, container deletion, process kill) behind Touch ID or Apple Watch authentication.
+- **Clipboard Token Auto-Clearing**: Automatically clears copied bearer tokens and pairing codes from macOS clipboard after 60 seconds.
+- **Socket & Port Inventory**: Real-time auditing of listening TCP/UDP sockets with process names, PIDs, and binding addresses.
+- **Exposure Classification**: Distinguishes between `Public` (`0.0.0.0`), `Private` (`100.x.y.z` Tailscale / RFC 1918), and `Localhost` (`127.0.0.1`).
+- **Sensitive Port Alerts**: Instantly flags exposed databases (Redis, Postgres, MySQL, MongoDB, Docker API) with actionable remediation steps.
+- **Firewall Inspector**: Reports host firewall status (UFW, iptables, pf) and default incoming policy directly on your dashboard.
 
 ### Pro-Grade macOS Experience
 - **Native Sparkle 2 Auto-Updates**: Seamless background update checks and one-click in-app upgrades.
@@ -322,9 +330,9 @@ pulse-agent doctor
 Sample output:
 
 ```text
-Pulse Agent System Doctor (v1.0.3)
+Pulse Agent System Doctor (v1.0.4)
 ---------------------------------------------
- [✔] Pulse Agent Version        : v1.0.3
+ [✔] Pulse Agent Version        : v1.0.4
  [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_05ae3c)
  [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
  [✔] Systemd Service            : pulse-agent.service is active and running

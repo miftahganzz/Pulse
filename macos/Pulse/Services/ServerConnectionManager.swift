@@ -201,7 +201,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
 
         self.lastError = nil
         client?.disconnect()
-        let newClient = PulseAgentClient(host: address, port: port, token: token)
+        let newClient = PulseAgentClient(host: address, port: port, token: token, serverId: serverId)
         newClient.delegate = self
         self.client = newClient
         newClient.connect()

@@ -107,6 +107,58 @@ public enum KeychainService {
         ]
         SecItemDelete(query as CFDictionary)
     }
+
+    // MARK: - TLS Certificate Fingerprints (TOFU Pinning)
+    private static let certFingerprintServicePrefix = "com.pulse.app.cert."
+
+    public static func saveCertFingerprint(_ fingerprint: String, forServerId id: UUID) throws {
+        guard let data = fingerprint.data(using: .utf8) else { return }
+        let service = certFingerprintServicePrefix + id.uuidString
+
+        deleteCertFingerprint(forServerId: id)
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: id.uuidString,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+        ]
+
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status != errSecSuccess {
+            PulseLog.security.error("Failed to save cert fingerprint in Keychain: \(status)")
+            throw KeychainError.unhandledError(status: status)
+        }
+    }
+
+    public static func getCertFingerprint(forServerId id: UUID) -> String? {
+        let service = certFingerprintServicePrefix + id.uuidString
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: id.uuidString,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess, let data = item as? Data, let fp = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return fp
+    }
+
+    public static func deleteCertFingerprint(forServerId id: UUID) {
+        let service = certFingerprintServicePrefix + id.uuidString
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: id.uuidString
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
 }
 
 public enum KeychainError: Error {

@@ -116,3 +116,49 @@ func TestPairingCrossProcessAndNormalization(t *testing.T) {
 		t.Fatalf("expected token %s, got %s", cfg.AuthToken, claimed.AuthToken)
 	}
 }
+
+func TestPairingBruteForceLockout(t *testing.T) {
+	mgr := &Manager{}
+	cfg := &agent.Config{
+		AgentID:   "test-lockout",
+		AuthToken: "secret-lockout",
+	}
+
+	code, err := mgr.GenerateCode(cfg, "vps-lockout")
+	if err != nil {
+		t.Fatalf("failed to generate code: %v", err)
+	}
+
+	// 4 wrong attempts
+	for i := 1; i <= 4; i++ {
+		_, err := mgr.VerifyAndClaim("000-000")
+		if err == nil {
+			t.Fatalf("expected error on invalid code, attempt %d", i)
+		}
+	}
+
+	// Active session still exists
+	active, _ := mgr.GetStatus()
+	if !active {
+		t.Fatal("expected session still active after 4 attempts")
+	}
+
+	// 5th wrong attempt -> should revoke code
+	_, err = mgr.VerifyAndClaim("000-000")
+	if err == nil {
+		t.Fatal("expected error on 5th invalid attempt")
+	}
+
+	// Now session should be invalidated
+	active, _ = mgr.GetStatus()
+	if active {
+		t.Fatal("expected session revoked after 5 failed attempts")
+	}
+
+	// Even correct code should now fail
+	_, err = mgr.VerifyAndClaim(code)
+	if err == nil {
+		t.Fatal("expected error claiming revoked code")
+	}
+}
+

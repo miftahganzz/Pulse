@@ -6,6 +6,33 @@
     <description>Pulse updates and release channel</description>
     <language>en</language>
     <item>
+      <title>Pulse 1.0.4</title>
+      <pubDate>Sun, 13 Sep 2026 01:20:00 +0700</pubDate>
+      <sparkle:version>104</sparkle:version>
+      <sparkle:shortVersionString>1.0.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>Pulse v1.0.4 (Build 104)</h2>
+        <ul>
+          <li><strong>Brute-Force & Port Scanning Defense:</strong> Sliding-window rate limiter on the agent that automatically blocks malicious IPs for 15 minutes after repeated failed authentication or pairing attempts.</li>
+          <li><strong>Pairing Session Brute-Force Lockout:</strong> Immediate revocation and purge of pairing sessions after 5 invalid code attempts.</li>
+          <li><strong>CSWSH & HTTP Security Headers:</strong> Strict Cross-Site WebSocket Hijacking origin verification, plus hardened HTTP security headers (CSP, HSTS, X-Frame-Options, nosniff).</li>
+          <li><strong>Tamper-Resistant Action Audit Trail:</strong> Linux agent records all executed actions, scripts, and runbooks with timestamp, user identity, and status to an append-only audit log (<code>audit.log</code>).</li>
+          <li><strong>File Permission Audit in Doctor:</strong> <code>pulse doctor</code> now verifies strict file permissions (<code>0600</code>) for credentials and TLS keys.</li>
+          <li><strong>TOFU TLS Certificate Pinning:</strong> The macOS app pins server TLS certificate fingerprints on first connect and alerts immediately if a certificate changes or is intercepted.</li>
+          <li><strong>Biometric Security Gate (Touch ID):</strong> Optional Touch ID / Apple Watch / Mac Password confirmation before running destructive actions (reboot, service restart, kill container).</li>
+          <li><strong>Clipboard Token Auto-Clearing:</strong> Sensitive pairing tokens and credentials copied to the clipboard are automatically cleared after 60 seconds.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/miftahganzz/Pulse/releases/download/v1.0.4/Pulse-1.0.4.dmg"
+        length="7851776"
+        sparkle:edSignature="x7p1cVsuPoHNeJM0//RSeMB050/WUZ18p0pQ48lyvycftUNUbta30ebnSp9AhRQ8Jb5x++McPMtZrpguLPdYBQ=="
+        sparkle:version="104"
+        sparkle:shortVersionString="1.0.4"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Pulse 1.0.3</title>
       <pubDate>Sun, 13 Sep 2026 00:36:00 +0700</pubDate>
       <sparkle:version>103</sparkle:version>

@@ -50,6 +50,11 @@ public struct AppSettingsView: View {
                         Label("Appearance", systemImage: "paintbrush")
                     }
 
+                securityTab
+                    .tabItem {
+                        Label("Security", systemImage: "lock.shield")
+                    }
+
                 advancedTab
                     .tabItem {
                         Label("Advanced", systemImage: "slider.horizontal.3")
@@ -57,7 +62,7 @@ public struct AppSettingsView: View {
             }
             .padding(16)
         }
-        .frame(width: 520, height: 380)
+        .frame(width: 530, height: 420)
     }
 
     private var generalTab: some View {
@@ -81,7 +86,7 @@ public struct AppSettingsView: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Pulse v1.0.3 (Build 103)")
+                        Text("Pulse v1.0.4 (Build 104)")
                             .font(.system(size: 13, weight: .semibold))
                         if let lastCheck = updateManager.lastUpdateCheckDate {
                             Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
@@ -153,6 +158,51 @@ public struct AppSettingsView: View {
                 Text("Select between macOS System default, Light, or Dark mode.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var securityTab: some View {
+        Form {
+            Section("Biometric Protection") {
+                Toggle(isOn: $settings.requireBiometricForDestructiveActions) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Require \(BiometricService.shared.biometricTypeDescription) for Destructive Actions")
+                            .font(.system(size: 13, weight: .medium))
+                        Text("Prompts for Touch ID or Mac password before stopping containers, services, or pruning disk cache.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            Section("Clipboard Security") {
+                Toggle(isOn: $settings.autoClearClipboard) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Auto-Clear Copied Tokens (60s)")
+                            .font(.system(size: 13, weight: .medium))
+                        Text("Automatically wipes the macOS clipboard after copying agent authentication tokens.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            Section("Certificate Pinning (TOFU)") {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Trust-On-First-Use Pinning Active")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("Agent TLS certificates are securely fingerprint-verified in Apple Keychain to prevent MITM attacks.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.vertical, 2)
             }
         }
         .formStyle(.grouped)

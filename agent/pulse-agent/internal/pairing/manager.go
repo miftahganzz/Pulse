@@ -15,13 +15,14 @@ import (
 )
 
 type PairSession struct {
-	PairCode  string    `json:"pair_code"`
-	AuthToken string    `json:"auth_token"`
-	AgentID   string    `json:"agent_id"`
-	Hostname  string    `json:"hostname"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
-	IsClaimed bool      `json:"is_claimed"`
+	PairCode       string    `json:"pair_code"`
+	AuthToken      string    `json:"auth_token"`
+	AgentID        string    `json:"agent_id"`
+	Hostname       string    `json:"hostname"`
+	CreatedAt      time.Time `json:"created_at"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	IsClaimed      bool      `json:"is_claimed"`
+	FailedAttempts int       `json:"failed_attempts,omitempty"`
 }
 
 type Manager struct {
@@ -164,7 +165,15 @@ func (m *Manager) VerifyAndClaim(code string) (*PairSession, error) {
 	cleanInput := strings.ReplaceAll(strings.TrimSpace(code), "-", "")
 
 	if cleanExpected != cleanInput {
-		return nil, fmt.Errorf("invalid pairing code")
+		m.session.FailedAttempts++
+		m.saveSessionToFile(m.session)
+		if m.session.FailedAttempts >= 5 {
+			m.activeCode = ""
+			m.session = nil
+			m.clearSessionFiles()
+			return nil, fmt.Errorf("pairing code revoked due to excessive failed attempts")
+		}
+		return nil, fmt.Errorf("invalid pairing code (%d/5 attempts remaining)", 5-m.session.FailedAttempts)
 	}
 
 	if m.session.IsClaimed {

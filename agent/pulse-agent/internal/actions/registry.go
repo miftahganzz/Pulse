@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pulse/pulse-agent/internal/docker"
+	"github.com/pulse/pulse-agent/internal/security"
 	"github.com/pulse/pulse-agent/internal/services"
 )
 
@@ -113,12 +114,13 @@ func (e *Executor) Execute(ctx context.Context, req ActionRequest) ActionResult 
 		resultChan <- res
 	}()
 
+	var finalRes ActionResult
 	select {
 	case res := <-resultChan:
-		return res
+		finalRes = res
 	case <-execCtx.Done():
 		duration := time.Since(start).Milliseconds()
-		return ActionResult{
+		finalRes = ActionResult{
 			Action:     req.Action,
 			Target:     req.Target,
 			Status:     "timeout",
@@ -127,6 +129,19 @@ func (e *Executor) Execute(ctx context.Context, req ActionRequest) ActionResult 
 			Timestamp:  time.Now().UTC(),
 		}
 	}
+
+	if al := security.GetAuditLogger(); al != nil {
+		_ = al.Log(security.AuditEntry{
+			Timestamp:  finalRes.Timestamp,
+			Action:     finalRes.Action,
+			Target:     finalRes.Target,
+			Status:     finalRes.Status,
+			DurationMs: finalRes.DurationMs,
+			Message:    finalRes.Message,
+		})
+	}
+
+	return finalRes
 }
 
 func (e *Executor) executeInternal(ctx context.Context, req ActionRequest) ActionResult {

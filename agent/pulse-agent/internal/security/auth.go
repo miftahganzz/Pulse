@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -17,13 +18,30 @@ func GenerateToken(length int) (string, error) {
 }
 
 // TokenAuthMiddleware verifies authorization header or sec-websocket-protocol/query token
+// with integrated brute-force and IP lockout protection.
 func TokenAuthMiddleware(validToken string, next http.Handler) http.Handler {
+	limiter := GetGlobalLimiter()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := extractToken(r)
-		if token == "" || subtle.ConstantTimeCompare([]byte(token), []byte(validToken)) != 1 {
-			http.Error(w, `{"error":"unauthorized","message":"invalid or missing auth token"}`, http.StatusUnauthorized)
+		ip := ExtractIP(r)
+
+		if banned, remaining := limiter.IsBanned(ip); banned {
+			w.Header().Set("Retry-After", strconv.Itoa(int(remaining.Seconds())))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"error":"too_many_requests","message":"IP temporarily banned due to excessive authentication failures"}`))
 			return
 		}
+
+		token := extractToken(r)
+		if token == "" || subtle.ConstantTimeCompare([]byte(token), []byte(validToken)) != 1 {
+			limiter.RecordFailure(ip)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"error":"unauthorized","message":"invalid or missing auth token"}`))
+			return
+		}
+
+		limiter.RecordSuccess(ip)
 		next.ServeHTTP(w, r)
 	})
 }

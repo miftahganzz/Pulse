@@ -110,8 +110,17 @@ public struct ActionPreviewSheet: View {
                 Spacer()
 
                 Button {
-                    dismiss()
-                    onConfirm()
+                    if AppSettingsStore.shared.requireBiometricForDestructiveActions && preview.riskLevel == .high {
+                        BiometricService.shared.authenticate(reason: "Authorize '\(preview.actionName)' on \(preview.serverName)") { success in
+                            if success {
+                                dismiss()
+                                onConfirm()
+                            }
+                        }
+                    } else {
+                        dismiss()
+                        onConfirm()
+                    }
                 } label: {
                     Label("Execute \(preview.actionName)", systemImage: "play.fill")
                 }

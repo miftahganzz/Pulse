@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -44,7 +45,18 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			// Native client (macOS app, curl, wscat) sends no Origin header
+			return true
+		}
+		lower := strings.ToLower(origin)
+		// Allow local development and pulse schemes
+		if strings.Contains(lower, "localhost") || strings.Contains(lower, "127.0.0.1") || strings.HasPrefix(lower, "pulse://") {
+			return true
+		}
+		// Block unverified external third-party web origins from hijacking the stream
+		return false
 	},
 }
 
@@ -98,6 +110,10 @@ func NewServer(cfg *agent.Config, identity agent.Identity, logger *slog.Logger) 
 	reg.Register(customP)
 
 	exec := actions.NewExecutor(dockerCli, svcCol)
+
+	if cfg != nil && cfg.CertFile != "" {
+		security.InitAuditLogger(filepath.Dir(cfg.CertFile))
+	}
 
 	return &Server{
 		cfg:        cfg,
@@ -153,7 +169,19 @@ func (s *Server) Handler() http.Handler {
 	rootMux.HandleFunc("/api/v1/pair/register", s.handlePairRegister)
 	rootMux.Handle("/", protectedHandler)
 
-	return rootMux
+	return SecurityHeadersMiddleware(rootMux)
+}
+
+// SecurityHeadersMiddleware injects defense-in-depth security headers
+func SecurityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'")
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
@@ -685,10 +713,21 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ip := security.ExtractIP(r)
+	limiter := security.GetGlobalLimiter()
+	if banned, remaining := limiter.IsBanned(ip); banned {
+		w.Header().Set("Retry-After", strconv.Itoa(int(remaining.Seconds())))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":"too_many_requests","message":"IP temporarily banned due to excessive pairing failures"}`))
+		return
+	}
+
 	var req struct {
 		PairCode string `json:"pair_code"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PairCode == "" {
+		limiter.RecordFailure(ip)
 		http.Error(w, "invalid request body: pair_code required", http.StatusBadRequest)
 		return
 	}
@@ -700,12 +739,14 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 
 	session, err := pairing.GlobalManager.VerifyAndClaim(req.PairCode)
 	if err != nil {
-		s.logger.Warn("pairing claim failed", "pair_code", req.PairCode, "error", err)
+		limiter.RecordFailure(ip)
+		s.logger.Warn("pairing claim failed", "pair_code", req.PairCode, "error", err, "ip", ip)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	s.logger.Info("pairing successful", "agent_id", session.AgentID, "hostname", session.Hostname)
+	limiter.RecordSuccess(ip)
+	s.logger.Info("pairing successful", "agent_id", session.AgentID, "hostname", session.Hostname, "ip", ip)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
