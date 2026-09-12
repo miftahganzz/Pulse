@@ -41,7 +41,7 @@ func InitGlobalManager(configPath string) *Manager {
 	return GlobalManager
 }
 
-// GenerateCode creates a 6-digit one-time pairing code valid for 10 minutes
+// GenerateCode creates a XXX-XXX one-time pairing code valid for 10 minutes
 func (m *Manager) GenerateCode(cfg *agent.Config, hostname string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -50,7 +50,8 @@ func (m *Manager) GenerateCode(cfg *agent.Config, hostname string) (string, erro
 	if err != nil {
 		return "", err
 	}
-	code := fmt.Sprintf("%06d", n.Int64()+100000)
+	digits := fmt.Sprintf("%06d", n.Int64()+100000)
+	code := digits[:3] + "-" + digits[3:]
 
 	now := time.Now()
 	m.activeCode = code

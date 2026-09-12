@@ -165,17 +165,21 @@ chown -R pulse:pulse "$CONFIG_DIR" 2>/dev/null || true
 chmod 700 "$CONFIG_DIR"
 chmod 600 "$CONFIG_DIR"/agent.json 2>/dev/null || true
 
-# 6. Firewall Configuration
+# 6. Firewall Configuration — supports UFW, firewalld, iptables
 step "Checking system firewall..."
-if command -v ufw >/dev/null 2>&1; then
-  if ufw status | grep -q "Status: active"; then
-    ufw allow "${PORT}/tcp" comment "Pulse Agent" >/dev/null 2>&1 || true
-    ok "Added UFW firewall rule for port ${PORT}/tcp"
-  else
-    ok "UFW detected but inactive (traffic allowed)"
-  fi
+if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
+  ufw allow "${PORT}/tcp" comment "Pulse Agent" >/dev/null 2>&1 || true
+  ok "Added UFW rule: port ${PORT}/tcp"
+elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state 2>/dev/null | grep -q "running"; then
+  firewall-cmd --permanent --add-port="${PORT}/tcp" >/dev/null 2>&1 || true
+  firewall-cmd --reload >/dev/null 2>&1 || true
+  ok "Added firewalld rule: port ${PORT}/tcp"
+elif command -v iptables >/dev/null 2>&1; then
+  iptables -C INPUT -p tcp --dport "${PORT}" -j ACCEPT 2>/dev/null || \
+    iptables -I INPUT -p tcp --dport "${PORT}" -j ACCEPT 2>/dev/null || true
+  ok "Added iptables rule: port ${PORT}/tcp"
 else
-  ok "No local firewall blocking incoming traffic"
+  ok "No active firewall detected (traffic allowed)"
 fi
 
 # 7. Systemd Service Deployment
@@ -222,9 +226,10 @@ echo -e "  ${CLR_DIM}Listen Port:${CLR_RESET}  ${CLR_BOLD}${PORT}${CLR_RESET} ${
 echo -e "  ${CLR_DIM}Agent ID:${CLR_RESET}     ${AGENT_ID}"
 echo -e "  ${CLR_DIM}Auth Token:${CLR_RESET}   ${CLR_YELLOW}${AGENT_TOKEN}${CLR_RESET}"
 echo ""
-echo -e "  ${CLR_PURPLE}Next Steps on macOS Pulse App:${CLR_RESET}"
+echo -e "  ${CLR_PURPLE}Connect from your Mac:${CLR_RESET}"
 echo -e "  1. Open ${CLR_BOLD}Pulse${CLR_RESET} on your Mac"
-echo -e "  2. Press ${CLR_BOLD}⌘N${CLR_RESET} to open ${CLR_BOLD}Add Server${CLR_RESET}"
-echo -e "  3. Enter ${CLR_BOLD}${DETECTED_IP}${CLR_RESET} as IP Address and port ${CLR_BOLD}${PORT}${CLR_RESET}"
-echo -e "  4. Click ${CLR_BOLD}Connect to Server${CLR_RESET} (or run '${CLR_CYAN}pulse-agent pair${CLR_RESET}' for 6-digit code)"
+echo -e "  2. Press ${CLR_BOLD}⌘N${CLR_RESET} → enter ${CLR_BOLD}${DETECTED_IP}${CLR_RESET} : ${CLR_BOLD}${PORT}${CLR_RESET} and the token above"
+echo -e "  3. Or use 1-click deep link:"
+echo -e "     ${CLR_DIM}pulse://add?name=$(hostname -s)&host=${DETECTED_IP}&port=${PORT}&token=${AGENT_TOKEN}${CLR_RESET}"
+echo -e "  4. Or use XXX-XXX pairing code: run ${CLR_CYAN}pulse-agent pair${CLR_RESET} on this server"
 echo ""

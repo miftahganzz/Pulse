@@ -20,19 +20,20 @@ func TestPairingManagerLifecycle(t *testing.T) {
 		t.Fatal("expected inactive session initially")
 	}
 
-	_, err := mgr.VerifyAndClaim("123456")
+	_, err := mgr.VerifyAndClaim("123-456")
 	if err == nil {
 		t.Fatal("expected error claiming with no active session")
 	}
 
-	// 2. Generate 6-digit code
+	// 2. Generate XXX-XXX code (e.g. "653-557")
 	code, err := mgr.GenerateCode(cfg, "vps-test")
 	if err != nil {
 		t.Fatalf("failed to generate code: %v", err)
 	}
 
-	if len(code) != 6 {
-		t.Fatalf("expected 6-digit code, got: %s", code)
+	// Format must be XXX-XXX: 7 chars total, hyphen at index 3
+	if len(code) != 7 || code[3] != '-' {
+		t.Fatalf("expected XXX-XXX format code, got: %s", code)
 	}
 
 	active, remaining := mgr.GetStatus()
@@ -41,7 +42,7 @@ func TestPairingManagerLifecycle(t *testing.T) {
 	}
 
 	// 3. Invalid code should fail
-	_, err = mgr.VerifyAndClaim("000000")
+	_, err = mgr.VerifyAndClaim("000-000")
 	if err == nil {
 		t.Fatal("expected error claiming with invalid code")
 	}

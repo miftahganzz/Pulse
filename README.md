@@ -36,10 +36,10 @@ Pulse takes a different approach:
 
 Prebuilt styled DMG installers with native Finder drag-and-drop:
 
-- **[Pulse-0.8.0-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
-- **[Pulse-0.8.0-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0-x86_64.dmg)** — Intel 64-bit Macs
-- **[Pulse-0.8.0-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0-Universal.dmg)** — Universal 2 (runs on all Macs)
-- **[Pulse-0.8.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.8.0.dmg)** — Default Universal installer
+- **[Pulse-0.9.0-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
+- **[Pulse-0.9.0-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0-x86_64.dmg)** — Intel 64-bit Macs
+- **[Pulse-0.9.0-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0-Universal.dmg)** — Universal 2 (runs on all Macs)
+- **[Pulse-0.9.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0.dmg)** — Default Universal installer
 
 Open the `.dmg`, drag **Pulse** to `/Applications`, and open it.
 
@@ -55,6 +55,18 @@ Press `⌘N` in Pulse, then pick one of the two pairing flows below.
 
 ## Installation Methods
 
+### Quick Setup — One Command, Pick Your Method
+
+| Connection Method | One-Command Setup |
+|---|---|
+| Direct IP / LAN | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| sudo bash` |
+| Tailscale (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh \| sudo bash` |
+| Cloudflare Tunnel (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh \| sudo bash` |
+
+All scripts auto-detect CPU architecture (x86_64 / arm64) and firewall type (UFW, firewalld, iptables). Supported on Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE, Void Linux, and any systemd-based distro.
+
+---
+
 ### Method 1: 1-Line Automated Command
 
 The fastest way to install the daemon on a fresh Linux server:
@@ -67,13 +79,15 @@ The script:
 1. Detects your CPU architecture (`x86_64` or `arm64`) and pulls the static binary.
 2. Creates an unprivileged `pulse` system account.
 3. Generates TLS certificates and configures permissions (`chmod 600`).
-4. Adds a rule for port `8443/tcp` if UFW is enabled.
+4. Configures the firewall: UFW, firewalld, or iptables — whichever is active.
 5. Starts the background systemd service (`pulse-agent.service`).
-6. Displays the server's public IP address for quick entry into Pulse.
+6. Prints the server's public IP, auth token, and a ready-to-use `pulse://` deep link.
+
+**Supported distros**: Debian, Ubuntu, RHEL, CentOS, Fedora, Arch Linux, Alpine Linux, openSUSE, Void Linux — and any systemd-based distro.
 
 ---
 
-### Method 2: 6-Digit Pairing Code
+### Method 2: XXX-XXX Pairing Code
 
 If you prefer not to pass tokens over command-line arguments:
 
@@ -88,12 +102,12 @@ If you prefer not to pass tokens over command-line arguments:
    Output:
    ```text
    ┌────────────────────────────────────────────────────────┐
-   │  Pulse 6-Digit Pairing Mode                            │
-   │  Pairing Code: 653557                                  │
+   │  Pulse XXX-XXX Pairing Mode                            │
+   │  Pairing Code: 653-557                                 │
    │  Expires in:   10 minutes                              │
    └────────────────────────────────────────────────────────┘
    ```
-3. In Pulse on your Mac, select **6-Digit Pair Code**, enter your server's public IP and the code `653557`, then click **Verify & Pair**.
+3. In Pulse on your Mac, select **XXX-XXX Pair Code**, enter your server's public IP and the code `653-557`, then click **Verify & Pair**.
 
 ---
 
@@ -236,9 +250,9 @@ Sample output:
 
 ```text
 ┌────────────────────────────────────────────────────────┐
-│  Pulse Agent System Doctor (v0.8.0)                    │
+│  Pulse Agent System Doctor (v0.9.0)                    │
 └────────────────────────────────────────────────────────┘
- [✔] Pulse Agent Version        : v0.8.0
+ [✔] Pulse Agent Version        : v0.9.0
  [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_05ae3c)
  [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
  [✔] Systemd Service            : pulse-agent.service is active and running
@@ -281,7 +295,7 @@ Sample output:
 No. Pulse uses a direct peer-to-peer model. All metrics stream straight from your Linux host to your Mac.
 
 **How does authentication work?**  
-Each server generates a 32-character authentication token on first initialization. Requests require a bearer token header, and tokens are stored in the macOS hardware-backed Keychain.
+Each server generates a secure authentication token (stored in macOS Keychain). Pairing uses a temporary XXX-XXX code that expires in 10 minutes. Requests require a bearer token header, and tokens are stored in the macOS hardware-backed Keychain.
 
 **Which ports need to be open on my server?**  
 Only port `8443/tcp` (or whichever custom port you configure). Both HTTPS requests and WebSocket streams share this single port.

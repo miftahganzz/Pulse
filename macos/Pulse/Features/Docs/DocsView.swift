@@ -100,8 +100,27 @@ private struct ConnectingSection: View {
             sectionHeader(
                 icon: "network",
                 title: "Connecting a Server",
-                subtitle: "Three ways to connect. All require the Pulse Agent running on the server."
+                subtitle: "Pick your method below. All require the Pulse Agent running on the server."
             )
+
+            // Quick setup table
+            GroupBox("One-Command Setup — Pick Your Method") {
+                VStack(alignment: .leading, spacing: 10) {
+                    quickSetupRow("Direct IP / LAN",
+                        "curl -fsSL .../install.sh | sudo bash")
+                    Divider()
+                    quickSetupRow("Tailscale (zero open ports)",
+                        "curl -fsSL .../setup-tailscale.sh | sudo bash")
+                    Divider()
+                    quickSetupRow("Cloudflare Tunnel (zero open ports)",
+                        "curl -fsSL .../setup-cloudflare.sh | sudo bash")
+                    Text("All scripts auto-detect CPU arch (x86_64/arm64) and distro: Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE, Void, and any systemd-based distro.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                }
+                .padding(.vertical, 4)
+            }
 
             // Agent install note
             GroupBox {
@@ -116,8 +135,8 @@ private struct ConnectingSection: View {
                         Text("On every server you want to monitor, run the one-line installer:")
                             .font(.body)
                             .foregroundColor(.secondary)
-                        codeBlock("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/install.sh | bash")
-                        Text("The agent listens on port 8443 by default. It generates a mutual-TLS certificate and prints the connection token on first run.")
+                        codeBlock("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash")
+                        Text("The agent listens on port 8443 by default. It generates a mutual-TLS certificate and prints the connection token and a pulse:// deep link on first run.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -130,7 +149,7 @@ private struct ConnectingSection: View {
                 title: "Direct IP or Local Network",
                 description: "Use this when your Mac and the server are on the same LAN, or the server has a public IP.",
                 steps: [
-                    "Install the Pulse Agent on the server",
+                    "Install the Pulse Agent on the server (see command above)",
                     "Note the server's IP address (e.g. 192.168.1.10)",
                     "In Pulse, click + → enter the IP, port (default 8443), and the token printed by the agent",
                     "Click Connect — Pulse verifies the certificate fingerprint and connects"
@@ -141,13 +160,13 @@ private struct ConnectingSection: View {
             methodBlock(
                 number: "2",
                 title: "Tailscale (Recommended for Remote Servers)",
-                description: "Tailscale creates a private WireGuard mesh between your devices. No open ports needed on the server.",
+                description: "Tailscale creates a private WireGuard mesh between your devices. No open ports needed on the server. One-command setup: curl -fsSL .../setup-tailscale.sh | sudo bash",
                 steps: [
                     "Install Tailscale on both your Mac and the server: tailscale.com/download",
-                    "Run tailscale up on the server — it will get a 100.x.x.x IP or MagicDNS hostname",
-                    "In Pulse, enter the Tailscale IP (e.g. 100.64.0.5) or hostname (e.g. my-server.tail12345.ts.net) as the host",
+                    "Run tailscale up on the server — it gets a 100.x.x.x IP or MagicDNS hostname",
+                    "In Pulse, enter the Tailscale IP (e.g. 100.64.0.5) or MagicDNS hostname as the host",
                     "Use port 8443 and the agent token as usual",
-                    "Connection is fully encrypted — WireGuard + mTLS on top"
+                    "Connection is fully encrypted — WireGuard + mTLS layered on top"
                 ]
             )
 
@@ -155,13 +174,13 @@ private struct ConnectingSection: View {
             methodBlock(
                 number: "3",
                 title: "Cloudflare Tunnel (Zero Inbound Ports)",
-                description: "Cloudflare Tunnel lets you expose a server to the internet via Cloudflare's network without opening any firewall ports.",
+                description: "Cloudflare Tunnel exposes your server via Cloudflare's edge — no firewall ports required. One-command setup: curl -fsSL .../setup-cloudflare.sh | sudo bash",
                 steps: [
-                    "Install cloudflared on the server: brew install cloudflared or via pkg",
-                    "Run: cloudflared tunnel --url https://localhost:8443",
-                    "Cloudflare gives you a public HTTPS URL like https://xyz.trycloudflare.com",
-                    "In Pulse, enter that URL as the host (without port — Cloudflare handles TLS termination at 443)",
-                    "For a permanent tunnel, configure a named tunnel via cloudflared tunnel create and DNS routing"
+                    "Install cloudflared on the server (Debian/Ubuntu/RHEL/binary — the script handles this)",
+                    "A quick tunnel gives you a temporary https://xyz.trycloudflare.com URL (no account needed)",
+                    "For permanent URLs: run with --tunnel-name <name> --domain pulse.yourdomain.com",
+                    "In Pulse, enter the Cloudflare URL as host, port 443",
+                    "Cloudflare terminates public SSL; the agent communicates on localhost only"
                 ]
             )
 
@@ -177,6 +196,29 @@ private struct ConnectingSection: View {
                 }
                 .padding(.vertical, 2)
             }
+
+            // Pairing code
+            GroupBox("XXX-XXX Pairing Code") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Prefer not to paste tokens on the command line? Use the pairing code flow:")
+                        .font(.body)
+                    codeBlock("pulse-agent pair")
+                    Text("This prints a temporary XXX-XXX code (e.g. 653-557) valid for 10 minutes. In Pulse → Add Server, select Pair Code, enter the server IP and the code.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private func quickSetupRow(_ label: String, _ command: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+            Text(command)
+                .font(.system(.footnote, design: .monospaced))
+                .foregroundColor(.secondary)
         }
     }
 }
@@ -187,7 +229,7 @@ private struct FAQSection: View {
     private let items: [(String, String)] = [
         (
             "Is there a Pulse Agent for Windows?",
-            "Not yet. The agent currently supports Linux (Debian/Ubuntu/RHEL/Arch) and macOS. Windows support is on the roadmap."
+            "Not yet. The agent currently supports Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE, Void) and macOS. Windows support is on the roadmap."
         ),
         (
             "Does Pulse send my server data to any cloud?",
@@ -286,7 +328,7 @@ private struct AboutSection: View {
 
             GroupBox("App") {
                 VStack(alignment: .leading, spacing: 8) {
-                    infoRow("App Version", "0.8.0 (Build 8)")
+                    infoRow("App Version", "0.9.0 (Build 8)")
                     infoRow("Minimum macOS", "macOS 13 Ventura")
                     infoRow("License", "MIT — free to use and modify")
                     infoRow("Source", "github.com/miftahganzz/Pulse")

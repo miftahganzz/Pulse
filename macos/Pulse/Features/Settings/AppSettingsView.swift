@@ -80,7 +80,7 @@ public struct AppSettingsView: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Pulse v0.8.0 (Build 8)")
+                        Text("Pulse v0.9.0 (Build 9)")
                             .font(.system(size: 12, weight: .medium))
                         if let lastCheck = updateManager.lastUpdateCheckDate {
                             Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
