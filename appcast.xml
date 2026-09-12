@@ -6,6 +6,29 @@
     <description>Pulse updates and release channel</description>
     <language>en</language>
     <item>
+      <title>Pulse 0.9.0</title>
+      <pubDate>Sat, 12 Sep 2026 09:00:00 +0700</pubDate>
+      <sparkle:version>9</sparkle:version>
+      <sparkle:shortVersionString>0.9.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>Pulse v0.9.0</h2>
+        <ul>
+          <li>Server Tags & Environments: Group servers in the sidebar by Production, Staging, Development, and Other.</li>
+          <li>One-Command Automated Setup scripts for Direct IP, Tailscale, and Cloudflare Tunnel.</li>
+          <li>Support for all major Linux distributions (Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE).</li>
+          <li>New XXX-XXX human-friendly pairing code format (e.g. 607-019).</li>
+          <li>In-app documentation window accessible via ⌘/ or toolbar.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/miftahganzz/Pulse/releases/download/v0.9.0/Pulse-0.9.0.dmg"
+        length="6922703"
+        sparkle:version="9"
+        sparkle:shortVersionString="0.9.0"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Pulse 0.8.0</title>
       <pubDate>Fri, 11 Sep 2026 20:00:00 +0700</pubDate>
       <sparkle:version>8</sparkle:version>
