@@ -5,6 +5,7 @@ import SwiftUI
 private enum DocsSection: String, CaseIterable, Identifiable {
     case whatIsPulse   = "What is Pulse"
     case connecting    = "Connecting a Server"
+    case cli           = "Pulse CLI"
     case telegram      = "Telegram Alerts"
     case tools         = "Tools & Runbooks"
     case faq           = "FAQ"
@@ -15,6 +16,7 @@ private enum DocsSection: String, CaseIterable, Identifiable {
         switch self {
         case .whatIsPulse: return "waveform.path.ecg"
         case .connecting:  return "network"
+        case .cli:         return "terminal.fill"
         case .telegram:    return "paperplane.fill"
         case .tools:       return "wrench.and.screwdriver.fill"
         case .faq:         return "questionmark.circle"
@@ -55,6 +57,7 @@ public struct DocsView: View {
         switch selection {
         case .whatIsPulse:  WhatIsPulseSection()
         case .connecting:   ConnectingSection()
+        case .cli:          CLIDocsSection()
         case .telegram:     TelegramDocsSection()
         case .tools:        ToolsDocsSection()
         case .faq:          FAQSection()
@@ -208,7 +211,7 @@ private struct ConnectingSection: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Prefer not to paste tokens on the command line? Use the pairing code flow:")
                         .font(.body)
-                    codeBlock("pulse-agent pair")
+                    codeBlock("pulse pair")
                     Text("This prints a temporary XXX-XXX code (e.g. 653-557) valid for 10 minutes. In Pulse → Add Server, select Pair Code, enter the server IP and the code.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
@@ -225,6 +228,75 @@ private struct ConnectingSection: View {
             Text(command)
                 .font(.system(.footnote, design: .monospaced))
                 .foregroundColor(.secondary)
+        }
+    }
+}
+
+// MARK: - Pulse CLI
+
+private struct CLIDocsSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            sectionHeader(
+                icon: "terminal.fill",
+                title: "Pulse CLI Reference",
+                subtitle: "Unified all-in-one command line tool for managing your Linux nodes, networking, and daemon."
+            )
+
+            Text("""
+Every server running the Pulse agent includes the unified `pulse` command (symlinked to `/usr/local/bin/pulse`). \
+You can manage pairing, check system metrics, stream logs, configure Tailscale or Cloudflare tunnels, \
+and auto-update the binary with simple subcommands.
+""")
+            .font(.body)
+            .fixedSize(horizontal: false, vertical: true)
+
+            GroupBox("Status & Diagnostics") {
+                VStack(alignment: .leading, spacing: 12) {
+                    cliCommandRow("pulse", "Displays quick system health summary, listening port, and IP addresses.")
+                    cliCommandRow("pulse status", "Full status output including daemon state, LAN IP, Public IP, and active pairing codes.")
+                    cliCommandRow("pulse doctor", "Runs complete connectivity, TLS certificate, firewall, and permission diagnostics.")
+                }
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("Pairing & Zero-Config Setup") {
+                VStack(alignment: .leading, spacing: 12) {
+                    cliCommandRow("pulse pair", "Generates a temporary XXX-XXX pairing code (valid 10 mins) to connect from your Mac without pasting tokens.")
+                    cliCommandRow("pulse pair <code>", "Explicitly sets a custom 6-digit pairing code on the server.")
+                }
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("Mesh Networking & Tunnels") {
+                VStack(alignment: .leading, spacing: 12) {
+                    cliCommandRow("pulse tailscale", "Detects Tailscale status, shows MagicDNS hostname and Tailscale IP, or provides 1-command installer.")
+                    cliCommandRow("sudo pulse tailscale install", "Automates Tailscale installation, login setup, and firewall hardening.")
+                    cliCommandRow("pulse cloudflare", "Detects cloudflared status, generates ingress configuration, or guides 1-command tunnel setup.")
+                }
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("Daemon & Maintenance") {
+                VStack(alignment: .leading, spacing: 12) {
+                    cliCommandRow("pulse logs -f", "Streams live agent logs via journalctl.")
+                    cliCommandRow("pulse update", "Checks GitHub Releases for latest agent release, verifies CPU arch, and upgrades in place.")
+                    cliCommandRow("sudo pulse restart", "Restarts the background systemd service.")
+                    cliCommandRow("sudo pulse stop / start", "Stops or starts the agent service.")
+                    cliCommandRow("sudo pulse uninstall", "Cleanly stops service, removes systemd units, binaries, and certificates.")
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private func cliCommandRow(_ cmd: String, _ desc: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            codeBlock(cmd)
+            Text(desc)
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .padding(.leading, 2)
         }
     }
 }

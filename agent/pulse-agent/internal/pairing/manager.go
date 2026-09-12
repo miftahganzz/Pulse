@@ -195,3 +195,17 @@ func (m *Manager) GetStatus() (bool, time.Duration) {
 	}
 	return true, time.Until(m.session.ExpiresAt)
 }
+
+// GetActiveSession returns the current active pairing session if valid and unclaimed
+func (m *Manager) GetActiveSession() *PairSession {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.session != nil && time.Now().Before(m.session.ExpiresAt) && !m.session.IsClaimed {
+		return m.session
+	}
+	if fileSess := m.loadSessionFromFile(); fileSess != nil {
+		return fileSess
+	}
+	return nil
+}

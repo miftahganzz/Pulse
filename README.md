@@ -97,7 +97,7 @@ If you prefer not to pass tokens over command-line arguments:
    ```
 2. Request a pairing code on your server terminal:
    ```bash
-   pulse-agent pair
+   pulse pair
    ```
    Output:
    ```text
@@ -108,6 +108,26 @@ If you prefer not to pass tokens over command-line arguments:
    └────────────────────────────────────────────────────────┘
    ```
 3. In Pulse on your Mac, select **XXX-XXX Pair Code**, enter your server's public IP and the code `653-557`, then click **Verify & Pair**.
+
+---
+
+## Unified Pulse CLI (`pulse`)
+
+Every server running Pulse includes the unified `pulse` command (symlinked to `/usr/local/bin/pulse`). It provides a fast, intuitive terminal interface for managing the agent daemon, private mesh networking, pairing, logs, and upgrades:
+
+```bash
+pulse                     # Quick health status card & endpoints
+pulse status              # Detailed daemon state, IP addresses & pairing code
+pulse pair                # Generate temporary XXX-XXX pairing code (valid 10 mins)
+pulse tailscale           # Detect Tailscale or auto-install mesh network
+sudo pulse tailscale install  # 1-command Tailscale install & firewall lock down
+pulse cloudflare          # Detect cloudflared tunnel & show ingress config
+pulse logs -f             # Stream live daemon journalctl logs
+pulse update              # Auto-update binary from GitHub releases in place
+pulse doctor              # Run full system, TLS, and port diagnostics
+sudo pulse restart        # Restart background daemon
+sudo pulse uninstall      # Cleanly remove agent, systemd units, and configs
+```
 
 ---
 

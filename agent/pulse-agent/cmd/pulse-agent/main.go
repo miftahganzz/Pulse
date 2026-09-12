@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/pulse/pulse-agent/internal/agent"
+	"github.com/pulse/pulse-agent/internal/cli"
 	"github.com/pulse/pulse-agent/internal/doctor"
 	"github.com/pulse/pulse-agent/internal/pairing"
 	"github.com/pulse/pulse-agent/internal/security"
@@ -23,6 +24,30 @@ import (
 )
 
 func main() {
+	defaultConfigPath := ""
+	if os.Geteuid() == 0 {
+		defaultConfigPath = "/etc/pulse/agent.json"
+	} else {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			defaultConfigPath = "./agent.json"
+		} else {
+			defaultConfigPath = filepath.Join(home, ".pulse", "agent.json")
+		}
+	}
+
+	// 1. Dispatch unified CLI subcommands
+	if len(os.Args) > 1 {
+		if cli.HandleCommand(os.Args[1:], defaultConfigPath) {
+			return
+		}
+	} else if len(os.Args) == 1 {
+		// Run without arguments: show status overview and quick commands
+		if cli.HandleCommand([]string{}, defaultConfigPath) {
+			return
+		}
+	}
+
 	configPathFlag := flag.String("config", "", "path to agent.json config file")
 	showTokenFlag := flag.Bool("show-token", false, "display agent ID and auth token, then exit")
 	versionFlag := flag.Bool("version", false, "display agent version and exit")
