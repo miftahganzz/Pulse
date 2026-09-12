@@ -40,6 +40,13 @@ else
   ok "Tailscale installed"
 fi
 
+# Ensure tailscaled service is running
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl enable --now tailscaled >/dev/null 2>&1 || true
+elif command -v service >/dev/null 2>&1; then
+  service tailscaled start >/dev/null 2>&1 || true
+fi
+
 # ── 3. Bring up Tailscale ──────────────────────────────────────
 step "Connecting Tailscale..."
 if tailscale ip -4 >/dev/null 2>&1; then
