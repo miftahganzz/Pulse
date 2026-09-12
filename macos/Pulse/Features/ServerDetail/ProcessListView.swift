@@ -88,14 +88,15 @@ public struct ProcessListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: 200)
             } else if filteredProcesses.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Image(systemName: "slash.circle")
+                        .font(.system(size: 32))
+                        .foregroundColor(.secondary.opacity(0.6))
+                    Text(searchText.isEmpty ? "No active processes found." : "No processes match \"\(searchText)\"")
                         .foregroundColor(.secondary)
-                    Text("No processes match the filter.")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(.system(size: 13, weight: .medium))
                 }
-                .frame(maxWidth: .infinity, maxHeight: 200)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Table(filteredProcesses) {
                     TableColumn("PID") { proc in
@@ -180,9 +181,11 @@ public struct ProcessListView: View {
                         } label: {
                             Image(systemName: "ellipsis.circle")
                                 .font(.system(size: 13))
+                                .foregroundColor(.secondary)
                         }
                         .menuStyle(.borderlessButton)
-                        .frame(width: 30)
+                        .menuIndicator(.hidden)
+                        .frame(width: 24, height: 24)
                     }
                     .width(min: 40, ideal: 50, max: 60)
                 }

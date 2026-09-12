@@ -154,7 +154,7 @@ public struct ServerDetailView: View {
                     EmptyView()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .onAppear {
             if manager.state == .disconnected {

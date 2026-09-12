@@ -57,14 +57,16 @@ public final class NavigationState: ObservableObject {
                 if pathComponents.count >= 2 {
                     let sub = pathComponents[1]
                     switch sub {
-                    case "monitors", "services": targetTab = 1
+                    case "monitors": targetTab = 1
                     case "incident", "incidents": targetTab = 2
                     case "processes": targetTab = 3
-                    case "system-services": targetTab = 4
-                    case "docker": targetTab = 5
+                    case "services", "system-services": targetTab = 4
+                    case "docker", "containers": targetTab = 5
                     case "activity": targetTab = 6
-                    case "topology": targetTab = 7
+                    case "topology", "map": targetTab = 7
                     case "security", "ports": targetTab = 8
+                    case "logs", "live-logs": targetTab = 9
+                    case "storage", "disk": targetTab = 10
                     case "edit":
                         if let server = ServerStore.shared.servers.first(where: { $0.id == uuid }) {
                             self.serverToEdit = server

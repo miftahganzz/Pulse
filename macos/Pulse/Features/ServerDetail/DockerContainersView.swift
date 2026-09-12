@@ -81,7 +81,7 @@ public struct DockerContainersView: View {
                     ProgressView().controlSize(.small)
                     Text("Checking Docker engine...").foregroundColor(.secondary).font(.caption)
                 }
-                .frame(maxWidth: .infinity, maxHeight: 200)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !manager.isDockerAvailable {
                 VStack(spacing: 12) {
                     Image(systemName: "shippingbox")
@@ -94,19 +94,20 @@ public struct DockerContainersView: View {
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity, maxHeight: 240)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding()
                 .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
                 .cornerRadius(8)
             } else if filteredContainers.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Image(systemName: "shippingbox.and.arrow.backward")
+                        .font(.system(size: 32))
+                        .foregroundColor(.secondary.opacity(0.6))
+                    Text(searchText.isEmpty ? "No containers found." : "No containers match \"\(searchText)\"")
                         .foregroundColor(.secondary)
-                    Text("No containers found.")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(.system(size: 13, weight: .medium))
                 }
-                .frame(maxWidth: .infinity, maxHeight: 200)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Table(filteredContainers) {
                     TableColumn("ID") { c in
@@ -194,8 +195,10 @@ public struct DockerContainersView: View {
                                 } label: {
                                     Image(systemName: "ellipsis.circle")
                                         .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
                                 }
                                 .menuStyle(.borderlessButton)
+                                .menuIndicator(.hidden)
                                 .frame(width: 24, height: 24)
                             }
                         }

@@ -65,7 +65,15 @@ struct PulseApp: App {
                 }
                 .keyboardShortcut("u", modifiers: .command)
 
-                Button("Services & Monitors") {
+                Button("Services (Systemd)") {
+                    NavigationState.shared.selectedDetailTab = 4
+                }
+
+                Button("Docker Containers") {
+                    NavigationState.shared.selectedDetailTab = 5
+                }
+
+                Button("Monitors") {
                     NavigationState.shared.selectedDetailTab = 1
                 }
                 .keyboardShortcut("3", modifiers: .command)
@@ -216,8 +224,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    private func isExemptFromFixedConstraints(_ window: NSWindow) -> Bool {
+        if window is NSPanel { return true }
+
+        let className = NSStringFromClass(type(of: window))
+        if className.contains("SU") || className.contains("Sparkle") {
+            return true
+        }
+
+        if let controller = window.windowController {
+            let ctrlClass = NSStringFromClass(type(of: controller))
+            if ctrlClass.contains("SU") || ctrlClass.contains("Sparkle") {
+                return true
+            }
+        }
+
+        let title = window.title
+        if title == "Software Update" || title.contains("Update") || title == "Pulse Docs" {
+            return true
+        }
+
+        if let id = window.identifier?.rawValue,
+           id.contains("sparkle") || id == "pulse-docs" {
+            return true
+        }
+
+        return false
+    }
+
     private func configureFixedWindow(_ window: NSWindow) {
-        guard !(window is NSPanel) else { return }
+        guard !isExemptFromFixedConstraints(window) else { return }
 
         // Exit fullscreen immediately if window was restored in fullscreen mode
         if window.styleMask.contains(.fullScreen) {
@@ -269,6 +305,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // Clamp resize interactions to the fixed bounds
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        if isExemptFromFixedConstraints(sender) {
+            return frameSize
+        }
         let clampedW = min(max(frameSize.width, 860), 1040)
         let clampedH = min(max(frameSize.height, 560), 720)
         return NSSize(width: clampedW, height: clampedH)
@@ -277,6 +316,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // Ensure zoom button remains hidden after resize
     func windowDidResize(_ notification: Notification) {
         if let window = notification.object as? NSWindow {
+            guard !isExemptFromFixedConstraints(window) else { return }
             if let zoomBtn = window.standardWindowButton(.zoomButton) {
                 zoomBtn.isEnabled = false
                 zoomBtn.isHidden = true
@@ -286,6 +326,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // Prevent double-clicking titlebar from maximizing
     func windowShouldZoom(_ window: NSWindow, toFrame newFrame: NSRect) -> Bool {
+        if isExemptFromFixedConstraints(window) {
+            return true
+        }
         return false
     }
 

@@ -62,16 +62,17 @@ public struct ServiceListView: View {
                     ProgressView().controlSize(.small)
                     Text("Querying services...").foregroundColor(.secondary).font(.caption)
                 }
-                .frame(maxWidth: .infinity, maxHeight: 200)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filteredServices.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Image(systemName: "slash.circle")
+                        .font(.system(size: 32))
+                        .foregroundColor(.secondary.opacity(0.6))
+                    Text(searchText.isEmpty ? "No systemd services found." : "No services match \"\(searchText)\"")
                         .foregroundColor(.secondary)
-                    Text("No services match the filter.")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+                        .font(.system(size: 13, weight: .medium))
                 }
-                .frame(maxWidth: .infinity, maxHeight: 200)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(filteredServices) { svc in
                     HStack(spacing: 12) {
@@ -111,26 +112,62 @@ public struct ServiceListView: View {
                                     .controlSize(.mini)
                                     .frame(width: 24, height: 24)
                             } else {
+                                Button {
+                                    NavigationState.shared.selectedDetailTab = 9
+                                } label: {
+                                    Image(systemName: "doc.text")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("View Live Logs for \(svc.name)")
+
                                 Menu {
+                                    Button {
+                                        NavigationState.shared.selectedDetailTab = 9
+                                    } label: {
+                                        Label("View Live Logs", systemImage: "doc.text")
+                                    }
+
+                                    Divider()
+
                                     if !svc.isRunning {
-                                        Button("Start") {
+                                        Button {
                                             executeAction(on: svc.name, action: "start")
+                                        } label: {
+                                            Label("Start Service", systemImage: "play.fill")
                                         }
                                     }
                                     if svc.isRunning {
-                                        Button("Restart") {
+                                        Button {
                                             executeAction(on: svc.name, action: "restart")
+                                        } label: {
+                                            Label("Restart Service", systemImage: "arrow.clockwise")
                                         }
-                                        Button("Stop", role: .destructive) {
+                                        Button(role: .destructive) {
                                             executeAction(on: svc.name, action: "stop")
+                                        } label: {
+                                            Label("Stop Service", systemImage: "stop.fill")
                                         }
+                                    }
+
+                                    Divider()
+
+                                    Button {
+                                        NSPasteboard.general.clearContents()
+                                        NSPasteboard.general.setString(svc.name, forType: .string)
+                                    } label: {
+                                        Label("Copy Service Name", systemImage: "doc.on.doc")
                                     }
                                 } label: {
                                     Image(systemName: "ellipsis.circle")
                                         .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
                                 }
                                 .menuStyle(.borderlessButton)
+                                .menuIndicator(.hidden)
                                 .frame(width: 24, height: 24)
+                                .help("Service Actions")
                             }
                         }
                     }
