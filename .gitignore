@@ -20,6 +20,7 @@ DerivedData/
 agent/pulse-agent/bin/pulse-agent-darwin-*
 agent/pulse-agent/bin/*.pem
 agent/pulse-agent/bin/test-agent.json
+agent/pulse-agent/pulse-agent-linux-*
 agent/pulse-agent/agent.json
 *.test
 *.out
