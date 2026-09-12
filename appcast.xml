@@ -6,6 +6,30 @@
     <description>Pulse updates and release channel</description>
     <language>en</language>
     <item>
+      <title>Pulse 1.0.1</title>
+      <pubDate>Sat, 12 Sep 2026 19:30:00 +0700</pubDate>
+      <sparkle:version>11</sparkle:version>
+      <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>Pulse v1.0.1</h2>
+        <ul>
+          <li><strong>Unified Pulse CLI:</strong> All-in-one command line tool (<code>pulse</code>) on Linux nodes for status, pairing, Tailscale, Cloudflare tunnels, logs, and self-updates.</li>
+          <li><strong>Clean & Minimal Terminal UX:</strong> Removed all heavy ASCII/box-drawing borders for ultra-clean, modern terminal readability.</li>
+          <li><strong>Network Offline Auto-Reconnect:</strong> Real-time network monitor that detects Wi-Fi/Ethernet drops and reconnects servers automatically when online.</li>
+          <li><strong>Live Log Streaming Enhancements:</strong> Connection-state aware WebSocket log streamer with automatic retry and idle indicators.</li>
+          <li><strong>UI Polish:</strong> Compact update modal sizing, pinned search headers, and clean borderless action buttons.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/miftahganzz/Pulse/releases/download/v1.0.1/Pulse-1.0.1.dmg"
+        length="7748285"
+        sparkle:edSignature="Bi7xHVPOlS480p9bLUe+WgoUmjdya3eMxBt8ARkTJWkF4G55LyM/KmViIwbxCNFkTbESVyOXYDaWIolfJDfKBg=="
+        sparkle:version="11"
+        sparkle:shortVersionString="1.0.1"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Pulse 1.0.0</title>
       <pubDate>Sat, 12 Sep 2026 12:00:00 +0700</pubDate>
       <sparkle:version>10</sparkle:version>

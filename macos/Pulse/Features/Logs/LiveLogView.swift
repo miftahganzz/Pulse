@@ -440,23 +440,21 @@ public struct LiveLogView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Run this command on your server to update pulse-agent to v1.0.0:")
+                Text("Run this command on your server to update pulse-agent:")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.secondary)
 
                 HStack(spacing: 8) {
-                    Text("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash")
-                        .font(.system(size: 11, design: .monospaced))
+                    Text("sudo pulse update")
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
                         .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
                         .textSelection(.enabled)
 
                     Spacer(minLength: 4)
 
                     Button {
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash", forType: .string)
+                        NSPasteboard.general.setString("sudo pulse update", forType: .string)
                         copiedUpgradeCommand = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             copiedUpgradeCommand = false
