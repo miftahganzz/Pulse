@@ -142,6 +142,13 @@ public struct ProcessListView: View {
                     }
                     .width(min: 75, ideal: 90, max: 110)
 
+                    TableColumn("Disk / Net I/O") { proc in
+                        Text(proc.formattedIO)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                    .width(min: 110, ideal: 140, max: 170)
+
                     TableColumn("State") { proc in
                         HStack(spacing: 4) {
                             Circle()

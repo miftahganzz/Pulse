@@ -5,6 +5,8 @@ import SwiftUI
 private enum DocsSection: String, CaseIterable, Identifiable {
     case whatIsPulse   = "What is Pulse"
     case connecting    = "Connecting a Server"
+    case telegram      = "Telegram Alerts"
+    case tools         = "Tools & Runbooks"
     case faq           = "FAQ"
     case about         = "About"
 
@@ -13,6 +15,8 @@ private enum DocsSection: String, CaseIterable, Identifiable {
         switch self {
         case .whatIsPulse: return "waveform.path.ecg"
         case .connecting:  return "network"
+        case .telegram:    return "paperplane.fill"
+        case .tools:       return "wrench.and.screwdriver.fill"
         case .faq:         return "questionmark.circle"
         case .about:       return "person.circle"
         }
@@ -33,7 +37,7 @@ public struct DocsView: View {
                     .tag(section)
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(180)
+            .navigationSplitViewColumnWidth(190)
         } detail: {
             ScrollView {
                 detailContent
@@ -43,7 +47,7 @@ public struct DocsView: View {
         }
         .navigationTitle("Pulse Docs")
         .navigationSplitViewStyle(.balanced)
-        .frame(width: 720, height: 520)
+        .frame(width: 750, height: 540)
     }
 
     @ViewBuilder
@@ -51,6 +55,8 @@ public struct DocsView: View {
         switch selection {
         case .whatIsPulse:  WhatIsPulseSection()
         case .connecting:   ConnectingSection()
+        case .telegram:     TelegramDocsSection()
+        case .tools:        ToolsDocsSection()
         case .faq:          FAQSection()
         case .about:        AboutSection()
         }
@@ -223,6 +229,128 @@ private struct ConnectingSection: View {
     }
 }
 
+// MARK: - Telegram Alerts
+
+private struct TelegramDocsSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            sectionHeader(
+                icon: "paperplane.fill",
+                title: "Telegram Outbound Alerts",
+                subtitle: "Direct push notification alerts sent to your phone or team chat via Telegram."
+            )
+
+            Text("""
+Pulse can notify you via Telegram whenever critical incidents occur on your servers (high CPU/RAM, disk exhaustion, service or container crashes).
+
+Alerts can be delivered directly from your server's Pulse Agent or from the macOS client directly to Telegram's Bot API. No external SaaS or intermediary proxy is involved.
+""")
+            .font(.body)
+            .fixedSize(horizontal: false, vertical: true)
+
+            GroupBox("Setup in 3 Steps") {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("1. Create your Telegram Bot")
+                            .font(.headline)
+                        Text("Open Telegram and message @BotFather. Send /newbot, follow the prompts, and copy your HTTP API Bot Token (e.g. 7123456789:AAFx...).")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("2. Get your Chat ID")
+                            .font(.headline)
+                        Text("To receive personal alerts, message @userinfobot to get your numeric ID (e.g. 123456789). For group alerts, add your bot to the group and copy the group chat ID (e.g. -100xxxxxxxxxx).")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("3. Configure in Pulse")
+                            .font(.headline)
+                        Text("In the server detail view, click the Alert Settings bell icon. Enable Telegram Outbound Alerts, paste your Bot Token, and enter your Chat IDs. Click 'Send Test Alert' to verify instant delivery.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("Privacy & Direct Connection") {
+                VStack(alignment: .leading, spacing: 8) {
+                    featureRow("lock.shield", "End-to-end TLS: Notifications are dispatched directly from your host or Mac to https://api.telegram.org.")
+                    featureRow("person.2", "Multi-recipient: You can broadcast to multiple admin user IDs and group channels simultaneously.")
+                    featureRow("bolt.horizontal", "Cooldown & deduplication: Alert bursts and flapping events are automatically throttled to avoid spamming.")
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+}
+
+// MARK: - Tools & Runbooks
+
+private struct ToolsDocsSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            sectionHeader(
+                icon: "wrench.and.screwdriver.fill",
+                title: "Tools & Runbooks",
+                subtitle: "Live log streaming, disk diagnostics, safe cleaners, and 1-click maintenance."
+            )
+
+            GroupBox("Live Log Viewer") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Stream live logs with sub-second WebSocket updates from both Systemd services and Docker containers. Includes real-time keyword filtering, auto-scroll toggle, and 1-click clipboard export.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                    featureRow("list.bullet.rectangle", "Systemd: Streams journal logs (journalctl -f) with unit selection")
+                    featureRow("shippingbox", "Docker: Streams container stdout/stderr with real-time timestamps")
+                }
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("Disk Space Analyzer") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Break down disk usage by critical directories (/var/log, /var/lib/docker, /var/cache, /tmp). Safely reclaim gigabytes with built-in 1-click cleaners:")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                    featureRow("trash", "Vacuum Journals: Prunes systemd logs older than 3 days")
+                    featureRow("trash", "Docker Prune: Removes stopped containers, dangling images, and build cache")
+                    featureRow("trash", "Clean APT Cache: Clears downloaded package archives safely")
+                }
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("Maintenance Runbooks (⌘R)") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Run safe, pre-approved maintenance operations with live terminal output:")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                    featureRow("bolt.fill", "Reload Nginx / Caddy without dropping active connections")
+                    featureRow("bolt.fill", "Flush DNS cache (systemd-resolved / nscd)")
+                    featureRow("bolt.fill", "Check available OS security package updates")
+                    featureRow("bolt.fill", "Drop filesystem pagecache safely (echo 3 > /proc/sys/vm/drop_caches)")
+                }
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("Process I/O & Menu Bar Metrics") {
+                VStack(alignment: .leading, spacing: 8) {
+                    featureRow("arrow.up.arrow.down", "Disk & Network I/O: Live read/write rates and open socket count per process")
+                    featureRow("menubar.rectangle", "Menu Bar Ticker: Enable live CPU & RAM metrics directly in macOS status bar via Settings")
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+}
+
 // MARK: - FAQ
 
 private struct FAQSection: View {
@@ -328,7 +456,7 @@ private struct AboutSection: View {
 
             GroupBox("App") {
                 VStack(alignment: .leading, spacing: 8) {
-                    infoRow("App Version", "0.9.0 (Build 8)")
+                    infoRow("App Version", "1.0.0 (Build 10)")
                     infoRow("Minimum macOS", "macOS 13 Ventura")
                     infoRow("License", "MIT — free to use and modify")
                     infoRow("Source", "github.com/miftahganzz/Pulse")

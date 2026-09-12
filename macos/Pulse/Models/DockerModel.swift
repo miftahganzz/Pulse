@@ -48,6 +48,10 @@ public struct DockerContainerItem: Identifiable, Codable, Equatable, Sendable {
     public var isRestarting: Bool {
         state.lowercased() == "restarting"
     }
+
+    public var cleanName: String {
+        name.hasPrefix("/") ? String(name.dropFirst()) : name
+    }
 }
 
 public struct DockerStatusResponse: Codable, Equatable, Sendable {

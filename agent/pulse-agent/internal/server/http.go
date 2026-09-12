@@ -32,10 +32,13 @@ import (
 	webserverprov "github.com/pulse/pulse-agent/internal/providers/webserver"
 	cloudflaredprov "github.com/pulse/pulse-agent/internal/providers/cloudflared"
 	customprov "github.com/pulse/pulse-agent/internal/providers/custom"
+	"github.com/pulse/pulse-agent/internal/alerts"
 	"github.com/pulse/pulse-agent/internal/intelligence"
+	"github.com/pulse/pulse-agent/internal/logs"
 	"github.com/pulse/pulse-agent/internal/pairing"
 	"github.com/pulse/pulse-agent/internal/security"
 	"github.com/pulse/pulse-agent/internal/services"
+	"github.com/pulse/pulse-agent/internal/storage"
 	"github.com/pulse/pulse-agent/internal/transport"
 )
 
@@ -54,6 +57,10 @@ type Server struct {
 	dockerCtrl docker.Controller
 	registry   *providers.Registry
 	executor   *actions.Executor
+	streamer   *logs.Streamer
+	analyzer   *storage.Analyzer
+	telegram   *alerts.TelegramDispatcher
+	tgCfg      alerts.TelegramConfig
 	pgProv     *postgresprov.PostgresProvider
 	redisProv  *redisprov.RedisProvider
 	mysqlProv  *mysqlprov.MySQLProvider
@@ -101,6 +108,9 @@ func NewServer(cfg *agent.Config, identity agent.Identity, logger *slog.Logger) 
 		dockerCtrl: dockerCli,
 		registry:   reg,
 		executor:   exec,
+		streamer:   logs.NewStreamer(dockerCli),
+		analyzer:   storage.NewAnalyzer(),
+		telegram:   alerts.NewTelegramDispatcher(),
 		pgProv:     pgP,
 		redisProv:  redisP,
 		mysqlProv:  myP,
@@ -129,8 +139,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/v1/providers", s.handleProviders)
 	mux.HandleFunc("/api/v1/agent/health", s.handleAgentHealth)
 	mux.HandleFunc("/api/v1/security/ports", s.handleSecurityPorts)
-	mux.HandleFunc("/api/v1/intelligence/suggested-dependencies", s.handleSuggestedDependencies)
 	mux.HandleFunc("/ws/v1/stream", s.handleStream)
+	mux.HandleFunc("/ws/v1/logs", s.handleLogsStream)
+	mux.HandleFunc("/api/v1/storage/analyze", s.handleStorageAnalyze)
+	mux.HandleFunc("/api/v1/alerts/telegram/test", s.handleTelegramTest)
+	mux.HandleFunc("/api/v1/alerts/telegram/config", s.handleTelegramConfig)
 
 	protectedHandler := security.TokenAuthMiddleware(s.cfg.AuthToken, mux)
 
@@ -753,4 +766,135 @@ func (s *Server) handleSecurityPorts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(env)
 }
+
+func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		s.logger.Error("failed to upgrade log stream to websocket", "error", err)
+		return
+	}
+	defer conn.Close()
+
+	sourceType := r.URL.Query().Get("type")
+	target := r.URL.Query().Get("target")
+	tailStr := r.URL.Query().Get("tail")
+	follow := r.URL.Query().Get("follow") != "false"
+
+	tail := 100
+	if t, err := strconv.Atoi(tailStr); err == nil && t > 0 {
+		tail = t
+	}
+
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	// Read loop to detect disconnect
+	go func() {
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				cancel()
+				return
+			}
+		}
+	}()
+
+	outChan := make(chan logs.LogEntry, 256)
+
+	if sourceType == "docker" {
+		if err := s.streamer.StreamDocker(ctx, target, tail, follow, outChan); err != nil {
+			_ = conn.WriteJSON(logs.LogEntry{
+				Timestamp: time.Now().UTC(),
+				Line:      fmt.Sprintf("Error starting docker log stream: %v", err),
+				Stream:    "stderr",
+			})
+			return
+		}
+	} else {
+		// default to systemd
+		if err := s.streamer.StreamSystemd(ctx, target, tail, follow, outChan); err != nil {
+			_ = conn.WriteJSON(logs.LogEntry{
+				Timestamp: time.Now().UTC(),
+				Line:      fmt.Sprintf("Error starting systemd log stream: %v", err),
+				Stream:    "stderr",
+			})
+			return
+		}
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case entry, ok := <-outChan:
+			if !ok {
+				return
+			}
+			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			if err := conn.WriteJSON(entry); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func (s *Server) handleStorageAnalyze(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	analysis := s.analyzer.Analyze(r.Context())
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(analysis)
+}
+
+func (s *Server) handleTelegramTest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		BotToken string `json:"bot_token"`
+		ChatID   string `json:"chat_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.BotToken == "" || req.ChatID == "" {
+		http.Error(w, "invalid payload: bot_token and chat_id required", http.StatusBadRequest)
+		return
+	}
+
+	testMsg := fmt.Sprintf("✅ *Pulse Alert Test*\nSuccessfully connected to server `%s`!\nTimestamp: `%s`",
+		s.identity.Hostname, time.Now().UTC().Format(time.RFC3339))
+
+	if err := s.telegram.SendMessage(r.Context(), req.BotToken, req.ChatID, testMsg); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "message": "Test alert sent successfully"})
+}
+
+func (s *Server) handleTelegramConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(s.tgCfg)
+	case http.MethodPost:
+		var cfg alerts.TelegramConfig
+		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+			http.Error(w, "invalid json payload", http.StatusBadRequest)
+			return
+		}
+		s.tgCfg = cfg
+		s.logger.Info("updated telegram alert configuration", "enabled", cfg.Enabled, "chats", len(cfg.ChatIDs))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "config": s.tgCfg})
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
 

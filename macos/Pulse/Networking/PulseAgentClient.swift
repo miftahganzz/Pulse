@@ -728,6 +728,141 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         }.resume()
     }
 
+    public func streamLogs(
+        type: String,
+        target: String,
+        tail: Int = 100,
+        onLine: @escaping @Sendable (LogEntryMessage) -> Void,
+        onError: @escaping @Sendable (Error) -> Void
+    ) -> URLSessionWebSocketTask? {
+        guard let encodedTarget = target.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "wss://\(host):\(port)/ws/v1/logs?type=\(type)&target=\(encodedTarget)&tail=\(tail)&follow=true") else {
+            onError(URLError(.badURL))
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let task = session.webSocketTask(with: request)
+        task.resume()
+
+        @Sendable func readNext() {
+            task.receive { result in
+                switch result {
+                case .success(let msg):
+                    switch msg {
+                    case .string(let text):
+                        if let data = text.data(using: .utf8),
+                           let entry = try? JSONDecoder().decode(LogEntryMessage.self, from: data) {
+                            onLine(entry)
+                        }
+                    case .data(let data):
+                        if let entry = try? JSONDecoder().decode(LogEntryMessage.self, from: data) {
+                            onLine(entry)
+                        }
+                    @unknown default:
+                        break
+                    }
+                    readNext()
+                case .failure(let err):
+                    onError(err)
+                }
+            }
+        }
+
+        readNext()
+        return task
+    }
+
+    public func fetchStorageAnalysis(completion: @escaping @Sendable (Result<StorageAnalysis, Error>) -> Void) {
+        guard let url = URL(string: "https://\(host):\(port)/api/v1/storage/analyze") else {
+            completion(.failure(URLError(.badURL)))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        session.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data else {
+                completion(.failure(PulseClientError.httpError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 500)))
+                return
+            }
+            do {
+                let analysis = try JSONDecoder().decode(StorageAnalysis.self, from: data)
+                completion(.success(analysis))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    public func testTelegram(botToken: String, chatID: String, completion: @escaping @Sendable (Result<String, Error>) -> Void) {
+        guard let url = URL(string: "https://\(host):\(port)/api/v1/alerts/telegram/test") else {
+            completion(.failure(URLError(.badURL)))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let payload = ["bot_token": botToken, "chat_id": chatID]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+        session.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard let httpResponse = response as? HTTPURLResponse else {
+                completion(.failure(PulseClientError.generic("No response from agent")))
+                return
+            }
+            if httpResponse.statusCode == 200 {
+                completion(.success("Test alert sent successfully!"))
+            } else {
+                var errDetail = "HTTP \(httpResponse.statusCode)"
+                if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let msg = json["error"] as? String {
+                    errDetail = msg
+                }
+                completion(.failure(PulseClientError.generic(errDetail)))
+            }
+        }.resume()
+    }
+
+    public func updateTelegramConfig(_ config: TelegramConfig, completion: @escaping @Sendable (Result<Void, Error>) -> Void) {
+        guard let url = URL(string: "https://\(host):\(port)/api/v1/alerts/telegram/config") else {
+            completion(.failure(URLError(.badURL)))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try? JSONEncoder().encode(config)
+
+        session.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                completion(.failure(PulseClientError.httpError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 500)))
+                return
+            }
+            completion(.success(()))
+        }.resume()
+    }
+
     private func cleanupConnection() {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil

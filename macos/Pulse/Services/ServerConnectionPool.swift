@@ -95,4 +95,8 @@ public final class ServerConnectionPool: ObservableObject {
     public var offlineCount: Int {
         managers.values.filter { $0.state.isOffline }.count
     }
+
+    public var primaryServerMetrics: MetricsSnapshot? {
+        managers.values.first(where: { $0.state.isConnected && $0.currentMetrics != nil })?.currentMetrics
+    }
 }

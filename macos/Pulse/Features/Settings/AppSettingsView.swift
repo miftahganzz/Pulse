@@ -65,6 +65,7 @@ public struct AppSettingsView: View {
             Section("Startup & Background") {
                 Toggle("Launch Pulse at login", isOn: $settings.launchAtLogin)
                 Toggle("Show icon in Menu Bar", isOn: $settings.showInMenuBar)
+                Toggle("Show CPU & RAM metrics in Menu Bar", isOn: $settings.showMetricsInMenuBar)
                 Toggle("Keep Pulse monitoring in background when window is closed (⌘W)", isOn: $settings.keepRunningInBackground)
                 Toggle("Show startup motion animation", isOn: $settings.showLaunchMotion)
 
@@ -80,7 +81,7 @@ public struct AppSettingsView: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Pulse v0.9.0 (Build 9)")
+                        Text("Pulse v1.0.0 (Build 10)")
                             .font(.system(size: 12, weight: .medium))
                         if let lastCheck = updateManager.lastUpdateCheckDate {
                             Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")

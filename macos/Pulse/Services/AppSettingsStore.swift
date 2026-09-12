@@ -14,6 +14,7 @@ public final class AppSettingsStore: ObservableObject {
 
     private let launchAtLoginKey = "pulse.settings.launch_at_login"
     private let showInMenuBarKey = "pulse.settings.show_in_menu_bar"
+    private let showMetricsInMenuBarKey = "pulse.settings.show_metrics_in_menu_bar"
     private let keepRunningInBackgroundKey = "pulse.settings.keep_running_in_background"
     private let themeKey = "pulse.settings.theme"
     private let metricIntervalKey = "pulse.settings.metric_interval"
@@ -39,9 +40,16 @@ public final class AppSettingsStore: ObservableObject {
         }
     }
 
+
     @Published public var showInMenuBar: Bool {
         didSet {
             UserDefaults.standard.set(showInMenuBar, forKey: showInMenuBarKey)
+        }
+    }
+
+    @Published public var showMetricsInMenuBar: Bool {
+        didSet {
+            UserDefaults.standard.set(showMetricsInMenuBar, forKey: showMetricsInMenuBarKey)
         }
     }
 
@@ -96,6 +104,7 @@ public final class AppSettingsStore: ObservableObject {
             self.launchAtLogin = defaults.object(forKey: launchAtLoginKey) as? Bool ?? false
         }
         self.showInMenuBar = defaults.object(forKey: showInMenuBarKey) as? Bool ?? true
+        self.showMetricsInMenuBar = defaults.object(forKey: showMetricsInMenuBarKey) as? Bool ?? false
         self.keepRunningInBackground = defaults.object(forKey: keepRunningInBackgroundKey) as? Bool ?? true
 
         let rawTheme = defaults.string(forKey: themeKey) ?? AppTheme.system.rawValue

@@ -33,99 +33,107 @@ public struct AlertSettingsSheet: View {
 
             Divider()
 
-            Toggle("Enable Notifications for \(manager.serverName)", isOn: $isAlertsEnabled)
-                .font(.system(size: 13, weight: .medium))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Toggle("Enable Notifications for \(manager.serverName)", isOn: $isAlertsEnabled)
+                        .font(.system(size: 13, weight: .medium))
 
-            if isAlertsEnabled {
-                VStack(alignment: .leading, spacing: 16) {
-                    Toggle("Notify when server goes offline", isOn: $notifyOnOffline)
-                        .font(.system(size: 12))
+                    if isAlertsEnabled {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Toggle("Notify when server goes offline", isOn: $notifyOnOffline)
+                                .font(.system(size: 12))
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("CPU Warning Threshold:")
+                                        .font(.system(size: 12))
+                                    Spacer()
+                                    Text("\(Int(cpuThreshold))%")
+                                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(cpuThreshold >= 90 ? .red : .primary)
+                                }
+                                Slider(value: $cpuThreshold, in: 50...99, step: 5)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("Memory Warning Threshold:")
+                                        .font(.system(size: 12))
+                                    Spacer()
+                                    Text("\(Int(memoryThreshold))%")
+                                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(memoryThreshold >= 90 ? .red : .primary)
+                                }
+                                Slider(value: $memoryThreshold, in: 50...99, step: 5)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("Disk Space Warning Threshold:")
+                                        .font(.system(size: 12))
+                                    Spacer()
+                                    Text("\(Int(diskThreshold))%")
+                                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(diskThreshold >= 90 ? .red : .primary)
+                                }
+                                Slider(value: $diskThreshold, in: 50...99, step: 5)
+                            }
+
+                            Divider()
+
+                            // Phase 5: Incident Flapping & Suppression Controls
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Incident Flapping Protection")
+                                    .font(.system(size: 12, weight: .semibold))
+
+                                HStack {
+                                    Text("Failures before incident:")
+                                        .font(.system(size: 12))
+                                    Spacer()
+                                    Picker("", selection: $consecutiveFailures) {
+                                        Text("1 check (Immediate)").tag(1)
+                                        Text("2 checks (Recommended)").tag(2)
+                                        Text("3 checks (Conservative)").tag(3)
+                                    }
+                                    .frame(width: 170)
+                                }
+
+                                HStack {
+                                    Text("Successes before recovery:")
+                                        .font(.system(size: 12))
+                                    Spacer()
+                                    Picker("", selection: $consecutiveSuccesses) {
+                                        Text("1 check").tag(1)
+                                        Text("2 checks (Recommended)").tag(2)
+                                        Text("3 checks").tag(3)
+                                    }
+                                    .frame(width: 170)
+                                }
+
+                                Toggle("Notify when service recovers", isOn: $notifyOnRecovery)
+                                    .font(.system(size: 12))
+
+                                Toggle("Notify on warning / degraded state", isOn: $notifyOnWarning)
+                                    .font(.system(size: 12))
+                            }
+                        }
+                        .padding(12)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .cornerRadius(8)
+                    }
 
                     Divider()
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("CPU Warning Threshold:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Text("\(Int(cpuThreshold))%")
-                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                .foregroundColor(cpuThreshold >= 90 ? .red : .primary)
-                        }
-                        Slider(value: $cpuThreshold, in: 50...99, step: 5)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Memory Warning Threshold:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Text("\(Int(memoryThreshold))%")
-                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                .foregroundColor(memoryThreshold >= 90 ? .red : .primary)
-                        }
-                        Slider(value: $memoryThreshold, in: 50...99, step: 5)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Disk Space Warning Threshold:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Text("\(Int(diskThreshold))%")
-                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                .foregroundColor(diskThreshold >= 90 ? .red : .primary)
-                        }
-                        Slider(value: $diskThreshold, in: 50...99, step: 5)
-                    }
-
-                    Divider()
-
-                    // Phase 5: Incident Flapping & Suppression Controls
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Incident Flapping Protection")
-                            .font(.system(size: 12, weight: .semibold))
-
-                        HStack {
-                            Text("Failures before incident:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Picker("", selection: $consecutiveFailures) {
-                                Text("1 check (Immediate)").tag(1)
-                                Text("2 checks (Recommended)").tag(2)
-                                Text("3 checks (Conservative)").tag(3)
-                            }
-                            .frame(width: 170)
-                        }
-
-                        HStack {
-                            Text("Successes before recovery:")
-                                .font(.system(size: 12))
-                            Spacer()
-                            Picker("", selection: $consecutiveSuccesses) {
-                                Text("1 check").tag(1)
-                                Text("2 checks (Recommended)").tag(2)
-                                Text("3 checks").tag(3)
-                            }
-                            .frame(width: 170)
-                        }
-
-                        Toggle("Notify when service recovers", isOn: $notifyOnRecovery)
-                            .font(.system(size: 12))
-
-                        Toggle("Notify on warning / degraded state", isOn: $notifyOnWarning)
-                            .font(.system(size: 12))
-                    }
+                    // Outbound Telegram Alerts Section
+                    TelegramSettingsView(manager: manager)
                 }
-                .padding(12)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(8)
+                .padding(.trailing, 4)
             }
-
-            Spacer()
         }
         .padding(20)
-        .frame(minWidth: 420, minHeight: 380)
+        .frame(width: 480, height: 520)
         .onAppear {
             let current = manager.alertSettings
             self.isAlertsEnabled = current.isAlertsEnabled

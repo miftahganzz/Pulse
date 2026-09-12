@@ -36,10 +36,10 @@ Pulse takes a different approach:
 
 Prebuilt styled DMG installers with native Finder drag-and-drop:
 
-- **[Pulse-0.9.0-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
-- **[Pulse-0.9.0-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0-x86_64.dmg)** — Intel 64-bit Macs
-- **[Pulse-0.9.0-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0-Universal.dmg)** — Universal 2 (runs on all Macs)
-- **[Pulse-0.9.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-0.9.0.dmg)** — Default Universal installer
+- **[Pulse-1.0.0-arm64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.0-arm64.dmg)** — Apple Silicon Macs (M1 / M2 / M3 / M4)
+- **[Pulse-1.0.0-x86_64.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.0-x86_64.dmg)** — Intel 64-bit Macs
+- **[Pulse-1.0.0-Universal.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.0-Universal.dmg)** — Universal 2 (runs on all Macs)
+- **[Pulse-1.0.0.dmg](https://github.com/miftahganzz/Pulse/releases/latest/download/Pulse-1.0.0.dmg)** — Default Universal installer
 
 Open the `.dmg`, drag **Pulse** to `/Applications`, and open it.
 
@@ -204,9 +204,41 @@ When clicked in Safari, Slack, or terminal (`open "pulse://..."`), Pulse automat
 
 ## Features
 
+### Live Log Viewer & Streaming (v1.0.0)
+- **Sub-second WebSocket log streaming**: Stream live logs directly to your Mac without SSH sessions.
+- **Systemd journal integration**: Live tailing of unit services (`journalctl -u <unit> -f`) with custom unit selection.
+- **Docker stdout/stderr**: Real-time streaming from active containers with ISO timestamp formatting.
+- **Interactive console controls**: Instant keyword regex search, pause/resume auto-scroll, and 1-click clipboard export.
+
+### Outbound Alerts: Telegram Integration (v1.0.0)
+- **Zero-proxy notifications**: Direct push alerts sent straight to your Telegram from your server daemon or Mac app.
+- **Simple 3-step setup**: Add Bot Token from `@BotFather`, enter recipient user/chat IDs, and test with one click.
+- **Multi-chat broadcast**: Route critical server incidents simultaneously to personal admin IDs and team ops channels.
+- **Intelligent throttling**: Built-in cooldowns prevent notification storms when services flap.
+
+### Disk Space Analyzer & Safe Cleaners (v1.0.0)
+- **"Where Did My Storage Go?"**: Immediate breakdown of `/var/log`, `/var/lib/docker`, `/var/cache`, `/tmp`, and journal storage.
+- **1-Click Safe Cleaners**:
+  - `Vacuum Journals`: Safely removes systemd journal logs older than 3 days.
+  - `Docker Prune`: Cleans stopped containers, dangling images, and build caches without touching running services.
+  - `Clean APT Cache`: Frees gigabytes from `/var/cache/apt/archives` on Debian/Ubuntu.
+
+### Maintenance Runbooks (v1.0.0 — ⌘R)
+- **Pre-approved operational tasks**: Trigger essential sysadmin routines directly from macOS.
+  - Reload Webserver (`systemctl reload nginx / caddy`) without dropping connections.
+  - Flush DNS resolver cache (`systemd-resolved` / `nscd`).
+  - Check available OS security updates without installing.
+  - Safely drop memory pagecache (`echo 3 > /proc/sys/vm/drop_caches`).
+- **Live Terminal Console**: Review realtime stdout/stderr output and command exit codes.
+
+### Process Network & Disk I/O (v1.0.0)
+- **Per-process bandwidth**: Live disk read/write throughput (KB/s or MB/s) parsed directly from Linux `/proc/[pid]/io`.
+- **Open socket auditing**: Displays active network file descriptors per process to spot connection leaks early.
+
 ### Menu Bar and Inspector
 - **Live Menu Bar widget**: Shows real-time CPU, RAM, and alert badges without occupying dock space.
-- **Process manager**: Sort processes by CPU or memory usage; send `SIGTERM` or `SIGKILL` directly from the UI.
+- **Menu Bar metrics ticker**: Optionally display live `CPU xx%  RAM xx%` metrics in macOS status bar.
+- **Process manager**: Sort processes by CPU, memory, or disk I/O; send `SIGTERM` or `SIGKILL` directly from the UI.
 - **Hardware telemetry**: Load averages, disk write spikes, network throughput, and memory pressure breakdown.
 
 ### Container and Service Discovery
@@ -250,9 +282,9 @@ Sample output:
 
 ```text
 ┌────────────────────────────────────────────────────────┐
-│  Pulse Agent System Doctor (v0.9.0)                    │
+│  Pulse Agent System Doctor (v1.0.0)                    │
 └────────────────────────────────────────────────────────┘
- [✔] Pulse Agent Version        : v0.9.0
+ [✔] Pulse Agent Version        : v1.0.0
  [✔] Configuration File         : Found at /etc/pulse/agent.json (Agent ID: pulse_05ae3c)
  [✔] TLS Certificate & Key      : Cert: /etc/pulse/cert.pem, Key: /etc/pulse/key.pem
  [✔] Systemd Service            : pulse-agent.service is active and running

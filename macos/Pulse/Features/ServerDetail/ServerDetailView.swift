@@ -5,6 +5,7 @@ public struct ServerDetailView: View {
     @ObservedObject private var navState = NavigationState.shared
     @State private var showSettingsSheet = false
     @State private var showEditServerSheet = false
+    @State private var showRunbooksSheet = false
 
     public init(manager: ServerConnectionManager) {
         self.manager = manager
@@ -13,20 +14,20 @@ public struct ServerDetailView: View {
     public var body: some View {
         VStack(spacing: 0) {
             // Header Bar
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 8) {
                             Text(manager.serverName)
-                                .font(.system(size: 22, weight: .semibold))
+                                .font(.system(size: 20, weight: .bold))
 
-                            if manager.isStale {
-                                Text("Stale")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.orange)
+                            if let server = ServerStore.shared.servers.first(where: { $0.id == manager.serverId }) {
+                                Text(server.environment.rawValue.uppercased())
+                                    .font(.system(size: 9, weight: .bold))
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
-                                    .background(Color.orange.opacity(0.15))
+                                    .background(server.environment.color.opacity(0.15))
+                                    .foregroundColor(server.environment.color)
                                     .cornerRadius(4)
                             }
                         }
@@ -37,6 +38,16 @@ public struct ServerDetailView: View {
                     }
 
                     Spacer()
+
+                    Button {
+                        showRunbooksSheet = true
+                    } label: {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 13))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Maintenance Runbooks (⌘R)")
+                    .keyboardShortcut("r", modifiers: .command)
 
                     Button {
                         showEditServerSheet = true
@@ -55,7 +66,8 @@ public struct ServerDetailView: View {
                             .font(.system(size: 13))
                     }
                     .buttonStyle(.plain)
-                    .help("Alert Settings")
+                    .help("Alert Settings (⌘⇧A)")
+                    .keyboardShortcut("a", modifiers: [.command, .shift])
 
                     ServerStatusBadge(state: manager.state)
 
@@ -89,6 +101,8 @@ public struct ServerDetailView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 3) {
                         tabButton(title: "Overview", tag: 0)
+                        tabButton(title: "Logs", tag: 9)
+                        tabButton(title: "Storage", tag: 10)
                         tabButton(title: "Monitors", tag: 1)
                         let incidentCount = manager.incidents.filter({ $0.status != .resolved }).count
                         tabButton(title: "Incidents", tag: 2, badge: incidentCount > 0 ? "\(incidentCount)" : nil, badgeColor: .red)
@@ -132,6 +146,10 @@ public struct ServerDetailView: View {
                     InfrastructureMapView(manager: manager)
                 case 8:
                     SecurityPortsView(manager: manager)
+                case 9:
+                    LiveLogView(manager: manager)
+                case 10:
+                    DiskAnalyzerView(manager: manager)
                 default:
                     EmptyView()
                 }
@@ -150,6 +168,9 @@ public struct ServerDetailView: View {
             if let server = ServerStore.shared.servers.first(where: { $0.id == manager.serverId }) {
                 ServerTagEditorSheet(server: server)
             }
+        }
+        .sheet(isPresented: $showRunbooksSheet) {
+            RunbooksSheet(manager: manager)
         }
     }
 

@@ -128,6 +128,36 @@ func readProcess(pid int, pageSize uint64) (ProcessInfo, error) {
 		}
 	}
 
+	var readBytes, writeBytes int64
+	ioPath := filepath.Join("/proc", strconv.Itoa(pid), "io")
+	if ioData, err := os.ReadFile(ioPath); err == nil {
+		for _, line := range strings.Split(string(ioData), "\n") {
+			if strings.HasPrefix(line, "read_bytes:") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					readBytes, _ = strconv.ParseInt(fields[1], 10, 64)
+				}
+			} else if strings.HasPrefix(line, "write_bytes:") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					writeBytes, _ = strconv.ParseInt(fields[1], 10, 64)
+				}
+			}
+		}
+	}
+
+	openSockets := 0
+	fdDir := filepath.Join("/proc", strconv.Itoa(pid), "fd")
+	if fds, err := os.ReadDir(fdDir); err == nil {
+		for _, fd := range fds {
+			if target, err := os.Readlink(filepath.Join(fdDir, fd.Name())); err == nil {
+				if strings.HasPrefix(target, "socket:") {
+					openSockets++
+				}
+			}
+		}
+	}
+
 	totalTicks := utime + stime
 	cpuPercent := float64(totalTicks % 100) / 2.0
 
@@ -138,6 +168,9 @@ func readProcess(pid int, pageSize uint64) (ProcessInfo, error) {
 		User:           uid,
 		CPUPercent:     cpuPercent,
 		MemoryRSSBytes: rssBytes,
+		ReadBytesSec:   readBytes,
+		WriteBytesSec:  writeBytes,
+		OpenSockets:    openSockets,
 		State:          mapLinuxState(state),
 		Command:        cmdline,
 	}, nil

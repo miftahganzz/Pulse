@@ -314,6 +314,15 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
         MonitorStore.saveIgnored(ignoredServiceIds, forServerId: serverId)
     }
 
+    public func executeAction(
+        action: String,
+        target: String,
+        actor: String = "User",
+        completion: (@Sendable (Result<String, Error>) -> Void)? = nil
+    ) {
+        executeServiceAction(action: action, target: target, actor: actor, completion: completion)
+    }
+
     public func executeServiceAction(
         action: String,
         target: String,
@@ -695,6 +704,44 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
             return
         }
         client.fetchDockerLogs(id: id, tail: tail, completion: completion)
+    }
+
+    public func streamLogs(
+        type: String,
+        target: String,
+        tail: Int = 100,
+        onLine: @escaping @Sendable (LogEntryMessage) -> Void,
+        onError: @escaping @Sendable (Error) -> Void
+    ) -> URLSessionWebSocketTask? {
+        guard let client = client, state.isConnected else {
+            onError(PulseClientError.generic("Server not connected"))
+            return nil
+        }
+        return client.streamLogs(type: type, target: target, tail: tail, onLine: onLine, onError: onError)
+    }
+
+    public func fetchStorageAnalysis(completion: @escaping @Sendable (Result<StorageAnalysis, Error>) -> Void) {
+        guard let client = client, state.isConnected else {
+            completion(.failure(PulseClientError.generic("Server not connected")))
+            return
+        }
+        client.fetchStorageAnalysis(completion: completion)
+    }
+
+    public func testTelegram(botToken: String, chatID: String, completion: @escaping @Sendable (Result<String, Error>) -> Void) {
+        guard let client = client, state.isConnected else {
+            completion(.failure(PulseClientError.generic("Server not connected")))
+            return
+        }
+        client.testTelegram(botToken: botToken, chatID: chatID, completion: completion)
+    }
+
+    public func updateTelegramConfig(_ config: TelegramConfig, completion: @escaping @Sendable (Result<Void, Error>) -> Void) {
+        guard let client = client, state.isConnected else {
+            completion(.failure(PulseClientError.generic("Server not connected")))
+            return
+        }
+        client.updateTelegramConfig(config, completion: completion)
     }
 
     private func startStaleTimer() {

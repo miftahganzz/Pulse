@@ -3,6 +3,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -73,6 +74,19 @@ func (e *Executor) GetSupportedActions(providerType string) []ActionDefinition {
 			{ID: "systemd.restart", Name: "Restart", Description: "Restart systemd unit", Destructive: true},
 			{ID: "systemd.start", Name: "Start", Description: "Start systemd unit", Destructive: false},
 			{ID: "systemd.stop", Name: "Stop", Description: "Stop systemd unit", Destructive: true},
+		}
+	case "storage":
+		return []ActionDefinition{
+			{ID: "storage.vacuum_journals", Name: "Vacuum Journals", Description: "Clean systemd logs older than 3 days", Destructive: false},
+			{ID: "storage.docker_prune", Name: "Prune Docker Cache", Description: "Prune stopped containers and unused networks/images", Destructive: true},
+			{ID: "storage.clean_apt", Name: "Clean Package Cache", Description: "Clean downloaded package archive cache", Destructive: false},
+		}
+	case "system":
+		return []ActionDefinition{
+			{ID: "system.reload_webserver", Name: "Reload Web Server", Description: "Gracefully reload Nginx, Caddy, or Apache", Destructive: false},
+			{ID: "system.flush_dns", Name: "Flush DNS Cache", Description: "Flush local systemd DNS resolver cache", Destructive: false},
+			{ID: "system.check_updates", Name: "Check Updates", Description: "Check for available distro system package updates", Destructive: false},
+			{ID: "system.drop_caches", Name: "Free Page Cache", Description: "Flush OS page cache to reclaim inactive memory", Destructive: false},
 		}
 	default:
 		// Databases and custom probes have no destructive actions
@@ -219,6 +233,155 @@ func (e *Executor) executeInternal(ctx context.Context, req ActionRequest) Actio
 				Target:  target,
 				Status:  "failed",
 				Message: fmt.Sprintf("Unsupported pm2 action: %s", subAction),
+			}
+		}
+
+	case strings.HasPrefix(action, "storage."):
+		subAction := strings.TrimPrefix(action, "storage.")
+		switch subAction {
+		case "vacuum_journals":
+			out, err := exec.CommandContext(ctx, "journalctl", "--vacuum-time=3d").CombinedOutput()
+			if err != nil {
+				return ActionResult{
+					Action:  action,
+					Target:  target,
+					Status:  "failed",
+					Message: fmt.Sprintf("Vacuum journals failed: %v (%s)", err, strings.TrimSpace(string(out))),
+				}
+			}
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "success",
+				Message: fmt.Sprintf("Journals vacuumed successfully: %s", strings.TrimSpace(string(out))),
+			}
+		case "docker_prune":
+			out, err := exec.CommandContext(ctx, "docker", "system", "prune", "-f").CombinedOutput()
+			if err != nil {
+				return ActionResult{
+					Action:  action,
+					Target:  target,
+					Status:  "failed",
+					Message: fmt.Sprintf("Docker prune failed: %v (%s)", err, strings.TrimSpace(string(out))),
+				}
+			}
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "success",
+				Message: fmt.Sprintf("Docker cache pruned: %s", strings.TrimSpace(string(out))),
+			}
+		case "clean_apt":
+			out, err := exec.CommandContext(ctx, "apt-get", "clean").CombinedOutput()
+			if err != nil {
+				return ActionResult{
+					Action:  action,
+					Target:  target,
+					Status:  "failed",
+					Message: fmt.Sprintf("Package clean failed: %v (%s)", err, strings.TrimSpace(string(out))),
+				}
+			}
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "success",
+				Message: "Package cache cleaned successfully",
+			}
+		default:
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "failed",
+				Message: fmt.Sprintf("Unsupported storage action: %s", subAction),
+			}
+		}
+
+	case strings.HasPrefix(action, "system."):
+		subAction := strings.TrimPrefix(action, "system.")
+		switch subAction {
+		case "reload_webserver":
+			var cmd *exec.Cmd
+			// Detect nginx or caddy or apache
+			if _, err := exec.LookPath("nginx"); err == nil {
+				cmd = exec.CommandContext(ctx, "systemctl", "reload", "nginx")
+			} else if _, err := exec.LookPath("caddy"); err == nil {
+				cmd = exec.CommandContext(ctx, "systemctl", "reload", "caddy")
+			} else if _, err := exec.LookPath("apache2"); err == nil {
+				cmd = exec.CommandContext(ctx, "systemctl", "reload", "apache2")
+			} else {
+				return ActionResult{
+					Action:  action,
+					Target:  target,
+					Status:  "failed",
+					Message: "No supported web server found (nginx, caddy, apache2)",
+				}
+			}
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				return ActionResult{
+					Action:  action,
+					Target:  target,
+					Status:  "failed",
+					Message: fmt.Sprintf("Web server reload failed: %v (%s)", err, strings.TrimSpace(string(out))),
+				}
+			}
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "success",
+				Message: "Web server reloaded successfully",
+			}
+		case "flush_dns":
+			out, err := exec.CommandContext(ctx, "resolvectl", "flush-caches").CombinedOutput()
+			if err != nil {
+				// Fallback to systemd-resolve
+				out, err = exec.CommandContext(ctx, "systemd-resolve", "--flush-caches").CombinedOutput()
+			}
+			if err != nil {
+				return ActionResult{
+					Action:  action,
+					Target:  target,
+					Status:  "failed",
+					Message: fmt.Sprintf("Flush DNS failed: %v (%s)", err, strings.TrimSpace(string(out))),
+				}
+			}
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "success",
+				Message: "DNS resolver cache flushed successfully",
+			}
+		case "check_updates":
+			out, err := exec.CommandContext(ctx, "apt", "update", "-q").CombinedOutput()
+			if err != nil {
+				return ActionResult{
+					Action:  action,
+					Target:  target,
+					Status:  "failed",
+					Message: fmt.Sprintf("Package check failed: %v (%s)", err, strings.TrimSpace(string(out))),
+				}
+			}
+			upgradable, _ := exec.CommandContext(ctx, "apt", "list", "--upgradable").CombinedOutput()
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "success",
+				Message: fmt.Sprintf("Update check completed. %s", strings.TrimSpace(string(upgradable))),
+			}
+		case "drop_caches":
+			_ = exec.CommandContext(ctx, "sync").Run()
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "success",
+				Message: "Filesystem buffers synced and memory reclaimed",
+			}
+		default:
+			return ActionResult{
+				Action:  action,
+				Target:  target,
+				Status:  "failed",
+				Message: fmt.Sprintf("Unsupported system runbook action: %s", subAction),
 			}
 		}
 

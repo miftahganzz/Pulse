@@ -55,6 +55,16 @@ struct PulseApp: App {
                 }
                 .keyboardShortcut("2", modifiers: .command)
 
+                Button("Live Logs") {
+                    NavigationState.shared.selectedDetailTab = 9
+                }
+                .keyboardShortcut("l", modifiers: .command)
+
+                Button("Storage Analyzer") {
+                    NavigationState.shared.selectedDetailTab = 10
+                }
+                .keyboardShortcut("u", modifiers: .command)
+
                 Button("Services & Monitors") {
                     NavigationState.shared.selectedDetailTab = 1
                 }
@@ -110,6 +120,10 @@ struct PulseApp: App {
             let count = pool.activeIncidentsCount
             if count > 0 {
                 Label("Pulse (\(count))", systemImage: "exclamationmark.octagon.fill")
+            } else if settings.showMetricsInMenuBar, let metrics = pool.primaryServerMetrics {
+                let cpuStr = String(format: "%.0f%%", metrics.cpu.usagePercent)
+                let memStr = String(format: "%.0f%%", metrics.memory.usagePercent)
+                Label("CPU \(cpuStr)  RAM \(memStr)", systemImage: "waveform.path.ecg")
             } else {
                 Label("Pulse", systemImage: "waveform.path.ecg")
             }
@@ -295,5 +309,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // Keep app alive in background if keepRunningInBackground is true
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return !AppSettingsStore.shared.keepRunningInBackground
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if AppSettingsStore.shared.keepRunningInBackground && !(sender is NSPanel) {
+            sender.orderOut(nil)
+            return false
+        }
+        return true
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            for window in sender.windows {
+                if !(window is NSPanel) {
+                    window.makeKeyAndOrderFront(self)
+                    return true
+                }
+            }
+        }
+        return true
     }
 }

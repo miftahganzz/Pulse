@@ -37,7 +37,22 @@ public final class NotificationService: NSObject, @unchecked Sendable {
         }
     }
 
-    public func sendAlert(title: String, body: String, identifier: String, deepLinkURL: String? = nil) {
+    public func sendAlert(
+        title: String,
+        body: String,
+        identifier: String,
+        deepLinkURL: String? = nil,
+        serverName: String? = nil,
+        isCritical: Bool = false
+    ) {
+        // Dispatch to Telegram if configured
+        TelegramAlertService.shared.sendAlert(
+            title: title,
+            body: body,
+            serverName: serverName ?? "Pulse",
+            isCritical: isCritical
+        )
+
         guard isSupportedEnvironment else {
             PulseLog.agent.info("Skipping notification post in CLI / test environment: [\(title)] \(body)")
             return
