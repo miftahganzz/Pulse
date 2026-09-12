@@ -176,11 +176,12 @@ public struct AddServerSheet: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(token.trimmingCharacters(in: .whitespaces).isEmpty)
                     } else {
+                        let c = pairCode.trimmingCharacters(in: .whitespaces).count
                         Button("Verify & Pair") {
                             claimPairCode()
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(pairCode.trimmingCharacters(in: .whitespaces).count != 7)
+                        .disabled(c != 6 && c != 7)
                     }
 
                 case .testingConnection:
