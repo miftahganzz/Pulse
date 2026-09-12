@@ -26,6 +26,7 @@ public final class NavigationState: ObservableObject {
     @Published public var showAddServerSheet: Bool = false
     @Published public var showDocs: Bool = false
     @Published public var pendingServerDraft: ServerDraft? = nil
+    @Published public var serverToEdit: ServerModel? = nil
 
     private init() {}
 
@@ -64,6 +65,11 @@ public final class NavigationState: ObservableObject {
                     case "activity": targetTab = 6
                     case "topology": targetTab = 7
                     case "security", "ports": targetTab = 8
+                    case "edit":
+                        if let server = ServerStore.shared.servers.first(where: { $0.id == uuid }) {
+                            self.serverToEdit = server
+                        }
+                        return
                     case "tab":
                         if pathComponents.count >= 3, let customTab = Int(pathComponents[2]) {
                             targetTab = customTab

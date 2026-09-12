@@ -10,8 +10,6 @@ public struct ServerListView: View {
     @Environment(\.openWindow) private var openWindow
 
     @State private var showAddServerSheet = false
-    @State private var serverToEdit: ServerModel?
-    @State private var serverToTag: ServerModel?
     @State private var isShowingLaunchMotion = true
 
     public init() {}
@@ -77,8 +75,8 @@ public struct ServerListView: View {
                                     Button("Reconnect") {
                                         mgr.connect()
                                     }
-                                    Button("Edit Tags & Environment...") {
-                                        serverToTag = server
+                                    Button("Edit Server...") {
+                                        navState.serverToEdit = server
                                     }
                                     Divider()
                                     if mgr.alertPolicy.isEffectivelyMuted {
@@ -194,7 +192,7 @@ public struct ServerListView: View {
                 }
             )
         }
-        .sheet(item: $serverToTag) { server in
+        .sheet(item: $navState.serverToEdit) { server in
             ServerTagEditorSheet(server: server)
         }
         .onAppear {

@@ -2,7 +2,7 @@ import Foundation
 
 public final class IncidentEngine {
     private let serverId: UUID
-    private let serverName: String
+    private var serverName: String
     private var policy: IncidentAlertPolicy
     private var failureCounters: [String: Int] = [:]
     private var successCounters: [String: Int] = [:]
@@ -16,6 +16,10 @@ public final class IncidentEngine {
 
     public func updatePolicy(_ newPolicy: IncidentAlertPolicy) {
         self.policy = newPolicy
+    }
+
+    public func updateServerName(_ name: String) {
+        self.serverName = name
     }
 
     // MARK: - Server-Level Outage Evaluation

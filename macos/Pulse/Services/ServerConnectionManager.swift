@@ -4,9 +4,9 @@ import Combine
 @MainActor
 public final class ServerConnectionManager: ObservableObject, PulseAgentClientDelegate {
     public let serverId: UUID
-    public let serverName: String
-    public let address: String
-    public let port: Int
+    @Published public private(set) var serverName: String
+    @Published public private(set) var address: String
+    @Published public private(set) var port: Int
 
     @Published public private(set) var state: ConnectionState = .disconnected
     @Published public private(set) var identity: AgentIdentity?
@@ -86,6 +86,24 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     deinit {
         staleCheckTimer?.invalidate()
         monitorHealthTimer?.invalidate()
+    }
+
+    public func updateConfig(name: String, address: String, port: Int) {
+        let addressOrPortChanged = (self.address != address || self.port != port)
+        if self.serverName != name {
+            self.serverName = name
+            self.incidentEngine.updateServerName(name)
+        }
+        if self.address != address {
+            self.address = address
+        }
+        if self.port != port {
+            self.port = port
+        }
+        if addressOrPortChanged && state.isConnected {
+            disconnect()
+            connect()
+        }
     }
 
     public func updateAlertPolicy(_ newPolicy: IncidentAlertPolicy) {

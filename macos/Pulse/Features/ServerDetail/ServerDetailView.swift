@@ -4,6 +4,7 @@ public struct ServerDetailView: View {
     @ObservedObject var manager: ServerConnectionManager
     @ObservedObject private var navState = NavigationState.shared
     @State private var showSettingsSheet = false
+    @State private var showEditServerSheet = false
 
     public init(manager: ServerConnectionManager) {
         self.manager = manager
@@ -36,6 +37,16 @@ public struct ServerDetailView: View {
                     }
 
                     Spacer()
+
+                    Button {
+                        showEditServerSheet = true
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 13))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Edit Server Details (⌘E)")
+                    .keyboardShortcut("e", modifiers: .command)
 
                     Button {
                         showSettingsSheet = true
@@ -134,6 +145,11 @@ public struct ServerDetailView: View {
         }
         .sheet(isPresented: $showSettingsSheet) {
             AlertSettingsSheet(manager: manager)
+        }
+        .sheet(isPresented: $showEditServerSheet) {
+            if let server = ServerStore.shared.servers.first(where: { $0.id == manager.serverId }) {
+                ServerTagEditorSheet(server: server)
+            }
         }
     }
 

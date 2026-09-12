@@ -30,9 +30,11 @@ public final class ServerConnectionPool: ObservableObject {
             managers.removeValue(forKey: id)
         }
 
-        // Add or connect
+        // Add, connect, or update
         for server in currentServers {
-            if managers[server.id] == nil {
+            if let existing = managers[server.id] {
+                existing.updateConfig(name: server.name, address: server.address, port: server.port)
+            } else {
                 let mgr = ServerConnectionManager(
                     serverId: server.id,
                     serverName: server.name,
