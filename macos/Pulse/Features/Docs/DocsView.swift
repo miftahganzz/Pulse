@@ -115,8 +115,11 @@ private struct ConnectingSection: View {
             // Quick setup table
             GroupBox("One-Command Setup — Pick Your Method") {
                 VStack(alignment: .leading, spacing: 10) {
-                    quickSetupRow("Direct IP / LAN",
+                    quickSetupRow("Direct IP / LAN (Root)",
                         "curl -fsSL .../install.sh | sudo bash")
+                    Divider()
+                    quickSetupRow("Direct IP / LAN (Non-Root User)",
+                        "curl -fsSL .../install.sh | bash")
                     Divider()
                     quickSetupRow("Tailscale (zero open ports)",
                         "curl -fsSL .../setup-tailscale.sh | sudo bash")
@@ -141,11 +144,16 @@ private struct ConnectingSection: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Install the Pulse Agent first")
                             .font(.headline)
-                        Text("On every server you want to monitor, run the one-line installer:")
+                        Text("For root servers (system-wide service):")
                             .font(.body)
                             .foregroundColor(.secondary)
                         codeBlock("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash")
-                        Text("The agent listens on port 8443 by default. It generates a mutual-TLS certificate and prints the connection token and a pulse:// deep link on first run.")
+                        Text("For non-root users (no sudo required):")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 4)
+                        codeBlock("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash")
+                        Text("The agent listens on port 8443 by default. It generates TLS credentials and prints the connection token and a pulse:// deep link on first run.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -244,9 +252,9 @@ private struct CLIDocsSection: View {
             )
 
             Text("""
-Every server running the Pulse agent includes the unified `pulse` command (symlinked to `/usr/local/bin/pulse`). \
+Every server running the Pulse agent includes the unified `pulse` command (symlinked to `/usr/local/bin/pulse` or `~/.local/bin/pulse`). \
 You can manage pairing, check system metrics, stream logs, configure Tailscale or Cloudflare tunnels, \
-and auto-update the binary with simple subcommands.
+and auto-update the binary with simple subcommands — supporting both root and non-root user modes seamlessly.
 """)
             .font(.body)
             .fixedSize(horizontal: false, vertical: true)
@@ -279,11 +287,11 @@ and auto-update the binary with simple subcommands.
 
             GroupBox("Daemon & Maintenance") {
                 VStack(alignment: .leading, spacing: 12) {
-                    cliCommandRow("pulse logs -f", "Streams live agent logs via journalctl.")
+                    cliCommandRow("pulse logs -f", "Streams live agent logs via journalctl (supports both system and user service).")
                     cliCommandRow("pulse update", "Checks GitHub Releases for latest agent release, verifies CPU arch, and upgrades in place.")
-                    cliCommandRow("sudo pulse restart", "Restarts the background systemd service.")
-                    cliCommandRow("sudo pulse stop / start", "Stops or starts the agent service.")
-                    cliCommandRow("sudo pulse uninstall", "Cleanly stops service, removes systemd units, binaries, and certificates.")
+                    cliCommandRow("pulse restart", "Restarts the background systemd daemon (or user systemd service).")
+                    cliCommandRow("pulse stop / start", "Stops or starts the agent service.")
+                    cliCommandRow("pulse uninstall", "Cleanly stops service, removes systemd units, binaries, and certificates.")
                 }
                 .padding(.vertical, 4)
             }

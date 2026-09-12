@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -31,13 +32,33 @@ func RunUpdate(configPath string, args []string) {
 		}
 	}
 
-	if os.Geteuid() != 0 {
-		fmt.Printf("  %s✖ Root privileges required.%s\n", Red, Reset)
-		fmt.Printf("  Please run: %ssudo pulse update%s\n\n", Cyan, Reset)
-		return
+	isRoot := (os.Geteuid() == 0)
+	home, _ := os.UserHomeDir()
+
+	targetBin := "/usr/local/bin/pulse-agent"
+	targetSymlink := "/usr/local/bin/pulse"
+
+	if !isRoot {
+		userBin := filepath.Join(home, ".local", "bin", "pulse-agent")
+		if _, err := os.Stat(userBin); err == nil {
+			targetBin = userBin
+			targetSymlink = filepath.Join(home, ".local", "bin", "pulse")
+		} else if _, err := os.Stat(targetBin); err == nil {
+			fmt.Printf("  %s✖ Root privileges required to update %s.%s\n", Red, targetBin, Reset)
+			fmt.Printf("  Please run: %ssudo pulse update%s\n\n", Cyan, Reset)
+			return
+		} else {
+			targetBin = userBin
+			targetSymlink = filepath.Join(home, ".local", "bin", "pulse")
+		}
 	}
 
-	fmt.Printf("  %s%sChecking for pulse-agent updates...%s\n", Bold, Cyan, Reset)
+	modeStr := "System-wide"
+	if !isRoot {
+		modeStr = "User Mode"
+	}
+
+	fmt.Printf("  %s%sChecking for pulse-agent updates (%s)...%s\n", Bold, Cyan, modeStr, Reset)
 	fmt.Printf("  Current version: %sv%s%s (%s/%s)\n\n", Bold, agent.CurrentAgentVersion, Reset, runtime.GOOS, runtime.GOARCH)
 
 	// 1. Fetch latest release info from GitHub API
@@ -78,7 +99,7 @@ func RunUpdate(configPath string, args []string) {
 	}
 
 	downloadURL := fmt.Sprintf("https://github.com/miftahganzz/Pulse/releases/download/%s/pulse-agent-linux-%s", latestTag, arch)
-	tmpFile := fmt.Sprintf("/tmp/pulse-agent-update-%s", arch)
+	tmpFile := fmt.Sprintf("/tmp/pulse-agent-update-%s-%d", arch, os.Getuid())
 
 	dlResp, err := http.Get(downloadURL)
 	if err != nil || dlResp.StatusCode != http.StatusOK {
@@ -115,8 +136,8 @@ func RunUpdate(configPath string, args []string) {
 	}
 
 	// 3. Swap binary
-	fmt.Println("  [3/3] Replacing /usr/local/bin/pulse-agent and restarting daemon...")
-	targetBin := "/usr/local/bin/pulse-agent"
+	fmt.Printf("  [3/3] Replacing %s and restarting daemon...\n", targetBin)
+	_ = os.MkdirAll(filepath.Dir(targetBin), 0755)
 	if err := os.Rename(tmpFile, targetBin); err != nil {
 		// If rename fails (e.g. across mount points), copy and remove
 		if copyErr := exec.Command("cp", "-f", tmpFile, targetBin).Run(); copyErr != nil {
@@ -127,13 +148,19 @@ func RunUpdate(configPath string, args []string) {
 	}
 	_ = os.Chmod(targetBin, 0755)
 
-	// Ensure /usr/local/bin/pulse symlink
-	_ = os.Symlink(targetBin, "/usr/local/bin/pulse")
+	// Ensure symlink
+	_ = os.Remove(targetSymlink)
+	_ = os.Symlink(targetBin, targetSymlink)
 
 	// Restart systemd service if available
 	if _, err := exec.LookPath("systemctl"); err == nil {
-		_ = exec.Command("systemctl", "daemon-reload").Run()
-		_ = exec.Command("systemctl", "restart", "pulse-agent").Run()
+		if isRoot {
+			_ = exec.Command("systemctl", "daemon-reload").Run()
+			_ = exec.Command("systemctl", "restart", "pulse-agent").Run()
+		} else {
+			_ = exec.Command("systemctl", "--user", "daemon-reload").Run()
+			_ = exec.Command("systemctl", "--user", "restart", "pulse-agent").Run()
+		}
 	}
 
 	fmt.Printf("\n  %s%s✔ pulse-agent successfully updated to %s!%s\n\n", Bold, Green, latestTag, Reset)

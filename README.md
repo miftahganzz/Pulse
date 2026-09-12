@@ -59,7 +59,8 @@ Press `⌘N` in Pulse, then pick one of the two pairing flows below.
 
 | Connection Method | One-Command Setup |
 |---|---|
-| Direct IP / LAN | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| sudo bash` |
+| Direct IP / LAN (Root) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| sudo bash` |
+| Direct IP / LAN (Non-Root User) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| bash` |
 | Tailscale (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh \| sudo bash` |
 | Cloudflare Tunnel (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh \| sudo bash` |
 
@@ -69,21 +70,28 @@ All scripts auto-detect CPU architecture (x86_64 / arm64) and firewall type (UFW
 
 ### Method 1: 1-Line Automated Command
 
-The fastest way to install the daemon on a fresh Linux server:
+The fastest way to install the daemon on a Linux server.
 
+**Option 1: Root / System-wide (Default):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port 8443 --token <YOUR_TOKEN>
 ```
 
+**Option 2: Non-Root / User Mode (No `sudo` required):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash -s -- --port 8443 --token <YOUR_TOKEN>
+```
+
 The script:
 1. Detects your CPU architecture (`x86_64` or `arm64`) and pulls the static binary.
-2. Creates an unprivileged `pulse` system account.
-3. Generates TLS certificates and configures permissions (`chmod 600`).
-4. Configures the firewall: UFW, firewalld, or iptables — whichever is active.
-5. Starts the background systemd service (`pulse-agent.service`).
-6. Prints the server's public IP, auth token, and a ready-to-use `pulse://` deep link.
+2. **Root mode**: installs to `/usr/local/bin`, creates unprivileged `pulse` account, `/etc/pulse/agent.json`, and registers system systemd service.
+3. **Non-root mode**: installs to `~/.local/bin`, configures `~/.pulse/agent.json`, and registers user-level systemd service (`systemctl --user`) or crontab `@reboot` autostart.
+4. Generates TLS certificates and secures permissions (`chmod 600`).
+5. Configures the firewall: UFW, firewalld, or iptables (when running as root).
+6. Starts the background service (`pulse-agent`).
+7. Prints the server's public IP, auth token, and a ready-to-use `pulse://` deep link.
 
-**Supported distros**: Debian, Ubuntu, RHEL, CentOS, Fedora, Arch Linux, Alpine Linux, openSUSE, Void Linux — and any systemd-based distro.
+**Supported distros**: Debian, Ubuntu, RHEL, CentOS, Fedora, Arch Linux, Alpine Linux, openSUSE, Void Linux — and any Linux distro.
 
 ---
 
@@ -91,9 +99,9 @@ The script:
 
 If you prefer not to pass tokens over command-line arguments:
 
-1. Install the agent on your server:
+1. Install the agent on your server (as root or non-root):
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash
+   curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash
    ```
 2. Request a pairing code on your server terminal:
    ```bash
@@ -112,7 +120,7 @@ If you prefer not to pass tokens over command-line arguments:
 
 ## Unified Pulse CLI (`pulse`)
 
-Every server running Pulse includes the unified `pulse` command (symlinked to `/usr/local/bin/pulse`). It provides a fast, intuitive terminal interface for managing the agent daemon, private mesh networking, pairing, logs, and upgrades:
+Every server running Pulse includes the unified `pulse` command (symlinked to `/usr/local/bin/pulse` or `~/.local/bin/pulse`). It provides a fast, intuitive terminal interface for managing the agent daemon, private mesh networking, pairing, logs, and upgrades:
 
 ```bash
 pulse                     # Quick health status card & endpoints
@@ -121,11 +129,12 @@ pulse pair                # Generate temporary XXX-XXX pairing code (valid 10 mi
 pulse tailscale           # Detect Tailscale or auto-install mesh network
 sudo pulse tailscale install  # 1-command Tailscale install & firewall lock down
 pulse cloudflare          # Detect cloudflared tunnel & show ingress config
-pulse logs -f             # Stream live daemon journalctl logs
+pulse logs -f             # Stream live daemon logs (system or user journal)
 pulse update              # Auto-update binary from GitHub releases in place
 pulse doctor              # Run full system, TLS, and port diagnostics
-sudo pulse restart        # Restart background daemon
-sudo pulse uninstall      # Cleanly remove agent, systemd units, and configs
+pulse restart             # Restart background daemon (root or user mode)
+pulse stop / pulse start  # Stop or start the agent daemon
+pulse uninstall           # Cleanly remove agent, systemd units, and configs
 ```
 
 ---

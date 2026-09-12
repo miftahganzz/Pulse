@@ -60,14 +60,28 @@ done
 
 clear_screen_header
 
-# 1. Privilege Check
-step "Checking root privileges..."
-if [ "$EUID" -ne 0 ]; then
-  fail "Pulse installer requires root permissions."
-  echo -e "    Run again with: ${CLR_BOLD}sudo bash${CLR_RESET}\n"
-  exit 1
+# 1. Privilege & Environment Mode Check
+IS_ROOT=false
+if [ "$EUID" -eq 0 ]; then
+  IS_ROOT=true
 fi
-ok "Running as root ($USER)"
+
+if [ "$IS_ROOT" = true ]; then
+  step "Running in Root Mode (System-wide)..."
+  ok "User: $USER (UID 0)"
+  INSTALL_DIR="/usr/local/bin"
+  CONFIG_DIR="/etc/pulse"
+  SYSTEMD_DIR="/etc/systemd/system"
+else
+  step "Running in Non-Root Mode (User Mode)..."
+  ok "User: $USER (UID $EUID, no sudo required)"
+  INSTALL_DIR="$HOME/.local/bin"
+  CONFIG_DIR="$HOME/.pulse"
+  SYSTEMD_DIR="$HOME/.config/systemd/user"
+  mkdir -p "$INSTALL_DIR"
+  mkdir -p "$CONFIG_DIR"
+  mkdir -p "$SYSTEMD_DIR"
+fi
 
 # 2. Architecture Detection
 step "Detecting hardware architecture..."
@@ -86,28 +100,37 @@ case "$ARCH" in
 esac
 ok "Architecture matched: ${CLR_BOLD}Linux ${PULSE_ARCH}${CLR_RESET}"
 
-# 3. Dedicated System User
-step "Configuring service accounts..."
-if ! id "pulse" >/dev/null 2>&1; then
-  useradd -r -s /bin/false -d /etc/pulse pulse 2>/dev/null || true
-  ok "System user 'pulse' created"
+# 3. Dedicated System User or User Mode Workspace
+if [ "$IS_ROOT" = true ]; then
+  step "Configuring service accounts..."
+  if ! id "pulse" >/dev/null 2>&1; then
+    useradd -r -s /bin/false -d /etc/pulse pulse 2>/dev/null || true
+    ok "System user 'pulse' created"
+  else
+    ok "System user 'pulse' ready"
+  fi
+  mkdir -p "$CONFIG_DIR"
 else
-  ok "System user 'pulse' ready"
+  step "Configuring user directories..."
+  ok "Using user-local directory: ${CLR_BOLD}${CONFIG_DIR}${CLR_RESET}"
 fi
-
-INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="/etc/pulse"
-mkdir -p "$CONFIG_DIR"
 
 # 4. Binary Deployment
 step "Fetching binary release..."
 
 # If agent is already running, stop it cleanly before updating binary
-if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet pulse-agent 2>/dev/null; then
-  systemctl stop pulse-agent 2>/dev/null || true
+if [ "$IS_ROOT" = true ]; then
+  if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet pulse-agent 2>/dev/null; then
+    systemctl stop pulse-agent 2>/dev/null || true
+  fi
+else
+  if command -v systemctl >/dev/null 2>&1 && systemctl --user is-active --quiet pulse-agent 2>/dev/null; then
+    systemctl --user stop pulse-agent 2>/dev/null || true
+  fi
+  pkill -u "$USER" -x pulse-agent 2>/dev/null || true
 fi
 
-TMP_BIN="/tmp/pulse-agent-dl-${PULSE_ARCH}"
+TMP_BIN="/tmp/pulse-agent-dl-${PULSE_ARCH}-${EUID}"
 rm -f "$TMP_BIN"
 
 if [ -f "./bin/pulse-agent-linux-${PULSE_ARCH}" ]; then
@@ -137,6 +160,19 @@ fi
 chmod +x "$TMP_BIN"
 mv -f "$TMP_BIN" "$INSTALL_DIR/pulse-agent"
 ln -sf "$INSTALL_DIR/pulse-agent" "$INSTALL_DIR/pulse"
+
+# Ensure PATH has ~/.local/bin for non-root users
+if [ "$IS_ROOT" = false ]; then
+  if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    export PATH="$HOME/.local/bin:$PATH"
+    for rc in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.zshrc"; do
+      if [ -f "$rc" ] && ! grep -q '\.local/bin' "$rc"; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$rc"
+      fi
+    done
+    ok "Added ~/.local/bin to PATH in shell profile"
+  fi
+fi
 
 # 5. Config and TLS Certificate Generation
 step "Initializing security credentials..."
@@ -170,30 +206,37 @@ with open('$CONFIG_DIR/agent.json', 'w') as f:
   ok "Applied custom port ($PORT) and authorized bearer token"
 fi
 
-chown -R pulse:pulse "$CONFIG_DIR" 2>/dev/null || true
+if [ "$IS_ROOT" = true ]; then
+  chown -R pulse:pulse "$CONFIG_DIR" 2>/dev/null || true
+fi
 chmod 700 "$CONFIG_DIR"
 chmod 600 "$CONFIG_DIR"/agent.json 2>/dev/null || true
 
-# 6. Firewall Configuration — supports UFW, firewalld, iptables
-step "Checking system firewall..."
-if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
-  ufw allow "${PORT}/tcp" comment "Pulse Agent" >/dev/null 2>&1 || true
-  ok "Added UFW rule: port ${PORT}/tcp"
-elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state 2>/dev/null | grep -q "running"; then
-  firewall-cmd --permanent --add-port="${PORT}/tcp" >/dev/null 2>&1 || true
-  firewall-cmd --reload >/dev/null 2>&1 || true
-  ok "Added firewalld rule: port ${PORT}/tcp"
-elif command -v iptables >/dev/null 2>&1; then
-  iptables -C INPUT -p tcp --dport "${PORT}" -j ACCEPT 2>/dev/null || \
-    iptables -I INPUT -p tcp --dport "${PORT}" -j ACCEPT 2>/dev/null || true
-  ok "Added iptables rule: port ${PORT}/tcp"
+# 6. Firewall Configuration
+step "Checking firewall..."
+if [ "$IS_ROOT" = true ]; then
+  if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
+    ufw allow "${PORT}/tcp" comment "Pulse Agent" >/dev/null 2>&1 || true
+    ok "Added UFW rule: port ${PORT}/tcp"
+  elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state 2>/dev/null | grep -q "running"; then
+    firewall-cmd --permanent --add-port="${PORT}/tcp" >/dev/null 2>&1 || true
+    firewall-cmd --reload >/dev/null 2>&1 || true
+    ok "Added firewalld rule: port ${PORT}/tcp"
+  elif command -v iptables >/dev/null 2>&1; then
+    iptables -C INPUT -p tcp --dport "${PORT}" -j ACCEPT 2>/dev/null || \
+      iptables -I INPUT -p tcp --dport "${PORT}" -j ACCEPT 2>/dev/null || true
+    ok "Added iptables rule: port ${PORT}/tcp"
+  else
+    ok "No active firewall detected (traffic allowed)"
+  fi
 else
-  ok "No active firewall detected (traffic allowed)"
+  warn "Non-root mode: ensure port ${PORT}/tcp is open in your cloud VPS security group / firewall"
 fi
 
-# 7. Systemd Service Deployment
-step "Registering systemd background daemon..."
-cat << 'SYSTEMD_EOF' > /etc/systemd/system/pulse-agent.service
+# 7. Service Deployment (Root systemd or User systemd / Crontab)
+step "Registering background daemon..."
+if [ "$IS_ROOT" = true ]; then
+  cat << SYSTEMD_ROOT_EOF > /etc/systemd/system/pulse-agent.service
 [Unit]
 Description=Pulse Monitoring Agent
 After=network.target
@@ -208,15 +251,59 @@ LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
-SYSTEMD_EOF
+SYSTEMD_ROOT_EOF
 
-if command -v systemctl >/dev/null 2>&1; then
-  systemctl daemon-reload
-  systemctl enable pulse-agent >/dev/null 2>&1 || true
-  systemctl restart pulse-agent
-  ok "pulse-agent.service enabled and active"
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload
+    systemctl enable pulse-agent >/dev/null 2>&1 || true
+    systemctl restart pulse-agent
+    ok "pulse-agent.service enabled and active"
+  else
+    warn "systemctl not found; starting pulse-agent in background"
+    nohup /usr/local/bin/pulse-agent --config /etc/pulse/agent.json >/dev/null 2>&1 &
+  fi
 else
-  warn "systemctl not found; please run pulse-agent manually"
+  # Non-Root User Service
+  USER_SYSTEMD_DIR="$HOME/.config/systemd/user"
+  mkdir -p "$USER_SYSTEMD_DIR"
+
+  cat << SYSTEMD_USER_EOF > "$USER_SYSTEMD_DIR/pulse-agent.service"
+[Unit]
+Description=Pulse Monitoring Agent (User Mode)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$INSTALL_DIR/pulse-agent --config $CONFIG_DIR/agent.json
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+SYSTEMD_USER_EOF
+
+  USER_SYSTEMD_OK=false
+  if command -v systemctl >/dev/null 2>&1; then
+    if systemctl --user daemon-reload >/dev/null 2>&1; then
+      systemctl --user enable pulse-agent >/dev/null 2>&1 || true
+      systemctl --user restart pulse-agent >/dev/null 2>&1 || true
+      USER_SYSTEMD_OK=true
+      ok "User systemd service pulse-agent enabled and active"
+      if command -v loginctl >/dev/null 2>&1; then
+        loginctl enable-linger "$USER" >/dev/null 2>&1 || true
+      fi
+    fi
+  fi
+
+  if [ "$USER_SYSTEMD_OK" = false ]; then
+    warn "User systemd daemon unavailable; launching background process..."
+    nohup "$INSTALL_DIR/pulse-agent" --config "$CONFIG_DIR/agent.json" >/dev/null 2>&1 &
+    ok "pulse-agent running in background (PID: $!)"
+    if command -v crontab >/dev/null 2>&1; then
+      (crontab -l 2>/dev/null | grep -v 'pulse-agent' ; echo "@reboot $INSTALL_DIR/pulse-agent --config $CONFIG_DIR/agent.json >/dev/null 2>&1 &") | crontab - 2>/dev/null || true
+      ok "Registered @reboot in crontab for persistence"
+    fi
+  fi
 fi
 
 # Detect Public IP

@@ -88,6 +88,12 @@ func RunDiagnostics(configPath string, cfg *agent.Config) Report {
 				Status:  StatusOK,
 				Message: "pulse-agent.service is active and running",
 			})
+		} else if outUser, errUser := exec.Command("systemctl", "--user", "is-active", "pulse-agent").Output(); errUser == nil && strings.TrimSpace(string(outUser)) == "active" {
+			items = append(items, DiagnosticItem{
+				Name:    "Systemd Service",
+				Status:  StatusOK,
+				Message: "pulse-agent.service (user mode) is active and running",
+			})
 		} else {
 			items = append(items, DiagnosticItem{
 				Name:    "Systemd Service",

@@ -20,6 +20,7 @@ public struct AddServerSheet: View {
     @State private var pairCode: String = ""
     @State private var errorMessage: String?
     @State private var selectedEnvironment: ServerEnvironment = .untagged
+    @State private var isNonRoot: Bool = false
 
     public init(draft: ServerDraft? = nil) {
         if let draft = draft {
@@ -80,7 +81,11 @@ public struct AddServerSheet: View {
 
     private var installCommand: String {
         let cleanToken = token.isEmpty ? generatedToken : token
-        return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port \(portString) --token \(cleanToken)"
+        if isNonRoot {
+            return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash -s -- --port \(portString) --token \(cleanToken)"
+        } else {
+            return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port \(portString) --token \(cleanToken)"
+        }
     }
 
     public var body: some View {
@@ -199,7 +204,7 @@ public struct AddServerSheet: View {
             .padding(16)
             .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(width: 530, height: 490)
+        .frame(width: 540, height: 510)
     }
 
     private var stepIcon: String {
@@ -293,12 +298,23 @@ public struct AddServerSheet: View {
     // View for 1-Line Command Method
     private var agentGuideOneLineView: some View {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Run This Single Command on Your VPS:")
-                    .font(.system(size: 13, weight: .bold))
-                Text("Open SSH to \(normalizedHost.isEmpty ? "your VPS" : normalizedHost) and paste this line:")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Run This Single Command on Your VPS:")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("Open SSH to \(normalizedHost.isEmpty ? "your VPS" : normalizedHost) and paste this line:")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Picker("Mode", selection: $isNonRoot) {
+                    Text("Root (sudo)").tag(false)
+                    Text("Non-Root").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 175)
             }
 
             // Command Box with One-Click Copy
@@ -338,10 +354,12 @@ public struct AddServerSheet: View {
                 )
 
                 HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
+                    Image(systemName: isNonRoot ? "person.badge.shield.checkmark.fill" : "sparkles")
                         .font(.system(size: 10))
-                        .foregroundColor(.purple)
-                    Text("Auto-configures systemd, TLS certificates, firewall port, and starts agent.")
+                        .foregroundColor(isNonRoot ? .blue : .purple)
+                    Text(isNonRoot
+                         ? "Non-Root: Installs to ~/.local/bin and ~/.pulse. Uses user-level systemd (no sudo)."
+                         : "Root mode: Auto-configures systemd, TLS certificates, firewall port, and starts agent.")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }

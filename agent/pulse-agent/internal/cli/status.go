@@ -36,6 +36,11 @@ func RunStatus(configPath string, compact bool) {
 		if serviceState == "active" {
 			isServiceActive = true
 		}
+	} else if outUser, errUser := exec.Command("systemctl", "--user", "is-active", "pulse-agent").Output(); errUser == nil && strings.TrimSpace(string(outUser)) != "" {
+		serviceState = strings.TrimSpace(string(outUser)) + " (user mode)"
+		if strings.HasPrefix(serviceState, "active") {
+			isServiceActive = true
+		}
 	} else {
 		// Fallback check pgrep
 		if out, err := exec.Command("pgrep", "-x", "pulse-agent").Output(); err == nil && len(strings.TrimSpace(string(out))) > 0 {
