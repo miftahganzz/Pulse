@@ -47,6 +47,7 @@ public struct AddServerSheet: View {
             let lower = draft.host.lowercased()
             if lower.contains("trycloudflare.com") {
                 _connectionNetwork = State(initialValue: .cloudflare)
+                if draft.port.isEmpty { _portString = State(initialValue: "443") }
             } else if lower.hasPrefix("100.") || lower.contains(".ts.net") {
                 _connectionNetwork = State(initialValue: .tailscale)
             }
@@ -101,6 +102,17 @@ public struct AddServerSheet: View {
         return parts.allSatisfy { Int($0) != nil }
     }
 
+    private var hostPromptText: String {
+        switch connectionNetwork {
+        case .direct:
+            return "e.g. 103.187.144.20"
+        case .cloudflare:
+            return "e.g. abc-xyz.trycloudflare.com or pulse.domain.com"
+        case .tailscale:
+            return "e.g. 100.115.82.45 or ubuntu.ts.net"
+        }
+    }
+
     private var installCommand: String {
         let cleanToken = token.isEmpty ? generatedToken : token
         switch connectionNetwork {
@@ -144,9 +156,9 @@ public struct AddServerSheet: View {
     private var methodHelpText: String {
         switch (connectionNetwork, isNonRoot) {
         case (.direct, false):
-            return "Root: Installs systemd service, auto TLS certs, and configures firewall port \(portString)."
+            return "Root: Installs systemd service, auto TLS certs, and opens firewall port \(portString)."
         case (.direct, true):
-            return "Non-Root: Installs to ~/.local/bin and ~/.pulse. Ensure port \(portString) is open in cloud VPS firewall."
+            return "Non-Root: Installs to ~/.local/bin. Ensure port \(portString) is open in cloud VPS firewall."
         case (.cloudflare, false):
             return "Root: Installs cloudflared & sets up HTTPS tunnel. Zero open ports required on your VPS!"
         case (.cloudflare, true):
@@ -183,8 +195,8 @@ public struct AddServerSheet: View {
 
             Divider()
 
-            // Setup Method Switcher (only shown during initial steps)
-            if step == .enterDetails || step == .agentGuide {
+            // Setup Method Switcher (only shown during input step)
+            if step == .enterDetails {
                 Picker("Setup Method", selection: $setupMethod) {
                     Label("1-Line Command", systemImage: "terminal.fill").tag(SetupMethod.oneLine)
                     Label("XXX-XXX Pair Code", systemImage: "number.circle.fill").tag(SetupMethod.pairCode)
@@ -200,87 +212,76 @@ public struct AddServerSheet: View {
                 switch step {
                 case .enterDetails:
                     enterDetailsView
-                case .agentGuide:
-                    if setupMethod == .oneLine {
-                        agentGuideOneLineView
-                    } else {
-                        agentGuidePairCodeView
-                    }
                 case .testingConnection:
                     testingConnectionView
                 case .success:
                     successView
+                case .agentGuide:
+                    enterDetailsView
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
 
             Divider()
 
             // Footer Actions
             HStack {
-                if step != .enterDetails && step != .success {
-                    Button("Back") {
-                        withAnimation {
-                            if step == .agentGuide { step = .enterDetails }
-                            else if step == .testingConnection { step = .agentGuide }
-                        }
+                if step == .testingConnection {
+                    Button("Cancel") {
+                        testingClient?.disconnect()
+                        step = .enterDetails
                     }
-                }
-
-                Spacer()
-
-                switch step {
-                case .enterDetails:
-                    Button("Continue") {
-                        applySmartNetworkDefaults()
-                        if token.isEmpty {
-                            token = generatedToken
-                        }
-                        withAnimation { step = .agentGuide }
+                } else if step == .success {
+                    Spacer()
+                    Button("Done") {
+                        dismiss()
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty ||
-                              address.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Cancel") {
+                        testingClient?.disconnect()
+                        dismiss()
+                    }
+                    .keyboardShortcut(.cancelAction)
 
-                case .agentGuide:
+                    Spacer()
+
                     if setupMethod == .oneLine {
                         Button("Connect to Server") {
+                            if token.isEmpty {
+                                token = generatedToken
+                            }
                             testConnection()
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(token.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty ||
+                                  address.trimmingCharacters(in: .whitespaces).isEmpty)
                     } else {
                         let c = pairCode.trimmingCharacters(in: .whitespaces).count
                         Button("Verify & Pair") {
                             claimPairCode()
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(c != 6 && c != 7)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty ||
+                                  address.trimmingCharacters(in: .whitespaces).isEmpty ||
+                                  (c != 6 && c != 7))
                     }
-
-                case .testingConnection:
-                    ProgressView()
-                        .controlSize(.small)
-
-                case .success:
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
                 }
             }
             .padding(16)
             .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(width: 560, height: 540)
+        .frame(width: 580, height: 575)
     }
 
     private var stepIcon: String {
         switch step {
-        case .enterDetails: return "server.rack"
-        case .agentGuide: return setupMethod == .oneLine ? "terminal.fill" : "number.circle.fill"
+        case .enterDetails, .agentGuide: return "server.rack"
         case .testingConnection: return "arrow.triangle.2.circlepath"
         case .success: return "checkmark.seal.fill"
         }
@@ -288,102 +289,26 @@ public struct AddServerSheet: View {
 
     private var stepTitle: String {
         switch step {
-        case .enterDetails:       return "Add Linux VPS"
-        case .agentGuide:         return setupMethod == .oneLine ? "1-Command Setup" : "XXX-XXX Pairing"
+        case .enterDetails, .agentGuide: return "Add Linux VPS"
         case .testingConnection:  return "Connecting to Agent..."
         case .success:            return "Server Connected!"
         }
     }
 
     private var enterDetailsView: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Enter Your Server Address")
-                    .font(.system(size: 14, weight: .bold))
-                Text("Connect via Public IP, Tailscale private IP, or Cloudflare Tunnel.")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            if setupMethod == .oneLine {
+                oneLineSetupContentView
+            } else {
+                pairCodeSetupContentView
             }
-
-            Form {
-                TextField("Server Name", text: $name, prompt: Text("e.g. Production Jakarta or My VPS"))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    TextField("Host Address", text: $address, prompt: Text("e.g. 103.187.144.20, 100.x.y.z, or pulse.mycorp.com"))
-                        .onChange(of: address) { _ in
-                            checkAddressHints()
-                        }
-
-                    if isCloudflareDomain {
-                        HStack(spacing: 6) {
-                            Image(systemName: "cloud.fill")
-                                .foregroundColor(.blue)
-                                .font(.system(size: 10))
-                            Text("Cloudflare Tunnel hostname detected. Port 443 HTTPS will be used.")
-                                .font(.system(size: 11))
-                                .foregroundColor(.blue)
-                        }
-                    } else if isTailscaleIP {
-                        HStack(spacing: 6) {
-                            Image(systemName: "lock.shield.fill")
-                                .foregroundColor(.green)
-                                .font(.system(size: 10))
-                            Text("Tailscale private network detected. Zero open public ports required.")
-                                .font(.system(size: 11))
-                                .foregroundColor(.green)
-                        }
-                    }
-                }
-
-                TextField("Port", text: $portString)
-
-                Picker("Environment", selection: $selectedEnvironment) {
-                    ForEach(ServerEnvironment.allCases) { env in
-                        Label(env.rawValue, systemImage: env.icon).tag(env)
-                    }
-                }
-            }
-            .formStyle(.grouped)
-
-            Spacer()
         }
     }
 
-    private func checkAddressHints() {
-        let clean = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if clean.hasPrefix("https://") && !clean.contains(":") {
-            portString = "443"
-            connectionNetwork = .cloudflare
-        } else if isCloudflareDomain {
-            if portString == "8443" { portString = "443" }
-            connectionNetwork = .cloudflare
-        } else if isTailscaleIP {
-            connectionNetwork = .tailscale
-        }
-    }
-
-    private func applySmartNetworkDefaults() {
-        let clean = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if (clean.hasPrefix("https://") || isCloudflareDomain) && portString == "8443" {
-            portString = "443"
-            connectionNetwork = .cloudflare
-        } else if isTailscaleIP {
-            connectionNetwork = .tailscale
-        }
-    }
-
-    // View for 1-Line Command Method
-    private var agentGuideOneLineView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Run This Single Command on Your VPS:")
-                    .font(.system(size: 13, weight: .bold))
-                Text("Open SSH to \(normalizedHost.isEmpty ? "your VPS" : normalizedHost) and paste this line:")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            }
-
-            // Connection Network & Mode Selectors
+    // MARK: - 1-Line Command Unified Setup View
+    private var oneLineSetupContentView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Method & Mode Pickers
             VStack(spacing: 8) {
                 HStack(spacing: 10) {
                     Text("Method:")
@@ -421,17 +346,17 @@ public struct AddServerSheet: View {
                     .labelsHidden()
                 }
             }
-            .padding(10)
+            .padding(8)
             .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
             .cornerRadius(8)
 
-            // Command Box with One-Click Copy
-            VStack(alignment: .leading, spacing: 6) {
+            // 1-Line Command Box
+            VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .top) {
                     Text(installCommand)
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
                         .foregroundColor(.primary)
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Button {
@@ -444,16 +369,16 @@ public struct AddServerSheet: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: isCopied ? "checkmark" : "doc.on.doc.fill")
-                                .font(.system(size: 11))
+                                .font(.system(size: 10))
                             Text(isCopied ? "Copied!" : "Copy")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 10, weight: .semibold))
                         }
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(isCopied ? .green : .accentColor)
                     .controlSize(.small)
                 }
-                .padding(10)
+                .padding(8)
                 .background(Color(NSColor.textBackgroundColor))
                 .cornerRadius(6)
                 .overlay(
@@ -471,29 +396,105 @@ public struct AddServerSheet: View {
                 }
             }
 
-            Divider()
+            // Connection Details Form
+            Form {
+                TextField("Server Name", text: $name, prompt: Text("e.g. Production Jakarta or My VPS"))
 
-            // Token input for manual / existing installations
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Agent Auth Token:")
-                        .font(.system(size: 11, weight: .semibold))
-                    Spacer()
-                    Text(connectionNetwork == .direct ? "Pre-filled from command" : "Printed in terminal by script")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
+                TextField("Host Address", text: $address, prompt: Text(hostPromptText))
+                    .onChange(of: address) { _ in
+                        checkAddressHints()
+                    }
 
-                HStack {
-                    SecureField("Token", text: $token)
-                        .textFieldStyle(.roundedBorder)
+                HStack(spacing: 12) {
+                    TextField("Port", text: $portString)
+                        .frame(width: 80)
+
+                    SecureField("Auth Token", text: $token, prompt: Text(connectionNetwork == .direct ? "Generated token" : "Token printed by script"))
                         .font(.system(size: 11, design: .monospaced))
 
-                    Button("Regen") {
-                        token = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                    if connectionNetwork == .direct {
+                        Button("Regen") {
+                            token = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                        }
+                        .controlSize(.small)
+                    }
+                }
+
+                Picker("Environment", selection: $selectedEnvironment) {
+                    ForEach(ServerEnvironment.allCases) { env in
+                        Label(env.rawValue, systemImage: env.icon).tag(env)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+
+            if let err = errorMessage {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.red)
+                    Text(err)
+                        .font(.system(size: 11))
+                        .foregroundColor(.red)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer()
+        }
+    }
+
+    // MARK: - XXX-XXX Pair Code Setup View
+    private var pairCodeSetupContentView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Generate Pairing Code on VPS:")
+                    .font(.system(size: 13, weight: .bold))
+                Text("On your VPS terminal, run:")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+
+                HStack {
+                    Text("pulse pair")
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString("pulse pair", forType: .string)
+                        isCopied = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            isCopied = false
+                        }
+                    } label: {
+                        Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
                     }
                     .controlSize(.small)
                 }
+            }
+
+            Form {
+                TextField("Server Name", text: $name, prompt: Text("e.g. My VPS"))
+                TextField("Host Address", text: $address, prompt: Text("e.g. 103.187.144.20 or 100.x.y.z"))
+                    .onChange(of: address) { _ in
+                        checkAddressHints()
+                    }
+                TextField("Port", text: $portString)
+                    .frame(width: 80)
+                TextField("Pair Code (e.g. 653-557)", text: $pairCode)
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+            }
+            .formStyle(.grouped)
+
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Text("Pairing codes are valid for 10 minutes and single-use.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
             }
 
             if let err = errorMessage {
@@ -511,69 +512,16 @@ public struct AddServerSheet: View {
         }
     }
 
-    // View for 6-Digit Pair Code Method
-    private var agentGuidePairCodeView: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Generate Pairing Code on VPS:")
-                    .font(.system(size: 13, weight: .bold))
-                Text("On your VPS terminal, run:")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-            }
-
-            HStack {
-                Text("pulse-agent pair")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString("pulse-agent pair", forType: .string)
-                    isCopied = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        isCopied = false
-                    }
-                } label: {
-                    Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                }
-                .controlSize(.small)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Enter the XXX-XXX Code displayed on your VPS:")
-                    .font(.system(size: 12, weight: .medium))
-
-                TextField("XXX-XXX Code (e.g. 749-201)", text: $pairCode)
-                    .font(.system(size: 18, weight: .bold, design: .monospaced))
-                    .textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 240)
-            }
-
-            HStack(spacing: 6) {
-                Image(systemName: "clock")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                Text("Pairing codes are valid for 10 minutes and can only be used once.")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            }
-
-            if let err = errorMessage {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.red)
-                    Text(err)
-                        .font(.system(size: 11))
-                        .foregroundColor(.red)
-                }
-            }
-
-            Spacer()
+    private func checkAddressHints() {
+        let clean = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if clean.hasPrefix("https://") && !clean.contains(":") {
+            portString = "443"
+            connectionNetwork = .cloudflare
+        } else if isCloudflareDomain {
+            if portString == "8443" { portString = "443" }
+            connectionNetwork = .cloudflare
+        } else if isTailscaleIP {
+            connectionNetwork = .tailscale
         }
     }
 
@@ -640,20 +588,19 @@ public struct AddServerSheet: View {
                 case .success(let dict):
                     if let authToken = dict["auth_token"] as? String {
                         self.token = authToken
-                        // Now complete connection test with token
                         self.testConnection()
                     } else {
                         self.errorMessage = "Missing auth token in response"
-                        withAnimation { self.step = .agentGuide }
+                        withAnimation { self.step = .enterDetails }
                     }
                 case .failure(let err):
                     let desc = err.localizedDescription
                     if desc.localizedCaseInsensitiveContains("timed out") {
-                        self.errorMessage = "Connection timed out. Check that '\(cleanAddress)' is your server's public IP (run 'curl -4 ifconfig.me' on VPS) and port \(port) is open."
+                        self.errorMessage = "Connection timed out. Check that '\(cleanAddress)' is your server's public IP and port \(port) is open."
                     } else {
                         self.errorMessage = "Pairing failed: \(desc)"
                     }
-                    withAnimation { self.step = .agentGuide }
+                    withAnimation { self.step = .enterDetails }
                 }
             }
         }
@@ -677,7 +624,6 @@ public struct AddServerSheet: View {
         )
         self.testingClient = client
 
-        // Test probe info
         client.fetchIdentity { result in
             DispatchQueue.main.async {
                 switch result {
@@ -694,11 +640,11 @@ public struct AddServerSheet: View {
                         withAnimation { self.step = .success }
                     } catch {
                         self.errorMessage = "Failed to save to Keychain: \(error.localizedDescription)"
-                        withAnimation { self.step = .agentGuide }
+                        withAnimation { self.step = .enterDetails }
                     }
                 case .failure(let err):
                     self.errorMessage = "Connection failed: \(err.localizedDescription). Ensure the agent is running and port \(portString) is open."
-                    withAnimation { self.step = .agentGuide }
+                    withAnimation { self.step = .enterDetails }
                 }
             }
         }
