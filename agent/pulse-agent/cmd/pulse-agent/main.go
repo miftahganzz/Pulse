@@ -100,6 +100,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Always ensure TLS Certificates exist upon config load
+	_, _ = security.EnsureCertificate(cfg.CertFile, cfg.KeyFile, []string{"127.0.0.1", "localhost"})
+
 	if *showTokenFlag {
 		fmt.Printf("Agent ID:    %s\n", cfg.AgentID)
 		fmt.Printf("Auth Token:  %s\n", cfg.AuthToken)

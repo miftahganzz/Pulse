@@ -176,7 +176,7 @@ fi
 
 # 5. Config and TLS Certificate Generation
 step "Initializing security credentials..."
-if [ ! -f "$CONFIG_DIR/agent.json" ]; then
+if [ ! -f "$CONFIG_DIR/agent.json" ] || [ ! -f "$CONFIG_DIR/cert.pem" ] || [ ! -f "$CONFIG_DIR/key.pem" ]; then
   "$INSTALL_DIR/pulse-agent" --config "$CONFIG_DIR/agent.json" --show-token > /dev/null 2>&1 || true
   ok "Generated self-signed TLS certificates and identity token"
 else
@@ -204,6 +204,28 @@ with open('$CONFIG_DIR/agent.json', 'w') as f:
 "
   fi
   ok "Applied custom port ($PORT) and authorized bearer token"
+fi
+
+# Ensure cert & key paths in agent.json point inside user directory for non-root
+if [ "$IS_ROOT" = false ] && command -v python3 >/dev/null 2>&1; then
+  python3 -c "
+import json
+try:
+    with open('$CONFIG_DIR/agent.json', 'r') as f:
+        data = json.load(f)
+    dirty = False
+    if not data.get('cert_file') or data['cert_file'].startswith('/etc/'):
+        data['cert_file'] = '$CONFIG_DIR/cert.pem'
+        dirty = True
+    if not data.get('key_file') or data['key_file'].startswith('/etc/'):
+        data['key_file'] = '$CONFIG_DIR/key.pem'
+        dirty = True
+    if dirty:
+        with open('$CONFIG_DIR/agent.json', 'w') as f:
+            json.dump(data, f, indent=2)
+except Exception:
+    pass
+" 2>/dev/null || true
 fi
 
 if [ "$IS_ROOT" = true ]; then
@@ -283,25 +305,40 @@ WantedBy=default.target
 SYSTEMD_USER_EOF
 
   USER_SYSTEMD_OK=false
+  if [ -z "$XDG_RUNTIME_DIR" ] && [ -d "/run/user/$EUID" ]; then
+    export XDG_RUNTIME_DIR="/run/user/$EUID"
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$EUID/bus"
+  fi
+
   if command -v systemctl >/dev/null 2>&1; then
     if systemctl --user daemon-reload >/dev/null 2>&1; then
       systemctl --user enable pulse-agent >/dev/null 2>&1 || true
       systemctl --user restart pulse-agent >/dev/null 2>&1 || true
-      USER_SYSTEMD_OK=true
-      ok "User systemd service pulse-agent enabled and active"
-      if command -v loginctl >/dev/null 2>&1; then
-        loginctl enable-linger "$USER" >/dev/null 2>&1 || true
+      sleep 2
+      if systemctl --user is-active --quiet pulse-agent 2>/dev/null; then
+        USER_SYSTEMD_OK=true
+        ok "User systemd service pulse-agent enabled and active"
+        if command -v loginctl >/dev/null 2>&1; then
+          loginctl enable-linger "$USER" >/dev/null 2>&1 || true
+        fi
       fi
     fi
   fi
 
   if [ "$USER_SYSTEMD_OK" = false ]; then
-    warn "User systemd daemon unavailable; launching background process..."
-    nohup "$INSTALL_DIR/pulse-agent" --config "$CONFIG_DIR/agent.json" >/dev/null 2>&1 &
-    ok "pulse-agent running in background (PID: $!)"
-    if command -v crontab >/dev/null 2>&1; then
-      (crontab -l 2>/dev/null | grep -v 'pulse-agent' ; echo "@reboot $INSTALL_DIR/pulse-agent --config $CONFIG_DIR/agent.json >/dev/null 2>&1 &") | crontab - 2>/dev/null || true
-      ok "Registered @reboot in crontab for persistence"
+    warn "User systemd service inactive; starting background daemon..."
+    pkill -u "$USER" -x pulse-agent 2>/dev/null || true
+    nohup "$INSTALL_DIR/pulse-agent" --config "$CONFIG_DIR/agent.json" > "$CONFIG_DIR/pulse-agent.log" 2>&1 &
+    sleep 2
+    if pgrep -u "$USER" -x pulse-agent >/dev/null 2>&1; then
+      ok "pulse-agent running in background (PID: $(pgrep -u "$USER" -x pulse-agent | head -1))"
+      if command -v crontab >/dev/null 2>&1; then
+        (crontab -l 2>/dev/null | grep -v 'pulse-agent' ; echo "@reboot $INSTALL_DIR/pulse-agent --config $CONFIG_DIR/agent.json > $CONFIG_DIR/pulse-agent.log 2>&1 &") | crontab - 2>/dev/null || true
+        ok "Registered @reboot in crontab for persistence"
+      fi
+    else
+      fail "Could not start pulse-agent. Output from $CONFIG_DIR/pulse-agent.log:"
+      cat "$CONFIG_DIR/pulse-agent.log" 2>/dev/null || true
     fi
   fi
 fi

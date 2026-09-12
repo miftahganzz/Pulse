@@ -298,7 +298,7 @@ public struct AddServerSheet: View {
     // View for 1-Line Command Method
     private var agentGuideOneLineView: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top) {
+            HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Run This Single Command on Your VPS:")
                         .font(.system(size: 13, weight: .bold))
@@ -309,12 +309,13 @@ public struct AddServerSheet: View {
 
                 Spacer()
 
-                Picker("Mode", selection: $isNonRoot) {
+                Picker("Privilege", selection: $isNonRoot) {
                     Text("Root (sudo)").tag(false)
                     Text("Non-Root").tag(true)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 175)
+                .labelsHidden()
+                .frame(width: 165)
             }
 
             // Command Box with One-Click Copy

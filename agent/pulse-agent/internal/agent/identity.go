@@ -93,6 +93,32 @@ func LoadOrCreateConfig(configPath string) (*Config, bool, error) {
 		return nil, false, fmt.Errorf("failed to parse config json: %w", err)
 	}
 
+	// Defensive path correction for non-root environments or missing paths
+	baseDir := filepath.Dir(configPath)
+	modified := false
+	if os.Geteuid() != 0 {
+		if strings.HasPrefix(cfg.CertFile, "/etc/pulse") || cfg.CertFile == "" {
+			cfg.CertFile = filepath.Join(baseDir, "cert.pem")
+			modified = true
+		}
+		if strings.HasPrefix(cfg.KeyFile, "/etc/pulse") || cfg.KeyFile == "" {
+			cfg.KeyFile = filepath.Join(baseDir, "key.pem")
+			modified = true
+		}
+	} else {
+		if cfg.CertFile == "" {
+			cfg.CertFile = filepath.Join(baseDir, "cert.pem")
+			modified = true
+		}
+		if cfg.KeyFile == "" {
+			cfg.KeyFile = filepath.Join(baseDir, "key.pem")
+			modified = true
+		}
+	}
+	if modified {
+		_ = saveConfig(configPath, &cfg)
+	}
+
 	return &cfg, false, nil
 }
 
