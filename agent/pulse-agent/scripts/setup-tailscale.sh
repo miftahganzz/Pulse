@@ -53,16 +53,30 @@ if [ "$IS_ROOT" = false ] && command -v sudo >/dev/null 2>&1; then
   SUDO_CMD="sudo"
 fi
 
+TAILSCALE_READY=false
+
 if command -v tailscale >/dev/null 2>&1; then
   ok "Tailscale already installed ($(tailscale version 2>/dev/null | head -1))"
+  TAILSCALE_READY=true
 else
   if [ "$IS_ROOT" = true ]; then
     curl -fsSL https://tailscale.com/install.sh | sh
     ok "Tailscale installed"
+    TAILSCALE_READY=true
   elif [ -n "$SUDO_CMD" ]; then
-    warn "Installing Tailscale system package requires sudo privileges..."
-    curl -fsSL https://tailscale.com/install.sh | sudo sh
-    ok "Tailscale installed"
+    warn "Tailscale requires kernel TUN permissions (/dev/net/tun) which needs sudo."
+    echo -e "    ${CLR_DIM}If you have sudo privileges, enter your password below.${CLR_RESET}"
+    echo -e "    ${CLR_DIM}If you do NOT have sudo, press Ctrl+C or Enter to skip Tailscale.${CLR_RESET}"
+    if sudo -v 2>/dev/null; then
+      curl -fsSL https://tailscale.com/install.sh | sudo sh
+      ok "Tailscale installed"
+      TAILSCALE_READY=true
+    else
+      warn "Sudo access skipped or not available."
+      echo -e "    ${CLR_CYAN}➜ Pulse Agent is ALREADY running!${CLR_RESET} You can connect via Direct IP (${CLR_BOLD}${PORT}${CLR_RESET})."
+      echo -e "    ${CLR_CYAN}➜ For Zero Open Ports without sudo:${CLR_RESET} Run Cloudflare Tunnel:"
+      echo -e "      ${CLR_BOLD}curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | bash${CLR_RESET}"
+    fi
   else
     warn "Tailscale system daemon requires root/sudo privileges to create TUN adapters."
     echo -e "    ${CLR_CYAN}➜ Tip:${CLR_RESET} For 100% Zero-Root, Zero-Sudo setup with zero open ports, use Cloudflare Tunnel:"
@@ -72,30 +86,34 @@ else
 fi
 
 # Ensure tailscaled service is running
-if [ "$IS_ROOT" = true ]; then
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl enable --now tailscaled >/dev/null 2>&1 || true
-  elif command -v service >/dev/null 2>&1; then
-    service tailscaled start >/dev/null 2>&1 || true
-  fi
-elif [ -n "$SUDO_CMD" ]; then
-  if command -v systemctl >/dev/null 2>&1; then
-    sudo systemctl enable --now tailscaled >/dev/null 2>&1 || true
+if [ "$TAILSCALE_READY" = true ]; then
+  if [ "$IS_ROOT" = true ]; then
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl enable --now tailscaled >/dev/null 2>&1 || true
+    elif command -v service >/dev/null 2>&1; then
+      service tailscaled start >/dev/null 2>&1 || true
+    fi
+  elif [ -n "$SUDO_CMD" ]; then
+    if command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl enable --now tailscaled >/dev/null 2>&1 || true
+    fi
   fi
 fi
 
 # ── 3. Bring up Tailscale ──────────────────────────────────────
-step "Checking Tailscale connection..."
-if tailscale ip -4 >/dev/null 2>&1; then
-  ok "Tailscale already active"
-elif command -v tailscale >/dev/null 2>&1; then
-  echo -e "    ${CLR_CYAN}Authenticating Tailscale node...${CLR_RESET}"
-  if [ "$IS_ROOT" = true ]; then
-    tailscale up --accept-routes "$@" || true
-  elif [ -n "$SUDO_CMD" ]; then
-    sudo tailscale up --accept-routes "$@" || true
-  else
-    tailscale up --accept-routes "$@" 2>/dev/null || warn "Run 'sudo tailscale up' once to connect this machine to your Tailnet."
+if [ "$TAILSCALE_READY" = true ]; then
+  step "Checking Tailscale connection..."
+  if tailscale ip -4 >/dev/null 2>&1; then
+    ok "Tailscale already active"
+  elif command -v tailscale >/dev/null 2>&1; then
+    echo -e "    ${CLR_CYAN}Authenticating Tailscale node...${CLR_RESET}"
+    if [ "$IS_ROOT" = true ]; then
+      tailscale up --accept-routes "$@" || true
+    elif [ -n "$SUDO_CMD" ]; then
+      sudo tailscale up --accept-routes "$@" || true
+    else
+      tailscale up --accept-routes "$@" 2>/dev/null || warn "Run 'sudo tailscale up' once to connect this machine to your Tailnet."
+    fi
   fi
 fi
 
