@@ -11,6 +11,10 @@ public struct LiveLogView: View {
     @State private var logs: [LogEntryMessage] = []
     @State private var streamTask: URLSessionWebSocketTask?
     @State private var errorMessage: String? = nil
+    @State private var isConnecting: Bool = false
+    @State private var isConnected: Bool = false
+    @State private var activeStreamTarget: String = ""
+    @State private var activeStreamSource: LogSource? = nil
 
     @State private var copiedUpgradeCommand: Bool = false
 
@@ -42,14 +46,16 @@ public struct LiveLogView: View {
             Divider()
 
             // Main Terminal Console
-            if let err = errorMessage {
+            if manager.state.isOffline {
+                offlineLogsView
+            } else if let err = errorMessage {
                 if isAgentVersionIncompatible {
                     agentUpgradeView
                 } else {
                     genericErrorView(err)
                 }
-            } else if logs.isEmpty {
-                VStack(spacing: 8) {
+            } else if isConnecting && logs.isEmpty {
+                VStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(0.8)
                     Text("Connecting to \(logSource.rawValue) log stream for \(selectedTarget)...")
@@ -57,26 +63,73 @@ public struct LiveLogView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if logs.isEmpty {
+                emptyLogsView
             } else {
                 logConsoleView
             }
         }
         .onAppear {
+            if manager.services.isEmpty {
+                manager.refreshServices()
+            }
+            if manager.dockerContainers.isEmpty {
+                manager.refreshDocker()
+            }
             setupInitialTarget()
             startStreaming()
         }
         .onDisappear {
             stopStreaming()
         }
-        .onChange(of: logSource) { _ in
-            setupInitialTarget()
-            restartStreaming()
+        .onChange(of: manager.state) { newState in
+            if newState.isConnected {
+                if errorMessage != nil || streamTask == nil {
+                    errorMessage = nil
+                    setupInitialTarget()
+                    startStreaming()
+                }
+            } else if newState.isOffline {
+                stopStreaming()
+            }
         }
-        .onChange(of: selectedTarget) { _ in
-            restartStreaming()
+        .onChange(of: logSource) { _ in
+            stopStreaming()
+            logs.removeAll()
+            errorMessage = nil
+            selectedTarget = ""
+            setupInitialTarget()
+            startStreaming()
+        }
+        .onChange(of: selectedTarget) { newTarget in
+            if !newTarget.isEmpty && newTarget != activeStreamTarget {
+                restartStreaming()
+            }
         }
         .onChange(of: tailCount) { _ in
             restartStreaming()
+        }
+        .onChange(of: manager.services) { newServices in
+            if logSource == .systemd && !newServices.isEmpty {
+                let currentValid = newServices.contains(where: { $0.name == selectedTarget })
+                if !currentValid {
+                    setupInitialTarget()
+                    if selectedTarget != activeStreamTarget {
+                        restartStreaming()
+                    }
+                }
+            }
+        }
+        .onChange(of: manager.dockerContainers) { newContainers in
+            if logSource == .docker && !newContainers.isEmpty {
+                let currentValid = newContainers.contains(where: { $0.id == selectedTarget })
+                if !currentValid {
+                    setupInitialTarget()
+                    if selectedTarget != activeStreamTarget {
+                        restartStreaming()
+                    }
+                }
+            }
         }
     }
 
@@ -93,15 +146,18 @@ public struct LiveLogView: View {
         HStack(spacing: 8) {
             // Source Picker
             sourcePicker
-                .frame(width: 135)
+                .frame(width: 130)
 
             // Target Dropdown
             targetPicker
-                .frame(minWidth: 100, idealWidth: 130, maxWidth: 170)
+                .frame(minWidth: 110, idealWidth: 150, maxWidth: 200)
 
             // Tail count picker
             linesPicker
                 .frame(width: 85)
+
+            // Connection Indicator
+            connectionStatusIndicator
 
             Spacer(minLength: 4)
 
@@ -118,13 +174,15 @@ public struct LiveLogView: View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 sourcePicker
-                    .frame(width: 135)
+                    .frame(width: 130)
 
                 targetPicker
                     .frame(minWidth: 100, maxWidth: .infinity)
 
                 linesPicker
                     .frame(width: 85)
+
+                connectionStatusIndicator
             }
 
             HStack(spacing: 8) {
@@ -214,6 +272,37 @@ public struct LiveLogView: View {
             .controlSize(.small)
             .help("Copy logs to clipboard")
         }
+    }
+
+    private var connectionStatusIndicator: some View {
+        HStack(spacing: 4) {
+            if isConnecting {
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .frame(width: 10, height: 10)
+                Text("CONNECTING")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.secondary)
+            } else if errorMessage != nil {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 6, height: 6)
+                Text("ERROR")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.red)
+            } else if isConnected {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 6, height: 6)
+                Text("LIVE")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.green)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(Capsule())
     }
 
     @ViewBuilder
@@ -427,21 +516,80 @@ public struct LiveLogView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var offlineLogsView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.slash")
+                .font(.system(size: 36))
+                .foregroundColor(.orange)
+
+            Text("Offline — Please connect to network")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.primary)
+
+            Text("Live log streaming is unavailable while your device is disconnected from the network. Pulse will automatically reconnect and resume log streaming once your connection is restored.")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 420)
+                .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(NSColor.textBackgroundColor))
+    }
+
+    private var emptyLogsView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "text.alignleft")
+                .font(.system(size: 36))
+                .foregroundColor(.secondary.opacity(0.6))
+
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 7, height: 7)
+                    Text("Live Stream Active")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+
+                Text("Waiting for new log entries from \(selectedTarget.isEmpty ? "target" : selectedTarget)...")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+
+            Text("This service is active but currently idle. When new logs are emitted, they will stream here in real time.")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary.opacity(0.8))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 440)
+                .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(NSColor.textBackgroundColor))
+    }
+
     // MARK: - Streaming Logic
 
     private func setupInitialTarget() {
         if logSource == .systemd {
             if selectedTarget.isEmpty || !manager.services.contains(where: { $0.name == selectedTarget }) {
-                if let first = manager.services.first(where: { $0.isRunning }) ?? manager.services.first {
+                if let pulseAgent = manager.services.first(where: { $0.name.contains("pulse-agent") && $0.isRunning }) ?? manager.services.first(where: { $0.name.contains("pulse-agent") }) {
+                    selectedTarget = pulseAgent.name
+                } else if let firstRunning = manager.services.first(where: { $0.isRunning }) {
+                    selectedTarget = firstRunning.name
+                } else if let first = manager.services.first {
                     selectedTarget = first.name
                 } else {
-                    selectedTarget = "pulse-agent"
+                    selectedTarget = "pulse-agent.service"
                 }
             }
         } else {
             let containers = manager.dockerContainers
             if selectedTarget.isEmpty || !containers.contains(where: { $0.id == selectedTarget }) {
-                if let first = containers.first {
+                if let runningContainer = containers.first(where: { $0.state.lowercased() == "running" }) {
+                    selectedTarget = runningContainer.id
+                } else if let first = containers.first {
                     selectedTarget = first.id
                 } else {
                     selectedTarget = ""
@@ -451,7 +599,7 @@ public struct LiveLogView: View {
     }
 
     private func restartStreaming() {
-        stopStreaming()
+        stopStreaming(clearActiveTarget: true)
         logs.removeAll()
         errorMessage = nil
         startStreaming()
@@ -460,22 +608,51 @@ public struct LiveLogView: View {
     private func startStreaming() {
         guard !selectedTarget.isEmpty else { return }
 
+        // If server is not yet connected, stay in connecting state and wait for manager.state to become connected
+        guard manager.state.isConnected else {
+            isConnecting = true
+            isConnected = false
+            return
+        }
+
+        // If we are already streaming this exact target and source, avoid restarting
+        if activeStreamTarget == selectedTarget && activeStreamSource == logSource && streamTask != nil {
+            return
+        }
+
+        stopStreaming(clearActiveTarget: false)
+        activeStreamTarget = selectedTarget
+        activeStreamSource = logSource
+
         // Proactively detect older agent version before sending failing WebSocket request
         if let ver = manager.identity?.agentVersion {
             let parts = ver.split(separator: ".").compactMap { Int($0) }
             if let major = parts.first, major < 1 {
                 self.errorMessage = "Live log streaming requires pulse-agent v1.0.0 or later (Server is running v\(ver))."
+                self.isConnecting = false
+                self.isConnected = false
                 return
             }
         }
+
+        isConnecting = true
+        isConnected = false
 
         let typeStr = (logSource == .docker) ? "docker" : "systemd"
         streamTask = manager.streamLogs(
             type: typeStr,
             target: selectedTarget,
             tail: tailCount,
+            onConnected: {
+                DispatchQueue.main.async {
+                    self.isConnecting = false
+                    self.isConnected = true
+                }
+            },
             onLine: { entry in
                 DispatchQueue.main.async {
+                    self.isConnecting = false
+                    self.isConnected = true
                     if !self.isPaused {
                         self.logs.append(entry)
                         if self.logs.count > 1000 {
@@ -487,6 +664,14 @@ public struct LiveLogView: View {
             onError: { err in
                 DispatchQueue.main.async {
                     let nsErr = err as NSError
+                    if nsErr.code == NSURLErrorCancelled || nsErr.code == 89 || nsErr.code == -999 {
+                        return
+                    }
+                    if err.localizedDescription.lowercased().contains("cancel") {
+                        return
+                    }
+                    self.isConnecting = false
+                    self.isConnected = false
                     if nsErr.code == -1011 || err.localizedDescription.contains("bad response") {
                         let currentVer = self.manager.identity?.agentVersion ?? "0.9.0"
                         self.errorMessage = "Live log streaming requires pulse-agent v1.0.0 or later (Server is running v\(currentVer))."
@@ -498,9 +683,15 @@ public struct LiveLogView: View {
         )
     }
 
-    private func stopStreaming() {
+    private func stopStreaming(clearActiveTarget: Bool = true) {
         streamTask?.cancel(with: .goingAway, reason: nil)
         streamTask = nil
+        if clearActiveTarget {
+            activeStreamTarget = ""
+            activeStreamSource = nil
+        }
+        isConnecting = false
+        isConnected = false
     }
 
     private func copyLogsToClipboard() {

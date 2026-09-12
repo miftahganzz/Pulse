@@ -8,14 +8,21 @@ public struct ServerStatusBadge: View {
     }
 
     public var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 7, height: 7)
+        HStack(spacing: 5) {
+            if case .offline(let reason) = state, reason == .noNetwork {
+                Image(systemName: "wifi.slash")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(statusColor)
+            } else {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 7, height: 7)
+            }
 
             Text(state.displayTitle)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11.5, weight: .medium))
                 .foregroundColor(.primary)
+                .lineLimit(1)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -30,6 +37,8 @@ public struct ServerStatusBadge: View {
         case .connecting:
             return .blue
         case .reconnecting:
+            return .orange
+        case .offline:
             return .orange
         case .disconnected:
             return .secondary

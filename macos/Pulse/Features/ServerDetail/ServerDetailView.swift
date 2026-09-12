@@ -105,6 +105,25 @@ public struct ServerDetailView: View {
                     .cornerRadius(6)
                 }
 
+                if case .offline(let reason) = manager.state, reason == .noNetwork {
+                    HStack(spacing: 8) {
+                        Image(systemName: "wifi.slash")
+                            .foregroundColor(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("No Network Connection")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.primary)
+                            Text("Please check your Wi-Fi or Ethernet connection. Pulse will automatically reconnect once online.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(10)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(6)
+                }
+
                 // Responsive Horizontal Tab Switcher
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {

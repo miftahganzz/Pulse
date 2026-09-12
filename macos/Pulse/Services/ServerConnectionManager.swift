@@ -54,6 +54,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     private let staleThresholdSeconds: TimeInterval = 25.0
 
     private let incidentEngine: IncidentEngine
+    private var cancellables = Set<AnyCancellable>()
 
     // Alert throttling: minimum 5 minutes between duplicate alerts
     private var lastCPUAlertAt: Date?
@@ -81,6 +82,19 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
         self.incidentEngine = IncidentEngine(serverId: serverId, serverName: serverName, policy: loadedPolicy)
 
         self.startStaleTimer()
+
+        NetworkMonitor.shared.$isConnected
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isConnected in
+                guard let self = self else { return }
+                if !isConnected {
+                    self.handleNetworkOffline()
+                } else if case .offline(let reason) = self.state, reason == .noNetwork {
+                    PulseLog.network.info("Network restored for \(self.serverName), attempting reconnect...")
+                    self.connect()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     deinit {
@@ -174,6 +188,11 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     }
 
     public func connect() {
+        guard NetworkMonitor.shared.isConnected else {
+            self.state = .offline(reason: .noNetwork)
+            return
+        }
+
         guard let token = KeychainService.getToken(forServerId: serverId) else {
             self.lastError = "No authentication token found in Keychain."
             self.state = .disconnected
@@ -181,10 +200,17 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
         }
 
         self.lastError = nil
+        client?.disconnect()
         let newClient = PulseAgentClient(host: address, port: port, token: token)
         newClient.delegate = self
         self.client = newClient
         newClient.connect()
+    }
+
+    public func handleNetworkOffline() {
+        self.state = .offline(reason: .noNetwork)
+        self.isStale = false
+        self.stopMonitorHealthTimer()
     }
 
     public func disconnect() {
@@ -710,6 +736,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
         type: String,
         target: String,
         tail: Int = 100,
+        onConnected: (@Sendable () -> Void)? = nil,
         onLine: @escaping @Sendable (LogEntryMessage) -> Void,
         onError: @escaping @Sendable (Error) -> Void
     ) -> URLSessionWebSocketTask? {
@@ -717,7 +744,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
             onError(PulseClientError.generic("Server not connected"))
             return nil
         }
-        return client.streamLogs(type: type, target: target, tail: tail, onLine: onLine, onError: onError)
+        return client.streamLogs(type: type, target: target, tail: tail, onConnected: onConnected, onLine: onLine, onError: onError)
     }
 
     public func fetchStorageAnalysis(completion: @escaping @Sendable (Result<StorageAnalysis, Error>) -> Void) {
@@ -823,7 +850,11 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     nonisolated public func client(_ client: PulseAgentClient, didUpdateState state: ConnectionState) {
         Task { @MainActor in
             let previousState = self.state
-            self.state = state
+            if !NetworkMonitor.shared.isConnected {
+                self.state = .offline(reason: .noNetwork)
+            } else {
+                self.state = state
+            }
 
             // Server-level incident handling
             _ = self.incidentEngine.handleServerConnectionState(

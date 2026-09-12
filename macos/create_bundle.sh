@@ -83,9 +83,15 @@ PLIST
 
 echo "App bundle created successfully at macos/${BUNDLE_DIR}"
 
-# Ad-hoc sign so Sparkle's XPC Updater can launch (required even for dev builds)
-echo "Signing bundle (ad-hoc)..."
-codesign --force --deep -s - "${BUNDLE_DIR}"
+# Sign with Apple Development certificate if available, otherwise ad-hoc
+SIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Development" | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' || true)
+if [ -n "${SIGN_IDENTITY}" ]; then
+    echo "Signing bundle with '${SIGN_IDENTITY}'..."
+    codesign --force --deep --sign "${SIGN_IDENTITY}" "${BUNDLE_DIR}"
+else
+    echo "Signing bundle (ad-hoc)..."
+    codesign --force --deep -s - "${BUNDLE_DIR}"
+fi
 echo "✅ Pulse.app bundle created in ${BUNDLE_DIR}"
 printf "   Size: "
 du -sh "${BUNDLE_DIR}" | cut -f1

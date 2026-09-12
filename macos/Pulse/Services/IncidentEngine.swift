@@ -64,21 +64,35 @@ public final class IncidentEngine {
             successCounters[serverTarget, default: 0] += 1
             failureCounters[serverTarget] = 0
 
-            if isServerUnreachable && successCounters[serverTarget, default: 0] >= policy.consecutiveSuccessThreshold {
-                isServerUnreachable = false
-                if let idx = existingIncidents.firstIndex(where: { $0.target == serverName && $0.status != .resolved }) {
-                    existingIncidents[idx].status = .resolved
-                    existingIncidents[idx].recoveredAt = Date()
+            if isServerUnreachable || existingIncidents.contains(where: { $0.target == serverName && $0.status != .resolved }) {
+                if successCounters[serverTarget, default: 0] >= policy.consecutiveSuccessThreshold {
+                    isServerUnreachable = false
+                    var primaryResolved: IncidentItem? = nil
+                    let now = Date()
 
-                    let duration = existingIncidents[idx].formattedDuration
-                    if !policy.isEffectivelyMuted && policy.notifyOnRecovery {
-                        NotificationService.shared.sendAlert(
-                            title: "🟢 \(serverName) Recovered",
-                            body: "Connection restored to \(serverName). Downtime: \(duration)",
-                            identifier: "incident.server.recovered.\(serverId.uuidString)"
-                        )
+                    for idx in existingIncidents.indices {
+                        if existingIncidents[idx].target == serverName && existingIncidents[idx].status != .resolved {
+                            existingIncidents[idx].status = .resolved
+                            if existingIncidents[idx].recoveredAt == nil {
+                                existingIncidents[idx].recoveredAt = now
+                            }
+                            if primaryResolved == nil {
+                                primaryResolved = existingIncidents[idx]
+                            }
+                        }
                     }
-                    return existingIncidents[idx]
+
+                    if let resolved = primaryResolved {
+                        let duration = resolved.formattedDuration
+                        if !policy.isEffectivelyMuted && policy.notifyOnRecovery {
+                            NotificationService.shared.sendAlert(
+                                title: "🟢 \(serverName) Recovered",
+                                body: "Connection restored to \(serverName). Downtime: \(duration)",
+                                identifier: "incident.server.recovered.\(serverId.uuidString)"
+                            )
+                        }
+                        return resolved
+                    }
                 }
             }
         }
@@ -144,11 +158,23 @@ public final class IncidentEngine {
 
             let recoveryThreshold = policy.consecutiveSuccessThreshold
             if successCounters[key, default: 0] >= recoveryThreshold {
-                if let idx = existingIncidents.firstIndex(where: { $0.monitorId == monitor.id && $0.status != .resolved }) {
-                    existingIncidents[idx].status = .resolved
-                    existingIncidents[idx].recoveredAt = Date()
+                var primaryResolved: IncidentItem? = nil
+                let now = Date()
 
-                    let duration = existingIncidents[idx].formattedDuration
+                for idx in existingIncidents.indices {
+                    if existingIncidents[idx].monitorId == monitor.id && existingIncidents[idx].status != .resolved {
+                        existingIncidents[idx].status = .resolved
+                        if existingIncidents[idx].recoveredAt == nil {
+                            existingIncidents[idx].recoveredAt = now
+                        }
+                        if primaryResolved == nil {
+                            primaryResolved = existingIncidents[idx]
+                        }
+                    }
+                }
+
+                if let resolved = primaryResolved {
+                    let duration = resolved.formattedDuration
                     if !policy.isEffectivelyMuted && policy.notifyOnRecovery {
                         NotificationService.shared.sendAlert(
                             title: "🟢 \(monitor.name) Recovered",
@@ -156,7 +182,7 @@ public final class IncidentEngine {
                             identifier: "incident.recovered.\(monitor.id)"
                         )
                     }
-                    return existingIncidents[idx]
+                    return resolved
                 }
             }
         }

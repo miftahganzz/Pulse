@@ -75,6 +75,12 @@ public final class ServerConnectionPool: ObservableObject {
         }
     }
 
+    public func handleNetworkLoss() {
+        for mgr in managers.values {
+            mgr.handleNetworkOffline()
+        }
+    }
+
     // Computed global health
     public var totalServers: Int {
         managers.count

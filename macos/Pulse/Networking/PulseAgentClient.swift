@@ -732,6 +732,7 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         type: String,
         target: String,
         tail: Int = 100,
+        onConnected: (@Sendable () -> Void)? = nil,
         onLine: @escaping @Sendable (LogEntryMessage) -> Void,
         onError: @escaping @Sendable (Error) -> Void
     ) -> URLSessionWebSocketTask? {
@@ -746,6 +747,16 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
 
         let task = session.webSocketTask(with: request)
         task.resume()
+
+        task.sendPing { error in
+            if let error = error {
+                if !Self.isCancellation(error) {
+                    onError(error)
+                }
+            } else {
+                onConnected?()
+            }
+        }
 
         @Sendable func readNext() {
             task.receive { result in
@@ -766,7 +777,9 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
                     }
                     readNext()
                 case .failure(let err):
-                    onError(err)
+                    if !Self.isCancellation(err) {
+                        onError(err)
+                    }
                 }
             }
         }
@@ -870,6 +883,16 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
             self.heartbeatTimer?.invalidate()
             self.heartbeatTimer = nil
         }
+    }
+
+    private static func isCancellation(_ error: Error) -> Bool {
+        let nsErr = error as NSError
+        if nsErr.code == NSURLErrorCancelled { return true }
+        if nsErr.domain == NSPOSIXErrorDomain && nsErr.code == 89 { return true }
+        if nsErr.domain == "kCFErrorDomainCFNetwork" && nsErr.code == -999 { return true }
+        let desc = error.localizedDescription.lowercased()
+        if desc.contains("cancelled") || desc.contains("canceled") { return true }
+        return false
     }
 }
 

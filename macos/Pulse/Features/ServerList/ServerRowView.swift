@@ -12,9 +12,16 @@ public struct ServerRowView: View {
 
     public var body: some View {
         HStack(spacing: 10) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
+            if case .offline(let reason) = manager.state, reason == .noNetwork {
+                Image(systemName: "wifi.slash")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(statusColor)
+                    .frame(width: 8, height: 8)
+            } else {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 8, height: 8)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -79,6 +86,7 @@ public struct ServerRowView: View {
         case .connected:    return .green
         case .connecting:   return .blue
         case .reconnecting: return .orange
+        case .offline:      return .orange
         case .disconnected: return .secondary
         }
     }
