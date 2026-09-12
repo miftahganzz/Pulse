@@ -39,7 +39,11 @@ func RunCloudflare(configPath string, args []string) {
 	fmt.Println("  directly to your local Pulse agent without opening any inbound firewall ports.")
 	fmt.Println()
 
-	fmt.Printf("  %s%sQuick Setup Steps:%s\n", Bold, Yellow, Reset)
+	fmt.Printf("  %s1-Command Automated Tunnel Setup:%s\n", Bold, Reset)
+	fmt.Printf("    %sRoot:     curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | sudo bash%s\n", Cyan, Reset)
+	fmt.Printf("    %sNon-Root: curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | bash%s\n\n", Cyan, Reset)
+
+	fmt.Printf("  %s%sManual Setup Steps:%s\n", Bold, Yellow, Reset)
 	fmt.Println("  1. Install cloudflared:")
 	fmt.Printf("     %scurl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null%s\n", Cyan, Reset)
 	fmt.Printf("     %secho 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | sudo tee /etc/apt/sources.list.d/cloudflared.list%s\n", Cyan, Reset)

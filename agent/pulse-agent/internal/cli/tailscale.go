@@ -84,8 +84,9 @@ func RunTailscale(configPath string, args []string) {
 	if !isInstallReq && os.Geteuid() != 0 {
 		fmt.Printf("  %sTo install Tailscale automatically, run:%s\n", Bold, Reset)
 		fmt.Printf("    %ssudo pulse tailscale install%s\n\n", Cyan, Reset)
-		fmt.Printf("  Or run the standalone script:\n")
-		fmt.Printf("    %scurl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash%s\n\n", Cyan, Reset)
+		fmt.Printf("  Or run the 1-line setup script:\n")
+		fmt.Printf("    %sRoot:     curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash%s\n", Cyan, Reset)
+		fmt.Printf("    %sNon-Root: curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | bash%s\n\n", Cyan, Reset)
 		return
 	}
 

@@ -121,11 +121,17 @@ private struct ConnectingSection: View {
                     quickSetupRow("Direct IP / LAN (Non-Root User)",
                         "curl -fsSL .../install.sh | bash")
                     Divider()
-                    quickSetupRow("Tailscale (zero open ports)",
+                    quickSetupRow("Tailscale (Root)",
                         "curl -fsSL .../setup-tailscale.sh | sudo bash")
                     Divider()
-                    quickSetupRow("Cloudflare Tunnel (zero open ports)",
+                    quickSetupRow("Tailscale (Non-Root User)",
+                        "curl -fsSL .../setup-tailscale.sh | bash")
+                    Divider()
+                    quickSetupRow("Cloudflare Tunnel (Root)",
                         "curl -fsSL .../setup-cloudflare.sh | sudo bash")
+                    Divider()
+                    quickSetupRow("Cloudflare Tunnel (Non-Root User)",
+                        "curl -fsSL .../setup-cloudflare.sh | bash")
                     Text("All scripts auto-detect CPU arch (x86_64/arm64) and distro: Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE, Void, and any systemd-based distro.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
@@ -177,7 +183,7 @@ private struct ConnectingSection: View {
             methodBlock(
                 number: "2",
                 title: "Tailscale (Recommended for Remote Servers)",
-                description: "Tailscale creates a private WireGuard mesh between your devices. No open ports needed on the server. One-command setup: curl -fsSL .../setup-tailscale.sh | sudo bash",
+                description: "Tailscale creates a private WireGuard mesh between your devices. No open ports needed on the server. One-command setup: curl -fsSL .../setup-tailscale.sh | sudo bash (or | bash for non-root).",
                 steps: [
                     "Install Tailscale on both your Mac and the server: tailscale.com/download",
                     "Run tailscale up on the server — it gets a 100.x.x.x IP or MagicDNS hostname",
@@ -191,7 +197,7 @@ private struct ConnectingSection: View {
             methodBlock(
                 number: "3",
                 title: "Cloudflare Tunnel (Zero Inbound Ports)",
-                description: "Cloudflare Tunnel exposes your server via Cloudflare's edge — no firewall ports required. One-command setup: curl -fsSL .../setup-cloudflare.sh | sudo bash",
+                description: "Cloudflare Tunnel exposes your server via Cloudflare's edge — no firewall ports required. One-command setup: curl -fsSL .../setup-cloudflare.sh | sudo bash (or | bash for non-root).",
                 steps: [
                     "Install cloudflared on the server (Debian/Ubuntu/RHEL/binary — the script handles this)",
                     "A quick tunnel gives you a temporary https://xyz.trycloudflare.com URL (no account needed)",

@@ -7,11 +7,27 @@ public enum SetupMethod: String, CaseIterable, Identifiable {
     public var id: String { rawValue }
 }
 
+public enum ConnectionNetwork: String, CaseIterable, Identifiable {
+    case direct = "Direct IP"
+    case cloudflare = "Cloudflare Tunnel"
+    case tailscale = "Tailscale"
+
+    public var id: String { rawValue }
+    public var icon: String {
+        switch self {
+        case .direct: return "network"
+        case .cloudflare: return "cloud.fill"
+        case .tailscale: return "lock.shield.fill"
+        }
+    }
+}
+
 public struct AddServerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store = ServerStore.shared
 
     @State private var setupMethod: SetupMethod = .oneLine
+    @State private var connectionNetwork: ConnectionNetwork = .direct
     @State private var step: SetupStep = .enterDetails
     @State private var name: String = ""
     @State private var address: String = ""
@@ -28,6 +44,12 @@ public struct AddServerSheet: View {
             _address = State(initialValue: draft.host)
             _portString = State(initialValue: draft.port.isEmpty ? "8443" : draft.port)
             _token = State(initialValue: draft.token)
+            let lower = draft.host.lowercased()
+            if lower.contains("trycloudflare.com") {
+                _connectionNetwork = State(initialValue: .cloudflare)
+            } else if lower.hasPrefix("100.") || lower.contains(".ts.net") {
+                _connectionNetwork = State(initialValue: .tailscale)
+            }
         }
     }
 
@@ -81,10 +103,58 @@ public struct AddServerSheet: View {
 
     private var installCommand: String {
         let cleanToken = token.isEmpty ? generatedToken : token
-        if isNonRoot {
-            return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash -s -- --port \(portString) --token \(cleanToken)"
-        } else {
-            return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port \(portString) --token \(cleanToken)"
+        switch connectionNetwork {
+        case .direct:
+            if isNonRoot {
+                return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash -s -- --port \(portString) --token \(cleanToken)"
+            } else {
+                return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash -s -- --port \(portString) --token \(cleanToken)"
+            }
+        case .cloudflare:
+            if isNonRoot {
+                return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | bash"
+            } else {
+                return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | sudo bash"
+            }
+        case .tailscale:
+            if isNonRoot {
+                return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | bash"
+            } else {
+                return "curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash"
+            }
+        }
+    }
+
+    private var methodHelpIcon: String {
+        switch connectionNetwork {
+        case .direct: return isNonRoot ? "person.badge.shield.checkmark.fill" : "sparkles"
+        case .cloudflare: return "cloud.fill"
+        case .tailscale: return "lock.shield.fill"
+        }
+    }
+
+    private var methodHelpColor: Color {
+        switch connectionNetwork {
+        case .direct: return isNonRoot ? .blue : .purple
+        case .cloudflare: return .orange
+        case .tailscale: return .green
+        }
+    }
+
+    private var methodHelpText: String {
+        switch (connectionNetwork, isNonRoot) {
+        case (.direct, false):
+            return "Root: Installs systemd service, auto TLS certs, and configures firewall port \(portString)."
+        case (.direct, true):
+            return "Non-Root: Installs to ~/.local/bin and ~/.pulse. Ensure port \(portString) is open in cloud VPS firewall."
+        case (.cloudflare, false):
+            return "Root: Installs cloudflared & sets up HTTPS tunnel. Zero open ports required on your VPS!"
+        case (.cloudflare, true):
+            return "Non-Root: 100% Zero-Root, Zero-Port! Runs cloudflared in user mode with crontab persistence."
+        case (.tailscale, false):
+            return "Root: Installs Tailscale, joins WireGuard mesh, and locks down firewall to tailscale0."
+        case (.tailscale, true):
+            return "Non-Root: Connects to existing Tailscale network or userspace node (zero open ports)."
         }
     }
 
@@ -204,7 +274,7 @@ public struct AddServerSheet: View {
             .padding(16)
             .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(width: 540, height: 510)
+        .frame(width: 560, height: 540)
     }
 
     private var stepIcon: String {
@@ -283,8 +353,12 @@ public struct AddServerSheet: View {
         let clean = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if clean.hasPrefix("https://") && !clean.contains(":") {
             portString = "443"
-        } else if isCloudflareDomain && portString == "8443" {
-            portString = "443"
+            connectionNetwork = .cloudflare
+        } else if isCloudflareDomain {
+            if portString == "8443" { portString = "443" }
+            connectionNetwork = .cloudflare
+        } else if isTailscaleIP {
+            connectionNetwork = .tailscale
         }
     }
 
@@ -292,34 +366,67 @@ public struct AddServerSheet: View {
         let clean = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if (clean.hasPrefix("https://") || isCloudflareDomain) && portString == "8443" {
             portString = "443"
+            connectionNetwork = .cloudflare
+        } else if isTailscaleIP {
+            connectionNetwork = .tailscale
         }
     }
 
     // View for 1-Line Command Method
     private var agentGuideOneLineView: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Run This Single Command on Your VPS:")
-                        .font(.system(size: 13, weight: .bold))
-                    Text("Open SSH to \(normalizedHost.isEmpty ? "your VPS" : normalizedHost) and paste this line:")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                Picker("Privilege", selection: $isNonRoot) {
-                    Text("Root (sudo)").tag(false)
-                    Text("Non-Root").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 165)
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Run This Single Command on Your VPS:")
+                    .font(.system(size: 13, weight: .bold))
+                Text("Open SSH to \(normalizedHost.isEmpty ? "your VPS" : normalizedHost) and paste this line:")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
             }
 
+            // Connection Network & Mode Selectors
+            VStack(spacing: 8) {
+                HStack(spacing: 10) {
+                    Text("Method:")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 55, alignment: .leading)
+
+                    Picker("Network", selection: $connectionNetwork) {
+                        ForEach(ConnectionNetwork.allCases) { net in
+                            Label(net.rawValue, systemImage: net.icon).tag(net)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .onChange(of: connectionNetwork) { newNet in
+                        if newNet == .cloudflare && portString == "8443" {
+                            portString = "443"
+                        } else if (newNet == .direct || newNet == .tailscale) && portString == "443" {
+                            portString = "8443"
+                        }
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Text("Mode:")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 55, alignment: .leading)
+
+                    Picker("Privilege", selection: $isNonRoot) {
+                        Text("Root (sudo)").tag(false)
+                        Text("Non-Root (User Mode)").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .cornerRadius(8)
+
             // Command Box with One-Click Copy
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top) {
                     Text(installCommand)
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -346,7 +453,7 @@ public struct AddServerSheet: View {
                     .tint(isCopied ? .green : .accentColor)
                     .controlSize(.small)
                 }
-                .padding(12)
+                .padding(10)
                 .background(Color(NSColor.textBackgroundColor))
                 .cornerRadius(6)
                 .overlay(
@@ -355,12 +462,10 @@ public struct AddServerSheet: View {
                 )
 
                 HStack(spacing: 6) {
-                    Image(systemName: isNonRoot ? "person.badge.shield.checkmark.fill" : "sparkles")
+                    Image(systemName: methodHelpIcon)
                         .font(.system(size: 10))
-                        .foregroundColor(isNonRoot ? .blue : .purple)
-                    Text(isNonRoot
-                         ? "Non-Root: Installs to ~/.local/bin and ~/.pulse. Uses user-level systemd (no sudo)."
-                         : "Root mode: Auto-configures systemd, TLS certificates, firewall port, and starts agent.")
+                        .foregroundColor(methodHelpColor)
+                    Text(methodHelpText)
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
@@ -369,12 +474,12 @@ public struct AddServerSheet: View {
             Divider()
 
             // Token input for manual / existing installations
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("Agent Auth Token:")
                         .font(.system(size: 11, weight: .semibold))
                     Spacer()
-                    Text("Pre-filled from command")
+                    Text(connectionNetwork == .direct ? "Pre-filled from command" : "Printed in terminal by script")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
@@ -398,6 +503,7 @@ public struct AddServerSheet: View {
                     Text(err)
                         .font(.system(size: 11))
                         .foregroundColor(.red)
+                        .lineLimit(2)
                 }
             }
 

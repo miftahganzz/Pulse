@@ -57,14 +57,13 @@ Press `⌘N` in Pulse, then pick one of the two pairing flows below.
 
 ### Quick Setup — One Command, Pick Your Method
 
-| Connection Method | One-Command Setup |
-|---|---|
-| Direct IP / LAN (Root) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| sudo bash` |
-| Direct IP / LAN (Non-Root User) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| bash` |
-| Tailscale (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh \| sudo bash` |
-| Cloudflare Tunnel (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh \| sudo bash` |
+| Connection Method | One-Command Setup (Root) | One-Command Setup (Non-Root User) |
+|---|---|---|
+| Direct IP / LAN | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| sudo bash` | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh \| bash` |
+| Tailscale (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh \| sudo bash` | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh \| bash` |
+| Cloudflare Tunnel (zero open ports) | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh \| sudo bash` | `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh \| bash` |
 
-All scripts auto-detect CPU architecture (x86_64 / arm64) and firewall type (UFW, firewalld, iptables). Supported on Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE, Void Linux, and any systemd-based distro.
+All scripts auto-detect CPU architecture (x86_64 / arm64) and distro: Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE, Void Linux, and any systemd-based distro. Non-root mode installs to `~/.local/bin` and requires zero `sudo` permissions.
 
 ---
 
@@ -147,6 +146,12 @@ If you do not want to expose port `8443` to the public internet, Pulse natively 
 
 Tailscale provides an encrypted, peer-to-peer WireGuard mesh without opening any inbound ports on your server firewall or router.
 
+#### 1-Command Automated Setup
+- **Root (sudo)**: `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash`
+- **Non-Root**: `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | bash`
+
+#### Manual Steps:
+
 1. **Install Tailscale on your server**:
    ```bash
    curl -fsSL https://tailscale.com/install.sh | sh
@@ -178,9 +183,17 @@ Tailscale provides an encrypted, peer-to-peer WireGuard mesh without opening any
 
 ---
 
-### Option B: Cloudflare Tunnel (`cloudflared` — Custom Domain via Port 443)
+### Option B: Cloudflare Tunnel (`cloudflared` — Zero Inbound Ports)
 
-Cloudflare Tunnels create an outbound-only reverse tunnel from your VPS to Cloudflare's global edge network. This allows you to connect Pulse using a custom domain (e.g. `pulse.yourdomain.com`) over standard HTTPS/WSS port `443`, with zero incoming ports open on your firewall. It also works seamlessly behind NAT, CGNAT, or dynamic home IPs.
+Cloudflare Tunnels create an outbound-only reverse tunnel from your VPS to Cloudflare's global edge network. This allows you to connect Pulse using a custom domain (e.g. `pulse.yourdomain.com`) or temporary `trycloudflare.com` URL over standard HTTPS/WSS port `443`, with zero incoming ports open on your firewall. It also works seamlessly behind NAT, CGNAT, or dynamic home IPs.
+
+#### 1-Command Automated Setup (Zero Root, Zero Open Ports)
+- **Root (sudo)**: `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | sudo bash`
+- **Non-Root**: `curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | bash`
+
+*(Non-root mode downloads static `cloudflared` to `~/.local/bin`, starts user-mode tunnel, and registers crontab `@reboot` persistence with zero `sudo` required)*.
+
+#### Manual Steps:
 
 1. **Install `cloudflared` on your Linux host**:
    ```bash
