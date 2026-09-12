@@ -11,6 +11,7 @@ public struct ServerListView: View {
 
     @State private var showAddServerSheet = false
     @State private var serverToEdit: ServerModel?
+    @State private var serverToTag: ServerModel?
     @State private var isShowingLaunchMotion = true
 
     public init() {}
@@ -59,36 +60,58 @@ public struct ServerListView: View {
                     .tag("COMPARE_SERVERS")
                 }
 
-                // Section 2: Individual Servers
-                Section("Servers") {
-                    ForEach(store.servers) { server in
-                        let mgr = pool.manager(for: server)
-                        NavigationLink(value: server.id.uuidString) {
-                            ServerRowView(server: server, manager: mgr)
-                        }
-                        .tag(server.id.uuidString)
-                        .contextMenu {
-                            Button("Open") {
-                                navState.selectedServerId = server.id.uuidString
-                            }
-                            Button("Reconnect") {
-                                mgr.connect()
-                            }
-                            Divider()
-                            if mgr.alertPolicy.isEffectivelyMuted {
-                                Button("Unmute Notifications") {
-                                    mgr.unmuteServer()
+                // Section 2: Servers grouped by environment
+                if store.servers.isEmpty == false {
+                    ForEach(store.serversByEnvironment, id: \.0) { env, servers in
+                        Section {
+                            ForEach(servers) { server in
+                                let mgr = pool.manager(for: server)
+                                NavigationLink(value: server.id.uuidString) {
+                                    ServerRowView(server: server, manager: mgr)
                                 }
-                            } else {
-                                Button("Mute for 1 Hour") {
-                                    mgr.muteServer(for: 3600)
+                                .tag(server.id.uuidString)
+                                .contextMenu {
+                                    Button("Open") {
+                                        navState.selectedServerId = server.id.uuidString
+                                    }
+                                    Button("Reconnect") {
+                                        mgr.connect()
+                                    }
+                                    Button("Edit Tags & Environment...") {
+                                        serverToTag = server
+                                    }
+                                    Divider()
+                                    if mgr.alertPolicy.isEffectivelyMuted {
+                                        Button("Unmute Notifications") {
+                                            mgr.unmuteServer()
+                                        }
+                                    } else {
+                                        Button("Mute for 1 Hour") {
+                                            mgr.muteServer(for: 3600)
+                                        }
+                                    }
+                                    Divider()
+                                    Button("Delete Server", role: .destructive) {
+                                        deleteServer(server)
+                                    }
                                 }
                             }
-                            Divider()
-                            Button("Delete Server", role: .destructive) {
-                                deleteServer(server)
+                        } header: {
+                            if env != .untagged || store.serversByEnvironment.count > 1 {
+                                HStack(spacing: 5) {
+                                    Image(systemName: env.icon)
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundColor(env == .untagged ? .secondary : env.color)
+                                    Text(env.rawValue.uppercased())
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(env == .untagged ? .secondary : env.color)
+                                }
                             }
                         }
+                    }
+                } else {
+                    Section("Servers") {
+                        EmptyView()
                     }
                 }
             }
@@ -150,9 +173,7 @@ public struct ServerListView: View {
             set: { newValue in
                 showAddServerSheet = newValue
                 navState.showAddServerSheet = newValue
-                if !newValue {
-                    navState.pendingServerDraft = nil
-                }
+                if !newValue { navState.pendingServerDraft = nil }
             }
         )) {
             AddServerSheet(draft: navState.pendingServerDraft)
@@ -172,6 +193,9 @@ public struct ServerListView: View {
                     navState.showSettings = true
                 }
             )
+        }
+        .sheet(item: $serverToTag) { server in
+            ServerTagEditorSheet(server: server)
         }
         .onAppear {
             if store.servers.isEmpty {

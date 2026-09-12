@@ -1,8 +1,8 @@
 import SwiftUI
 
 public enum SetupMethod: String, CaseIterable, Identifiable {
-    case oneLine = "1-Line Command"
-    case pairCode = "6-Digit Pair Code"
+    case oneLine  = "1-Line Command"
+    case pairCode = "XXX-XXX Pair Code"
 
     public var id: String { rawValue }
 }
@@ -19,6 +19,7 @@ public struct AddServerSheet: View {
     @State private var token: String = ""
     @State private var pairCode: String = ""
     @State private var errorMessage: String?
+    @State private var selectedEnvironment: ServerEnvironment = .untagged
 
     public init(draft: ServerDraft? = nil) {
         if let draft = draft {
@@ -111,7 +112,7 @@ public struct AddServerSheet: View {
             if step == .enterDetails || step == .agentGuide {
                 Picker("Setup Method", selection: $setupMethod) {
                     Label("1-Line Command", systemImage: "terminal.fill").tag(SetupMethod.oneLine)
-                    Label("6-Digit Pair Code", systemImage: "number.circle.fill").tag(SetupMethod.pairCode)
+                    Label("XXX-XXX Pair Code", systemImage: "number.circle.fill").tag(SetupMethod.pairCode)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 20)
@@ -179,7 +180,7 @@ public struct AddServerSheet: View {
                             claimPairCode()
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(pairCode.trimmingCharacters(in: .whitespaces).count != 6)
+                        .disabled(pairCode.trimmingCharacters(in: .whitespaces).count != 7)
                     }
 
                 case .testingConnection:
@@ -211,10 +212,10 @@ public struct AddServerSheet: View {
 
     private var stepTitle: String {
         switch step {
-        case .enterDetails: return "Add Linux VPS"
-        case .agentGuide: return setupMethod == .oneLine ? "1-Command Setup" : "6-Digit Pairing"
-        case .testingConnection: return "Connecting to Agent..."
-        case .success: return "Server Connected!"
+        case .enterDetails:       return "Add Linux VPS"
+        case .agentGuide:         return setupMethod == .oneLine ? "1-Command Setup" : "XXX-XXX Pairing"
+        case .testingConnection:  return "Connecting to Agent..."
+        case .success:            return "Server Connected!"
         }
     }
 
@@ -259,6 +260,12 @@ public struct AddServerSheet: View {
                 }
 
                 TextField("Port", text: $portString)
+
+                Picker("Environment", selection: $selectedEnvironment) {
+                    ForEach(ServerEnvironment.allCases) { env in
+                        Label(env.rawValue, systemImage: env.icon).tag(env)
+                    }
+                }
             }
             .formStyle(.grouped)
 
@@ -411,10 +418,10 @@ public struct AddServerSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Enter the 6-Digit Code displayed on your VPS:")
+                Text("Enter the XXX-XXX Code displayed on your VPS:")
                     .font(.system(size: 12, weight: .medium))
 
-                TextField("6-Digit Code (e.g. 749201)", text: $pairCode)
+                TextField("XXX-XXX Code (e.g. 749-201)", text: $pairCode)
                     .font(.system(size: 18, weight: .bold, design: .monospaced))
                     .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.center)
@@ -555,7 +562,8 @@ public struct AddServerSheet: View {
                             name: name.trimmingCharacters(in: .whitespaces),
                             address: cleanAddress,
                             port: port,
-                            token: token.trimmingCharacters(in: .whitespaces)
+                            token: token.trimmingCharacters(in: .whitespaces),
+                            environment: selectedEnvironment
                         )
                         withAnimation { self.step = .success }
                     } catch {

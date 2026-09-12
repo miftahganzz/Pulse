@@ -43,6 +43,17 @@ public struct ServerRowView: View {
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
+
+                    // Custom tags
+                    ForEach(server.tags.prefix(2), id: \.self) { tag in
+                        Text(tag)
+                            .font(.system(size: 9, weight: .medium))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color.accentColor.opacity(0.12))
+                            .foregroundColor(.accentColor)
+                            .cornerRadius(3)
+                    }
                 }
             }
         }
@@ -65,14 +76,10 @@ public struct ServerRowView: View {
             return .red
         }
         switch manager.state {
-        case .connected:
-            return .green
-        case .connecting:
-            return .blue
-        case .reconnecting:
-            return .orange
-        case .disconnected:
-            return .secondary
+        case .connected:    return .green
+        case .connecting:   return .blue
+        case .reconnecting: return .orange
+        case .disconnected: return .secondary
         }
     }
 }
