@@ -103,22 +103,31 @@ mkdir -p "$CONFIG_DIR"
 
 # 4. Binary Deployment
 step "Fetching binary release..."
+
+# If agent is already running, stop it cleanly before updating binary
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet pulse-agent 2>/dev/null; then
+  systemctl stop pulse-agent 2>/dev/null || true
+fi
+
+TMP_BIN="/tmp/pulse-agent-dl-${PULSE_ARCH}"
+rm -f "$TMP_BIN"
+
 if [ -f "./bin/pulse-agent-linux-${PULSE_ARCH}" ]; then
-  cp "./bin/pulse-agent-linux-${PULSE_ARCH}" "$INSTALL_DIR/pulse-agent"
+  cp "./bin/pulse-agent-linux-${PULSE_ARCH}" "$TMP_BIN"
   ok "Installed from local build binary"
 elif [ -f "./pulse-agent-linux-${PULSE_ARCH}" ]; then
-  cp "./pulse-agent-linux-${PULSE_ARCH}" "$INSTALL_DIR/pulse-agent"
+  cp "./pulse-agent-linux-${PULSE_ARCH}" "$TMP_BIN"
   ok "Installed from local directory"
 elif [ -f "/tmp/pulse-agent-linux-${PULSE_ARCH}" ]; then
-  cp "/tmp/pulse-agent-linux-${PULSE_ARCH}" "$INSTALL_DIR/pulse-agent"
+  cp "/tmp/pulse-agent-linux-${PULSE_ARCH}" "$TMP_BIN"
   ok "Installed from /tmp cache"
 else
   DOWNLOAD_URL="https://github.com/miftahganzz/Pulse/releases/latest/download/pulse-agent-linux-${PULSE_ARCH}"
-  if curl -fsSL "$DOWNLOAD_URL" -o "$INSTALL_DIR/pulse-agent" 2>/dev/null; then
+  if curl -fsSL "$DOWNLOAD_URL" -o "$TMP_BIN" 2>/dev/null; then
     ok "Downloaded binary from GitHub releases"
   else
     RAW_URL="https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/bin/pulse-agent-linux-${PULSE_ARCH}"
-    if curl -fsSL "$RAW_URL" -o "$INSTALL_DIR/pulse-agent" 2>/dev/null; then
+    if curl -fsSL "$RAW_URL" -o "$TMP_BIN" 2>/dev/null; then
       ok "Downloaded binary via repository fallback"
     else
       fail "Could not retrieve pulse-agent binary"
@@ -127,7 +136,8 @@ else
   fi
 fi
 
-chmod +x "$INSTALL_DIR/pulse-agent"
+chmod +x "$TMP_BIN"
+mv -f "$TMP_BIN" "$INSTALL_DIR/pulse-agent"
 
 # 5. Config and TLS Certificate Generation
 step "Initializing security credentials..."

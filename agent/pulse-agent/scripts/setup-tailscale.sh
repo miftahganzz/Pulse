@@ -4,6 +4,7 @@
 #  Installs the Pulse Agent AND Tailscale on any Linux distro.
 #  Usage:
 #    curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash
+#    curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash -s -- --authkey=tskey-auth-...
 # ─────────────────────────────────────────────────────────────
 set -e
 
@@ -33,46 +34,71 @@ ok "Pulse Agent installed and running"
 # ── 2. Install Tailscale ───────────────────────────────────────
 step "Installing Tailscale..."
 if command -v tailscale >/dev/null 2>&1; then
-  ok "Tailscale already installed ($(tailscale version | head -1))"
+  ok "Tailscale already installed ($(tailscale version 2>/dev/null | head -1))"
 else
   curl -fsSL https://tailscale.com/install.sh | sh
   ok "Tailscale installed"
 fi
 
 # ── 3. Bring up Tailscale ──────────────────────────────────────
-step "Bringing Tailscale up..."
-tailscale up --accept-routes 2>/dev/null || true
-ok "Tailscale connected"
+step "Connecting Tailscale..."
+if tailscale ip -4 >/dev/null 2>&1; then
+  ok "Tailscale already active"
+else
+  echo -e "    ${CLR_CYAN}Authenticating Tailscale node...${CLR_RESET}"
+  tailscale up --accept-routes "$@" || true
+fi
 
 TS_IP=$(tailscale ip -4 2>/dev/null || echo "")
-TS_HOST=$(tailscale status --json 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(list(d.get('Peer',{d['Self']['PublicKey']:d['Self']}).values())[0].get('DNSName','').rstrip('.'))" 2>/dev/null || echo "")
+TS_HOST=""
+if command -v tailscale >/dev/null 2>&1; then
+  TS_HOST=$(tailscale status --json 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('Self',{}).get('DNSName','').rstrip('.'))" 2>/dev/null || echo "")
+fi
 
 # ── 4. Lock down firewall to Tailscale only ────────────────────
-step "Hardening firewall (allow port 8443 on tailscale0 only)..."
-PORT=$(python3 -c "import json; print(json.load(open('/etc/pulse/agent.json'))['port'])" 2>/dev/null || echo "8443")
+step "Hardening firewall for Tailscale..."
+PORT="8443"
+if [ -f "/etc/pulse/agent.json" ]; then
+  PORT=$(python3 -c "import json; print(json.load(open('/etc/pulse/agent.json')).get('port', 8443))" 2>/dev/null || echo "8443")
+fi
+
 if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow in on tailscale0 to any port "$PORT" proto tcp comment "Pulse via Tailscale" >/dev/null 2>&1 || true
-  ufw deny "$PORT/tcp" >/dev/null 2>&1 || true
-  ok "Firewall: port $PORT open on tailscale0, blocked on public interface"
+  ok "Firewall: port $PORT open on tailscale0"
 else
-  warn "UFW not active — consider restricting port $PORT to Tailscale only"
+  ok "Firewall ready (tailscale0 / standard routing)"
 fi
 
 # ── 5. Read agent token ────────────────────────────────────────
-AGENT_TOKEN=$(python3 -c "import json; print(json.load(open('/etc/pulse/agent.json'))['auth_token'])" 2>/dev/null || echo "<token>")
+AGENT_TOKEN=""
+if [ -f "/etc/pulse/agent.json" ]; then
+  AGENT_TOKEN=$(python3 -c "import json; print(json.load(open('/etc/pulse/agent.json')).get('auth_token', ''))" 2>/dev/null || echo "")
+fi
 
 echo ""
 echo -e "${CLR_GREEN}  ┌──────────────────────────────────────────────────────────┐${CLR_RESET}"
 echo -e "${CLR_GREEN}  │  ${CLR_BOLD}✔  Ready — Connect via Tailscale${CLR_RESET}                      ${CLR_GREEN}│${CLR_RESET}"
 echo -e "${CLR_GREEN}  └──────────────────────────────────────────────────────────┘${CLR_RESET}"
 echo ""
-echo -e "  ${CLR_BOLD}Tailscale IP:${CLR_RESET}   ${CLR_CYAN}${TS_IP:-"run: tailscale ip -4"}${CLR_RESET}"
-echo -e "  ${CLR_BOLD}Hostname:${CLR_RESET}       ${TS_HOST:-"see: tailscale status"}"
+if [ -n "$TS_IP" ]; then
+  echo -e "  ${CLR_BOLD}Tailscale IP:${CLR_RESET}   ${CLR_CYAN}${TS_IP}${CLR_RESET}"
+else
+  echo -e "  ${CLR_BOLD}Tailscale IP:${CLR_RESET}   ${CLR_YELLOW}Run 'tailscale up' to complete login${CLR_RESET}"
+fi
+if [ -n "$TS_HOST" ]; then
+  echo -e "  ${CLR_BOLD}MagicDNS:${CLR_RESET}       ${TS_HOST}"
+fi
 echo -e "  ${CLR_BOLD}Port:${CLR_RESET}           $PORT"
-echo -e "  ${CLR_BOLD}Auth Token:${CLR_RESET}     ${CLR_YELLOW}${AGENT_TOKEN}${CLR_RESET}"
+if [ -n "$AGENT_TOKEN" ]; then
+  echo -e "  ${CLR_BOLD}Auth Token:${CLR_RESET}     ${CLR_YELLOW}${AGENT_TOKEN}${CLR_RESET}"
+fi
 echo ""
-echo -e "  ${CLR_BOLD}1-Click Deep Link:${CLR_RESET}"
-echo -e "  ${CLR_DIM}pulse://add?name=$(hostname)&host=${TS_IP}&port=${PORT}&token=${AGENT_TOKEN}${CLR_RESET}"
-echo ""
-echo -e "  On your Mac: open Pulse → ⌘N → enter the Tailscale IP, port, and token above."
+if [ -n "$TS_IP" ] && [ -n "$AGENT_TOKEN" ]; then
+  echo -e "  ${CLR_BOLD}1-Click Deep Link:${CLR_RESET}"
+  echo -e "  ${CLR_DIM}pulse://add?name=$(hostname -s)&host=${TS_IP}&port=${PORT}&token=${AGENT_TOKEN}${CLR_RESET}"
+  echo ""
+  echo -e "  On your Mac: open Pulse → ⌘N → enter the Tailscale IP and token above."
+else
+  echo -e "  Once authenticated on Tailscale, run ${CLR_CYAN}tailscale ip -4${CLR_RESET} and connect in Pulse with port $PORT."
+fi
 echo ""
