@@ -88,7 +88,20 @@ struct PulseApp: App {
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
             }
+
+            CommandGroup(replacing: .help) {
+                Button("Pulse Docs") {
+                    NavigationState.shared.showDocs = true
+                }
+                .keyboardShortcut("/", modifiers: .command)
+            }
         }
+
+        // Docs window — fixed content size, no fullscreen
+        Window("Pulse Docs", id: "pulse-docs") {
+            DocsView()
+        }
+        .windowResizability(.contentSize)
 
         MenuBarExtra {
             MenuBarExtraView()
@@ -121,10 +134,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Pool connects automatically on startup
         ServerConnectionPool.shared.syncWithStore()
 
-        // Disable fullscreen — Pulse has a fixed max size, fullscreen doesn't make sense
+        // Disable fullscreen on all windows — Pulse has fixed max sizes
         DispatchQueue.main.async {
             NSApp.windows.forEach { window in
-                // NSWindowCollectionBehaviorFullScreenNone (1 << 9) explicitly disables fullscreen
+                // NSWindowCollectionBehaviorFullScreenNone (1 << 9)
                 let fullScreenNone = NSWindow.CollectionBehavior(rawValue: 1 << 9)
                 window.collectionBehavior.insert(fullScreenNone)
             }

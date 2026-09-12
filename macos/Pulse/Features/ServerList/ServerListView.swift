@@ -7,6 +7,8 @@ public struct ServerListView: View {
     @ObservedObject private var navState = NavigationState.shared
     @ObservedObject private var settings = AppSettingsStore.shared
 
+    @Environment(\.openWindow) private var openWindow
+
     @State private var showAddServerSheet = false
     @State private var serverToEdit: ServerModel?
     @State private var isShowingLaunchMotion = true
@@ -105,6 +107,11 @@ public struct ServerListView: View {
                     }
                     .help("Add Server")
 
+                    Button(action: { openWindow(id: "pulse-docs") }) {
+                        Label("Docs", systemImage: "questionmark.circle")
+                    }
+                    .help("Pulse Docs (⌘/)")
+
                     Button(action: { navState.showSettings = true }) {
                         Label("Settings", systemImage: "gearshape")
                     }
@@ -169,6 +176,12 @@ public struct ServerListView: View {
         .onAppear {
             if store.servers.isEmpty {
                 navState.selectedServerId = "ALL_SERVERS"
+            }
+        }
+        .onChange(of: navState.showDocs) { show in
+            if show {
+                openWindow(id: "pulse-docs")
+                navState.showDocs = false
             }
         }
         .overlay {

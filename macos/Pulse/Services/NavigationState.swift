@@ -24,6 +24,7 @@ public final class NavigationState: ObservableObject {
     @Published public var showSettings: Bool = false
     @Published public var showCommandPalette: Bool = false
     @Published public var showAddServerSheet: Bool = false
+    @Published public var showDocs: Bool = false
     @Published public var pendingServerDraft: ServerDraft? = nil
 
     private init() {}

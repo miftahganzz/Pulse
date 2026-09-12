@@ -80,3 +80,10 @@ cat << 'PLIST' > "${CONTENTS_DIR}/Info.plist"
 PLIST
 
 echo "App bundle created successfully at macos/${BUNDLE_DIR}"
+
+# Ad-hoc sign so Sparkle's XPC Updater can launch (required even for dev builds)
+echo "Signing bundle (ad-hoc)..."
+codesign --force --deep -s - "${BUNDLE_DIR}"
+echo "✅ Pulse.app bundle created in ${BUNDLE_DIR}"
+printf "   Size: "
+du -sh "${BUNDLE_DIR}" | cut -f1
