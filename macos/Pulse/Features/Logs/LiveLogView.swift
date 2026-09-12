@@ -12,6 +12,8 @@ public struct LiveLogView: View {
     @State private var streamTask: URLSessionWebSocketTask?
     @State private var errorMessage: String? = nil
 
+    @State private var copiedUpgradeCommand: Bool = false
+
     public enum LogSource: String, CaseIterable, Identifiable {
         case systemd = "Systemd"
         case docker = "Docker"
@@ -31,29 +33,21 @@ public struct LiveLogView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Control Header Bar
+            // Control Header Bar (Fully Responsive)
             headerControls
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .background(Color(NSColor.windowBackgroundColor))
 
             Divider()
 
             // Main Terminal Console
             if let err = errorMessage {
-                VStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 24))
-                        .foregroundColor(.orange)
-                    Text(err)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    Button("Retry Stream") {
-                        startStreaming()
-                    }
-                    .buttonStyle(.bordered)
+                if isAgentVersionIncompatible {
+                    agentUpgradeView
+                } else {
+                    genericErrorView(err)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if logs.isEmpty {
                 VStack(spacing: 8) {
                     ProgressView()
@@ -86,89 +80,139 @@ public struct LiveLogView: View {
         }
     }
 
-    // MARK: - Header Controls
+    // MARK: - Responsive Header Controls
 
     private var headerControls: some View {
-        HStack(spacing: 12) {
+        ViewThatFits(in: .horizontal) {
+            singleRowControls
+            twoRowControls
+        }
+    }
+
+    private var singleRowControls: some View {
+        HStack(spacing: 8) {
             // Source Picker
-            Picker("", selection: $logSource) {
-                ForEach(LogSource.allCases) { source in
-                    Label(source.rawValue, systemImage: source.icon).tag(source)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 190)
+            sourcePicker
+                .frame(width: 135)
 
             // Target Dropdown
             targetPicker
-                .frame(minWidth: 140, maxWidth: 220)
+                .frame(minWidth: 100, idealWidth: 130, maxWidth: 170)
 
             // Tail count picker
-            Picker("Lines", selection: $tailCount) {
-                Text("50").tag(50)
-                Text("100").tag(100)
-                Text("250").tag(250)
-                Text("500").tag(500)
-            }
-            .pickerStyle(.menu)
-            .frame(width: 90)
+            linesPicker
+                .frame(width: 85)
 
-            Spacer()
+            Spacer(minLength: 4)
 
             // Filter Search Field
-            HStack(spacing: 4) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                    .font(.system(size: 11))
-                TextField("Filter logs...", text: $searchText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11))
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(NSColor.controlBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .frame(width: 140)
+            searchField
+                .frame(minWidth: 80, idealWidth: 110, maxWidth: 140)
 
             // Action Buttons
-            HStack(spacing: 6) {
-                Button {
-                    isPaused.toggle()
-                } label: {
-                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.bordered)
-                .help(isPaused ? "Resume auto-scroll" : "Pause stream")
+            actionButtons
+        }
+    }
 
-                Button {
-                    logs.removeAll()
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.bordered)
-                .help("Clear console")
+    private var twoRowControls: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                sourcePicker
+                    .frame(width: 135)
 
-                Button {
-                    copyLogsToClipboard()
-                } label: {
-                    Image(systemName: "doc.on.doc")
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.bordered)
-                .help("Copy logs to clipboard")
+                targetPicker
+                    .frame(minWidth: 100, maxWidth: .infinity)
+
+                linesPicker
+                    .frame(width: 85)
             }
+
+            HStack(spacing: 8) {
+                searchField
+                    .frame(maxWidth: .infinity)
+
+                actionButtons
+            }
+        }
+    }
+
+    private var sourcePicker: some View {
+        Picker("", selection: $logSource) {
+            Text("Systemd").tag(LogSource.systemd)
+            Text("Docker").tag(LogSource.docker)
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var linesPicker: some View {
+        Picker("", selection: $tailCount) {
+            Text("50 lines").tag(50)
+            Text("100 lines").tag(100)
+            Text("250 lines").tag(250)
+            Text("500 lines").tag(500)
+        }
+        .pickerStyle(.menu)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+                .font(.system(size: 11))
+            TextField("Filter logs...", text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 11))
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 4) {
+            Button {
+                isPaused.toggle()
+            } label: {
+                Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                    .font(.system(size: 11))
+                    .frame(width: 14, height: 14)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help(isPaused ? "Resume auto-scroll" : "Pause stream")
+
+            Button {
+                logs.removeAll()
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 11))
+                    .frame(width: 14, height: 14)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Clear console")
+
+            Button {
+                copyLogsToClipboard()
+            } label: {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: 11))
+                    .frame(width: 14, height: 14)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Copy logs to clipboard")
         }
     }
 
@@ -272,6 +316,117 @@ public struct LiveLogView: View {
         return logs.filter { $0.line.localizedCaseInsensitiveContains(searchText) }
     }
 
+    // MARK: - Incompatible Agent & Error Views
+
+    private var isAgentVersionIncompatible: Bool {
+        if let ver = manager.identity?.agentVersion {
+            let parts = ver.split(separator: ".").compactMap { Int($0) }
+            if let major = parts.first, major < 1 {
+                return true
+            }
+        }
+        if let err = errorMessage, err.contains("bad response") || err.contains("-1011") || err.contains("v1.0.0") || err.contains("404") {
+            return true
+        }
+        return false
+    }
+
+    private var agentUpgradeView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "arrow.triangle.2.circlepath.circle")
+                .font(.system(size: 38))
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 6) {
+                Text("Pulse Agent Update Required")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                let currentVer = manager.identity?.agentVersion ?? "0.9.0"
+                let name = manager.serverName.isEmpty ? "Server" : manager.serverName
+                Text("Live log streaming was introduced in Pulse v1.0.0.\nServer \"\(name)\" is running pulse-agent v\(currentVer).")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Run this command on your server to update pulse-agent to v1.0.0:")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                HStack(spacing: 8) {
+                    Text("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+
+                    Spacer(minLength: 4)
+
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString("curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash", forType: .string)
+                        copiedUpgradeCommand = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            copiedUpgradeCommand = false
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: copiedUpgradeCommand ? "checkmark" : "doc.on.doc")
+                            Text(copiedUpgradeCommand ? "Copied" : "Copy")
+                        }
+                        .font(.system(size: 11))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(Color(NSColor.controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+            .frame(maxWidth: 500)
+
+            HStack(spacing: 10) {
+                Button {
+                    errorMessage = nil
+                    startStreaming()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Retry Stream")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func genericErrorView(_ err: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28))
+                .foregroundColor(.orange)
+            Text(err)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+            Button("Retry Stream") {
+                errorMessage = nil
+                startStreaming()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     // MARK: - Streaming Logic
 
     private func setupInitialTarget() {
@@ -305,6 +460,15 @@ public struct LiveLogView: View {
     private func startStreaming() {
         guard !selectedTarget.isEmpty else { return }
 
+        // Proactively detect older agent version before sending failing WebSocket request
+        if let ver = manager.identity?.agentVersion {
+            let parts = ver.split(separator: ".").compactMap { Int($0) }
+            if let major = parts.first, major < 1 {
+                self.errorMessage = "Live log streaming requires pulse-agent v1.0.0 or later (Server is running v\(ver))."
+                return
+            }
+        }
+
         let typeStr = (logSource == .docker) ? "docker" : "systemd"
         streamTask = manager.streamLogs(
             type: typeStr,
@@ -322,7 +486,13 @@ public struct LiveLogView: View {
             },
             onError: { err in
                 DispatchQueue.main.async {
-                    self.errorMessage = "Stream disconnected: \(err.localizedDescription)"
+                    let nsErr = err as NSError
+                    if nsErr.code == -1011 || err.localizedDescription.contains("bad response") {
+                        let currentVer = self.manager.identity?.agentVersion ?? "0.9.0"
+                        self.errorMessage = "Live log streaming requires pulse-agent v1.0.0 or later (Server is running v\(currentVer))."
+                    } else {
+                        self.errorMessage = "Stream disconnected: \(err.localizedDescription)"
+                    }
                 }
             }
         )

@@ -33,54 +33,62 @@ public struct ServerDetailView: View {
                         }
 
                         Text(verbatim: "\(manager.address):\(manager.port)")
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(size: 11, design: .monospaced))
                             .foregroundColor(.secondary)
+                            .lineLimit(1)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
-                    Button {
-                        showRunbooksSheet = true
-                    } label: {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 13))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Maintenance Runbooks (⌘R)")
-                    .keyboardShortcut("r", modifiers: .command)
-
-                    Button {
-                        showEditServerSheet = true
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 13))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Edit Server Details (⌘E)")
-                    .keyboardShortcut("e", modifiers: .command)
-
-                    Button {
-                        showSettingsSheet = true
-                    } label: {
-                        Image(systemName: manager.alertSettings.isAlertsEnabled ? "bell.badge" : "bell.slash")
-                            .font(.system(size: 13))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Alert Settings (⌘⇧A)")
-                    .keyboardShortcut("a", modifiers: [.command, .shift])
-
-                    ServerStatusBadge(state: manager.state)
-
-                    if manager.state.isConnected {
-                        Button("Disconnect") {
-                            manager.disconnect()
+                    HStack(spacing: 6) {
+                        Button {
+                            showRunbooksSheet = true
+                        } label: {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 12))
+                                .frame(width: 20, height: 20)
                         }
-                        .buttonStyle(.bordered)
-                    } else {
-                        Button("Connect") {
-                            manager.connect()
+                        .buttonStyle(.plain)
+                        .help("Maintenance Runbooks (⌘R)")
+                        .keyboardShortcut("r", modifiers: .command)
+
+                        Button {
+                            showEditServerSheet = true
+                        } label: {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 12))
+                                .frame(width: 20, height: 20)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.plain)
+                        .help("Edit Server Details (⌘E)")
+                        .keyboardShortcut("e", modifiers: .command)
+
+                        Button {
+                            showSettingsSheet = true
+                        } label: {
+                            Image(systemName: manager.alertSettings.isAlertsEnabled ? "bell.badge" : "bell.slash")
+                                .font(.system(size: 12))
+                                .frame(width: 20, height: 20)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Alert Settings (⌘⇧A)")
+                        .keyboardShortcut("a", modifiers: [.command, .shift])
+
+                        ServerStatusBadge(state: manager.state)
+
+                        if manager.state.isConnected {
+                            Button("Disconnect") {
+                                manager.disconnect()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        } else {
+                            Button("Connect") {
+                                manager.connect()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
                     }
                 }
 
@@ -98,27 +106,45 @@ public struct ServerDetailView: View {
                 }
 
                 // Responsive Horizontal Tab Switcher
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 3) {
-                        tabButton(title: "Overview", tag: 0)
-                        tabButton(title: "Logs", tag: 9)
-                        tabButton(title: "Storage", tag: 10)
-                        tabButton(title: "Monitors", tag: 1)
-                        let incidentCount = manager.incidents.filter({ $0.status != .resolved }).count
-                        tabButton(title: "Incidents", tag: 2, badge: incidentCount > 0 ? "\(incidentCount)" : nil, badgeColor: .red)
-                        tabButton(title: "Processes", tag: 3)
-                        tabButton(title: "Services", tag: 4)
-                        tabButton(title: "Docker", tag: 5)
-                        let secCount = manager.securitySnapshot?.sensitiveCount ?? 0
-                        tabButton(title: "Security", tag: 8, badge: secCount > 0 ? "\(secCount)" : nil, badgeColor: .red)
-                        tabButton(title: "Map", tag: 7)
-                        tabButton(title: "Activity", tag: 6)
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 2) {
+                            tabButton(title: "Overview", tag: 0)
+                                .id(0)
+                            tabButton(title: "Logs", tag: 9)
+                                .id(9)
+                            tabButton(title: "Storage", tag: 10)
+                                .id(10)
+                            tabButton(title: "Monitors", tag: 1)
+                                .id(1)
+                            let incidentCount = manager.incidents.filter({ $0.status != .resolved }).count
+                            tabButton(title: "Incidents", tag: 2, badge: incidentCount > 0 ? "\(incidentCount)" : nil, badgeColor: .red)
+                                .id(2)
+                            tabButton(title: "Processes", tag: 3)
+                                .id(3)
+                            tabButton(title: "Services", tag: 4)
+                                .id(4)
+                            tabButton(title: "Docker", tag: 5)
+                                .id(5)
+                            let secCount = manager.securitySnapshot?.sensitiveCount ?? 0
+                            tabButton(title: "Security", tag: 8, badge: secCount > 0 ? "\(secCount)" : nil, badgeColor: .red)
+                                .id(8)
+                            tabButton(title: "Map", tag: 7)
+                                .id(7)
+                            tabButton(title: "Activity", tag: 6)
+                                .id(6)
+                        }
+                        .padding(.horizontal, 2)
                     }
-                    .padding(.horizontal, 2)
+                    .onChange(of: navState.selectedDetailTab) { newTab in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proxy.scrollTo(newTab, anchor: .center)
+                        }
+                    }
                 }
             }
-            .padding([.top, .horizontal], 20)
-            .padding(.bottom, 10)
+            .padding([.top, .horizontal], 14)
+            .padding(.bottom, 8)
 
             Divider()
 
@@ -181,9 +207,9 @@ public struct ServerDetailView: View {
                 navState.selectedDetailTab = tag
             }
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Text(title)
-                    .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                    .font(.system(size: 11.5, weight: isSelected ? .semibold : .medium))
                     .fixedSize()
 
                 if let b = badge {
@@ -196,8 +222,8 @@ public struct ServerDetailView: View {
                         .clipShape(Capsule())
                 }
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
             .background(isSelected ? Color.primary.opacity(0.12) : Color.clear)
             .foregroundColor(isSelected ? .primary : .secondary)
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))

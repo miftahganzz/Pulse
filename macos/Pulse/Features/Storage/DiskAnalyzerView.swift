@@ -287,7 +287,13 @@ public struct DiskAnalyzerView: View {
                 case .success(let data):
                     self.analysis = data
                 case .failure(let err):
-                    self.errorMessage = "Failed to scan disk: \(err.localizedDescription)"
+                    let currentVer = self.manager.identity?.agentVersion ?? "0.9.0"
+                    let isOld = currentVer.hasPrefix("0.")
+                    if isOld || err.localizedDescription.contains("404") {
+                        self.errorMessage = "Disk Analyzer requires pulse-agent v1.0.0+ (Server is running v\(currentVer)). Please update pulse-agent."
+                    } else {
+                        self.errorMessage = "Failed to scan disk: \(err.localizedDescription)"
+                    }
                 }
             }
         }
