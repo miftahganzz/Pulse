@@ -13,13 +13,14 @@ struct PulseApp: App {
     var body: some Scene {
         WindowGroup {
             ServerListView()
-                .frame(minWidth: 780, idealWidth: 960, maxWidth: 1280,
-                       minHeight: 500, idealHeight: 640, maxHeight: 860)
+                .frame(minWidth: 860, idealWidth: 960, maxWidth: 1040,
+                       minHeight: 560, idealHeight: 640, maxHeight: 720)
                 .preferredColorScheme(colorScheme)
                 .onOpenURL { url in
                     NavigationState.shared.handleDeepLink(url: url)
                 }
         }
+        .windowResizability(.contentSize)
         .commands {
             SidebarCommands()
 
@@ -134,13 +135,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Pool connects automatically on startup
         ServerConnectionPool.shared.syncWithStore()
 
-        // Disable fullscreen on all windows — Pulse has fixed max sizes
+        // Disable fullscreen and zoom on all windows — Pulse has fixed compact bounds
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWindowDidBecomeKey(_:)),
+            name: NSWindow.didBecomeKeyNotification,
+            object: nil
+        )
+
         DispatchQueue.main.async {
-            NSApp.windows.forEach { window in
-                // NSWindowCollectionBehaviorFullScreenNone (1 << 9)
-                let fullScreenNone = NSWindow.CollectionBehavior(rawValue: 1 << 9)
-                window.collectionBehavior.insert(fullScreenNone)
-            }
+            NSApp.windows.forEach { self.configureFixedWindow($0) }
         }
 
         // Handle sleep / wake notifications to prevent fake incidents
@@ -157,6 +161,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSWorkspace.didWakeNotification,
             object: nil
         )
+    }
+
+    @objc private func handleWindowDidBecomeKey(_ notification: Notification) {
+        if let window = notification.object as? NSWindow {
+            configureFixedWindow(window)
+        }
+    }
+
+    private func configureFixedWindow(_ window: NSWindow) {
+        // Prevent fullscreen and disable green zoom expand button
+        let fullScreenNone = NSWindow.CollectionBehavior(rawValue: 1 << 9)
+        window.collectionBehavior = [fullScreenNone]
+        window.standardWindowButton(.zoomButton)?.isEnabled = false
     }
 
     @objc private func handleWorkspaceWillSleep() {

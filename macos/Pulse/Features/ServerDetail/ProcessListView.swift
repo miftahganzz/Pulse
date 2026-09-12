@@ -55,14 +55,22 @@ public struct ProcessListView: View {
                         .stroke(Color.primary.opacity(0.08), lineWidth: 1)
                 )
 
-                Picker("Sort by", selection: $sortBy) {
-                    Text("CPU %").tag("cpu")
-                    Text("Memory").tag("memory")
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 160)
-                .onChange(of: sortBy) { newSort in
-                    manager.refreshProcesses(sortBy: newSort)
+                HStack(spacing: 6) {
+                    Text("Sort:")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .fixedSize()
+
+                    Picker("Sort by", selection: $sortBy) {
+                        Text("CPU %").tag("cpu")
+                        Text("Memory").tag("memory")
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 145)
+                    .onChange(of: sortBy) { newSort in
+                        manager.refreshProcesses(sortBy: newSort)
+                    }
                 }
 
                 Button(action: { manager.refreshProcesses(sortBy: sortBy) }) {
@@ -147,6 +155,7 @@ public struct ProcessListView: View {
                         .background(stateColor(proc.state).opacity(0.12))
                         .clipShape(Capsule())
                     }
+                    .width(min: 75, ideal: 85, max: 95)
 
                     TableColumn("Actions") { proc in
                         Menu {

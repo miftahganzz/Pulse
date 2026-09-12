@@ -30,7 +30,7 @@ public struct ServerDetailView: View {
                             }
                         }
 
-                        Text("\(manager.address):\(manager.port)")
+                        Text(verbatim: "\(manager.address):\(manager.port)")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
@@ -74,23 +74,26 @@ public struct ServerDetailView: View {
                     .cornerRadius(6)
                 }
 
-                // Tab Switcher
-                Picker("", selection: $navState.selectedDetailTab) {
-                    Text("Overview").tag(0)
-                    Text("Monitors").tag(1)
-                    Text(manager.incidents.filter({ $0.status != .resolved }).isEmpty ? "Incidents" : "Incidents (\(manager.incidents.filter({ $0.status != .resolved }).count))").tag(2)
-                    Text("Processes").tag(3)
-                    Text("Services").tag(4)
-                    Text("Docker").tag(5)
-                    Text(manager.securitySnapshot?.sensitiveCount ?? 0 > 0 ? "Security (\(manager.securitySnapshot!.sensitiveCount))" : "Security").tag(8)
-                    Text("Map").tag(7)
-                    Text("Activity").tag(6)
+                // Responsive Horizontal Tab Switcher
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 3) {
+                        tabButton(title: "Overview", tag: 0)
+                        tabButton(title: "Monitors", tag: 1)
+                        let incidentCount = manager.incidents.filter({ $0.status != .resolved }).count
+                        tabButton(title: "Incidents", tag: 2, badge: incidentCount > 0 ? "\(incidentCount)" : nil, badgeColor: .red)
+                        tabButton(title: "Processes", tag: 3)
+                        tabButton(title: "Services", tag: 4)
+                        tabButton(title: "Docker", tag: 5)
+                        let secCount = manager.securitySnapshot?.sensitiveCount ?? 0
+                        tabButton(title: "Security", tag: 8, badge: secCount > 0 ? "\(secCount)" : nil, badgeColor: .red)
+                        tabButton(title: "Map", tag: 7)
+                        tabButton(title: "Activity", tag: 6)
+                    }
+                    .padding(.horizontal, 2)
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 760)
             }
             .padding([.top, .horizontal], 20)
-            .padding(.bottom, 12)
+            .padding(.bottom, 10)
 
             Divider()
 
@@ -132,6 +135,38 @@ public struct ServerDetailView: View {
         .sheet(isPresented: $showSettingsSheet) {
             AlertSettingsSheet(manager: manager)
         }
+    }
+
+    private func tabButton(title: String, tag: Int, badge: String? = nil, badgeColor: Color = .red) -> some View {
+        let isSelected = navState.selectedDetailTab == tag
+        return Button {
+            withAnimation(.easeInOut(duration: 0.12)) {
+                navState.selectedDetailTab = tag
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(title)
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                    .fixedSize()
+
+                if let b = badge {
+                    Text(b)
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(badgeColor.opacity(0.18))
+                        .foregroundColor(badgeColor)
+                        .clipShape(Capsule())
+                }
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(isSelected ? Color.primary.opacity(0.12) : Color.clear)
+            .foregroundColor(isSelected ? .primary : .secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var overviewContent: some View {

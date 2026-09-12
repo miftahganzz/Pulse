@@ -34,7 +34,7 @@ public struct ServerRowView: View {
                 }
 
                 HStack(spacing: 4) {
-                    Text("\(server.address):\(server.port)")
+                    Text(verbatim: "\(server.address):\(server.port)")
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(.secondary)
 

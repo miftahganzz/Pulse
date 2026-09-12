@@ -164,7 +164,8 @@ public struct SecurityPortsView: View {
                     Text("Localhost").tag(3)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 320)
+                .labelsHidden()
+                .frame(minWidth: 260, idealWidth: 290, maxWidth: 320)
 
                 Button(action: { manager.refreshSecurity() }) {
                     Image(systemName: "arrow.clockwise")
@@ -243,9 +244,9 @@ public struct SecurityPortsView: View {
                         .background(item.exposure.badgeColor.opacity(0.12))
                         .clipShape(Capsule())
                     }
-                    .width(min: 130, ideal: 145)
+                    .width(min: 110, ideal: 125, max: 140)
 
-                    TableColumn("Security Risk & Recommendation") { item in
+                    TableColumn("Recommendation") { item in
                         if item.isSensitive {
                             HStack(spacing: 5) {
                                 Image(systemName: "exclamationmark.shield.fill")
