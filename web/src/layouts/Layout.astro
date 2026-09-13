@@ -7,15 +7,61 @@ interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
+  keywords?: string;
 }
 
 const {
   title = "Pulse: Native macOS Server and Container Monitor",
-  description = "Native macOS menu bar and desktop app paired with a lightweight 7MB Go agent to monitor Linux servers, Docker containers, and systemd units.",
-  ogImage = "https://pulse.l.cd/images/pulse-icon.png"
+  description = "Native macOS menu bar and desktop app paired with a lightweight 7MB Go agent to monitor Linux servers, Docker containers, and systemd units with zero open ports.",
+  ogImage = "https://pulse.l.cd/images/pulse-og.png",
+  keywords = "macOS server monitor, Linux server monitor, Docker container monitor mac, menu bar server monitor, lightweight server agent, homelab monitor mac, systemd monitor, self-hosted server monitor, Tailscale server monitor, Cloudflare tunnel server monitor, Go agent, Swift server monitor, pulse server monitor"
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://pulse.l.cd").toString().replace(/\/$/, "");
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://pulse.l.cd/#website",
+      "url": "https://pulse.l.cd",
+      "name": "Pulse",
+      "description": "Native macOS Server and Container Monitor",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Pulse Contributors",
+        "url": "https://pulse.l.cd",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://pulse.l.cd/images/pulse-icon.png"
+        }
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://pulse.l.cd/#software",
+      "name": "Pulse",
+      "operatingSystem": "macOS 13.0+, Linux",
+      "applicationCategory": "DeveloperApplication",
+      "softwareVersion": "1.0.5",
+      "description": "Native macOS menu bar and desktop app paired with a lightweight 7MB Go agent to monitor Linux servers, Docker containers, and systemd units with zero cloud intermediaries.",
+      "url": "https://pulse.l.cd",
+      "downloadUrl": "https://pulse.l.cd/downloads",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Pulse Contributors"
+      },
+      "screenshot": "https://pulse.l.cd/images/pulse-og.png",
+      "license": "https://github.com/miftahganzz/Pulse/blob/main/LICENSE"
+    }
+  ]
+};
 ---
 
 <!DOCTYPE html>
@@ -25,30 +71,43 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://pulse.l.
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title}</title>
   <meta name="description" content={description} />
+  <meta name="keywords" content={keywords} />
+  <meta name="author" content="Pulse Contributors" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <link rel="canonical" href={canonicalURL || "https://pulse.l.cd"} />
 
-  <!-- Favicons -->
+  <!-- Favicons and App Icons -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0b0c0e" />
 
-  <!-- Open Graph -->
+  <!-- Open Graph / Facebook / WhatsApp / Telegram -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonicalURL || "https://pulse.l.cd"} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:alt" content="Pulse: Native macOS Server and Container Monitor" />
   <meta property="og:site_name" content="Pulse" />
+  <meta property="og:locale" content="en_US" />
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary" />
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content={canonicalURL || "https://pulse.l.cd"} />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image" content={ogImage} />
+  <meta name="twitter:image:alt" content="Pulse: Native macOS Server and Container Monitor" />
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 </head>
 <body>
   <Header activePath={Astro.url.pathname} />

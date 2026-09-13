@@ -1,21 +1,23 @@
 {
-  "name": "Pulse - Native macOS Server Monitoring",
+  "name": "Pulse: Native macOS Server Monitoring",
   "short_name": "Pulse",
-  "description": "Native macOS monitor and lightweight Linux agent for VPS and home lab servers.",
+  "description": "Native macOS menu bar and desktop app paired with a lightweight 7MB Go agent to monitor Linux servers, Docker containers, and systemd units.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#090a0f",
-  "theme_color": "#090a0f",
+  "background_color": "#0b0c0e",
+  "theme_color": "#0b0c0e",
   "icons": [
     {
       "src": "/images/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/images/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
