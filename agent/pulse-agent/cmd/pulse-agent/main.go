@@ -223,9 +223,9 @@ func main() {
 		Addr:         addr,
 		Handler:      srv.Handler(),
 		TLSConfig:    tlsConfig,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 90 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	// Graceful shutdown handling

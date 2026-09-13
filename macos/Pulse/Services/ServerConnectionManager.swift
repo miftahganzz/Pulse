@@ -214,6 +214,18 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
         self.stopMonitorHealthTimer()
     }
 
+    public func prepareForSleep() {
+        self.stopMonitorHealthTimer()
+        self.client?.pauseMonitoring()
+    }
+
+    public func handleWakeFromSleep() {
+        self.client?.resumeMonitoring()
+        if self.state.isConnected {
+            self.startMonitorHealthTimer()
+        }
+    }
+
     public func disconnect() {
         client?.disconnect()
         client = nil

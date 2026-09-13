@@ -14,6 +14,7 @@
       <description><![CDATA[
         <h2>Pulse v1.0.5 (Build 105)</h2>
         <ul>
+          <li><strong>Resilient Persistent Connections & Keepalive:</strong> Added active periodic WebSocket pinging from client to agent, extended agent write deadlines to 25s, increased client heartbeat timeout tolerance to 30s, and streamlined direct WebSocket connection to eliminate dropouts across NATs, firewalls, Cloudflare tunnels, and macOS sleep/wake cycles.</li>
           <li><strong>Eliminated Keychain Password Prompts:</strong> Replaced intrusive system Keychain prompts on every launch/rebuild with in-memory fast caching and local persistent storage for server tokens, database credentials, and TLS fingerprints.</li>
           <li><strong>Docker Detection & Null Ports Decoding Fix:</strong> Fixed an issue where containers without exposed public ports (e.g. Supabase, internal networks) returning null port arrays caused Docker decoding failures and falsely triggered "Docker Not Detected".</li>
           <li><strong>Resilient Container Decoding:</strong> macOS client now gracefully decodes null/missing container metadata fields across all daemon versions.</li>
@@ -23,8 +24,8 @@
       ]]></description>
       <enclosure
         url="https://github.com/miftahganzz/Pulse/releases/download/v1.0.5/Pulse-1.0.5.dmg"
-        length="7845633"
-        sparkle:edSignature="iMflLcI48Rb1osW2gaUmZAJ14ERxd05XAjYU8nFhT7alITRj1Kao4uA0we6tXnYwB9JdgIMmR4BJB8toawgbAQ=="
+        length="7854784"
+        sparkle:edSignature="buhEEyJ9OkjfUSB1Jl2/JzovUtz+Tep5rNOrraCsrnrWQEPcuqAmrU3XusbzOI1DxUeyLCe8ogKQuD0rI96bCA=="
         sparkle:version="105"
         sparkle:shortVersionString="1.0.5"
         type="application/octet-stream" />

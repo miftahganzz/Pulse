@@ -44,6 +44,7 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
+	HandshakeTimeout: 15 * time.Second,
 	CheckOrigin: func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		if origin == "" {
@@ -472,6 +473,23 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 
 	s.logger.Info("client connected to stream", "remote_addr", r.RemoteAddr)
 
+	const (
+		writeWait  = 25 * time.Second
+		pongWait   = 60 * time.Second
+		pingPeriod = 20 * time.Second
+	)
+
+	conn.SetReadLimit(512 * 1024)
+	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	conn.SetPingHandler(func(appData string) error {
+		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+		return conn.WriteControl(websocket.PongMessage, []byte(appData), time.Now().Add(writeWait))
+	})
+
 	// 1. Send initial agent.hello
 	helloEnv, err := transport.NewEnvelope("agent.hello", transport.HelloPayload{
 		AgentID:         s.identity.AgentID,
@@ -488,6 +506,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	conn.SetWriteDeadline(time.Now().Add(writeWait))
 	if err := conn.WriteJSON(helloEnv); err != nil {
 		s.logger.Error("failed to write initial hello", "error", err)
 		return
@@ -496,15 +515,19 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	// 2. Send initial metrics.snapshot immediately
 	initialMetrics := s.metricsCol.Collect()
 	if metricsEnv, err := transport.NewEnvelope("metrics.snapshot", initialMetrics); err == nil {
+		conn.SetWriteDeadline(time.Now().Add(writeWait))
 		_ = conn.WriteJSON(metricsEnv)
 	}
 
-	// 3. Start streaming tickers: 10s default metrics interval, 5s heartbeat
+	// 3. Start streaming tickers: 10s default metrics interval, 5s heartbeat, 20s ping
 	metricsTicker := time.NewTicker(10 * time.Second)
 	defer metricsTicker.Stop()
 
 	heartbeatTicker := time.NewTicker(5 * time.Second)
 	defer heartbeatTicker.Stop()
+
+	pingTicker := time.NewTicker(pingPeriod)
+	defer pingTicker.Stop()
 
 	done := make(chan struct{})
 	go func() {
@@ -517,6 +540,8 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 				}
 				break
 			}
+			// Refresh read deadline on any incoming message from client
+			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 			s.logger.Debug("received message from client", "bytes", len(message))
 		}
 	}()
@@ -527,6 +552,13 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 			s.logger.Info("client disconnected from stream", "remote_addr", r.RemoteAddr)
 			return
 
+		case <-pingTicker.C:
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(writeWait)); err != nil {
+				s.logger.Warn("failed to send ping control frame, dropping connection", "error", err)
+				return
+			}
+
 		case <-metricsTicker.C:
 			snapshot := s.metricsCol.Collect()
 			metricsEnv, err := transport.NewEnvelope("metrics.snapshot", snapshot)
@@ -535,7 +567,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := conn.WriteJSON(metricsEnv); err != nil {
 				s.logger.Warn("failed to send metrics snapshot, dropping connection", "error", err)
 				return
@@ -554,7 +586,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := conn.WriteJSON(hbEnv); err != nil {
 				s.logger.Warn("failed to send heartbeat, dropping connection", "error", err)
 				return
@@ -816,6 +848,22 @@ func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	const (
+		logWriteWait = 25 * time.Second
+		logPongWait  = 60 * time.Second
+	)
+
+	conn.SetReadLimit(512 * 1024)
+	_ = conn.SetReadDeadline(time.Now().Add(logPongWait))
+	conn.SetPongHandler(func(string) error {
+		_ = conn.SetReadDeadline(time.Now().Add(logPongWait))
+		return nil
+	})
+	conn.SetPingHandler(func(appData string) error {
+		_ = conn.SetReadDeadline(time.Now().Add(logPongWait))
+		return conn.WriteControl(websocket.PongMessage, []byte(appData), time.Now().Add(logWriteWait))
+	})
+
 	sourceType := r.URL.Query().Get("type")
 	target := r.URL.Query().Get("target")
 	tailStr := r.URL.Query().Get("tail")
@@ -836,6 +884,7 @@ func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
 				cancel()
 				return
 			}
+			_ = conn.SetReadDeadline(time.Now().Add(logPongWait))
 		}
 	}()
 
@@ -843,6 +892,7 @@ func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
 
 	if sourceType == "docker" {
 		if err := s.streamer.StreamDocker(ctx, target, tail, follow, outChan); err != nil {
+			conn.SetWriteDeadline(time.Now().Add(logWriteWait))
 			_ = conn.WriteJSON(logs.LogEntry{
 				Timestamp: time.Now().UTC(),
 				Line:      fmt.Sprintf("Error starting docker log stream: %v", err),
@@ -853,6 +903,7 @@ func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// default to systemd
 		if err := s.streamer.StreamSystemd(ctx, target, tail, follow, outChan); err != nil {
+			conn.SetWriteDeadline(time.Now().Add(logWriteWait))
 			_ = conn.WriteJSON(logs.LogEntry{
 				Timestamp: time.Now().UTC(),
 				Line:      fmt.Sprintf("Error starting systemd log stream: %v", err),
@@ -870,7 +921,7 @@ func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
-			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			conn.SetWriteDeadline(time.Now().Add(logWriteWait))
 			if err := conn.WriteJSON(entry); err != nil {
 				return
 			}

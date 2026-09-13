@@ -261,7 +261,8 @@ if [ "$IS_ROOT" = true ]; then
   cat << SYSTEMD_ROOT_EOF > /etc/systemd/system/pulse-agent.service
 [Unit]
 Description=Pulse Monitoring Agent
-After=network.target
+Wants=network-online.target
+After=network-online.target firewalld.service ufw.service tailscaled.service cloudflared.service
 
 [Service]
 Type=simple
@@ -292,7 +293,8 @@ else
   cat << SYSTEMD_USER_EOF > "$USER_SYSTEMD_DIR/pulse-agent.service"
 [Unit]
 Description=Pulse Monitoring Agent (User Mode)
-After=network.target
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple

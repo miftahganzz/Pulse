@@ -81,6 +81,18 @@ public final class ServerConnectionPool: ObservableObject {
         }
     }
 
+    public func prepareForSleep() {
+        for mgr in managers.values {
+            mgr.prepareForSleep()
+        }
+    }
+
+    public func handleWakeFromSleep() {
+        for mgr in managers.values {
+            mgr.handleWakeFromSleep()
+        }
+    }
+
     // Computed global health
     public var totalServers: Int {
         managers.count

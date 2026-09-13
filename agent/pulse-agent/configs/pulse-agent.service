@@ -1,6 +1,7 @@
 [Unit]
 Description=Pulse Monitoring Agent
-After=network.target
+Wants=network-online.target
+After=network-online.target firewalld.service ufw.service tailscaled.service cloudflared.service
 
 [Service]
 Type=simple

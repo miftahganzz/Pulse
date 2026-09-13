@@ -22,8 +22,11 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
     private var isUserInitiatedDisconnect = false
 
     private var heartbeatTimer: Timer?
+    private var pingTimer: Timer?
     private var lastHeartbeatReceivedAt: Date?
-    private let heartbeatTimeoutInterval: TimeInterval = 15.0
+    private let heartbeatTimeoutInterval: TimeInterval = 30.0
+    private let pingInterval: TimeInterval = 15.0
+    private var isMonitoringPaused = false
 
     private let queue = DispatchQueue(label: "com.pulse.client", qos: .userInitiated)
 
@@ -456,28 +459,11 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
     }
 
     private func startConnection() {
-        guard !isUserInitiatedDisconnect else { return }
-
+        guard !isUserInitiatedDisconnect, !isMonitoringPaused else { return }
 
         delegate?.client(self, didUpdateState: .connecting)
         PulseLog.network.info("Connecting to agent at \(self.host):\(self.port)")
-
-        testInfoEndpoint { [weak self] result in
-            guard let self = self else { return }
-            self.queue.async {
-                guard !self.isUserInitiatedDisconnect else { return }
-
-                switch result {
-                case .success(let identity):
-                    self.delegate?.client(self, didReceiveIdentity: identity)
-                    self.openWebSocketStream()
-                case .failure(let error):
-                    PulseLog.network.error("Connection probe failed: \(error.localizedDescription)")
-                    self.delegate?.client(self, didFailWithError: error)
-                    self.scheduleReconnection()
-                }
-            }
-        }
+        openWebSocketStream()
     }
 
     public func fetchIdentity(completion: @escaping @Sendable (Result<AgentIdentity, Error>) -> Void) {
@@ -583,7 +569,37 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         PulseLog.network.info("WebSocket connected to \(self.host):\(self.port)")
 
         startHeartbeatMonitor()
+        startPingTimer()
         listenForMessages()
+    }
+
+    private func startPingTimer() {
+        DispatchQueue.main.async {
+            self.pingTimer?.invalidate()
+            self.pingTimer = Timer.scheduledTimer(withTimeInterval: self.pingInterval, repeats: true) { [weak self] _ in
+                self?.sendWebSocketPing()
+            }
+        }
+    }
+
+    private func sendWebSocketPing() {
+        queue.async {
+            guard !self.isUserInitiatedDisconnect, !self.isMonitoringPaused, let task = self.webSocketTask else { return }
+            task.sendPing { [weak self] error in
+                guard let self = self else { return }
+                if let error = error {
+                    if !Self.isCancellation(error) {
+                        PulseLog.network.warn("WebSocket ping failed for \(self.host):\(self.port): \(error.localizedDescription)")
+                        self.queue.async {
+                            guard !self.isUserInitiatedDisconnect, !self.isMonitoringPaused else { return }
+                            self.handleConnectionLoss(error: error)
+                        }
+                    }
+                } else {
+                    PulseLog.network.debug("WebSocket ping OK for \(self.host):\(self.port)")
+                }
+            }
+        }
     }
 
     private func listenForMessages() {
@@ -591,15 +607,17 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
             guard let self = self else { return }
 
             self.queue.async {
-                guard !self.isUserInitiatedDisconnect else { return }
+                guard !self.isUserInitiatedDisconnect, !self.isMonitoringPaused else { return }
 
                 switch result {
                 case .success(let message):
                     self.handleWebSocketMessage(message)
                     self.listenForMessages()
                 case .failure(let error):
-                    PulseLog.network.warn("WebSocket disconnected: \(error.localizedDescription)")
-                    self.handleConnectionLoss()
+                    if !Self.isCancellation(error) {
+                        PulseLog.network.warn("WebSocket disconnected for \(self.host):\(self.port): \(error.localizedDescription)")
+                        self.handleConnectionLoss(error: error)
+                    }
                 }
             }
         }
@@ -671,21 +689,25 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
 
     private func checkHeartbeatLiveness() {
         queue.async {
-            guard !self.isUserInitiatedDisconnect, let last = self.lastHeartbeatReceivedAt else { return }
-            if Date().timeIntervalSince(last) > self.heartbeatTimeoutInterval {
-                PulseLog.network.warn("Heartbeat timeout exceeded (\(self.heartbeatTimeoutInterval)s). Triggering reconnection.")
+            guard !self.isUserInitiatedDisconnect, !self.isMonitoringPaused, let last = self.lastHeartbeatReceivedAt else { return }
+            let elapsed = Date().timeIntervalSince(last)
+            if elapsed > self.heartbeatTimeoutInterval {
+                PulseLog.network.warn("Heartbeat timeout exceeded (\(Int(elapsed))s > \(Int(self.heartbeatTimeoutInterval))s) for \(self.host):\(self.port). Triggering reconnection.")
                 self.handleConnectionLoss()
             }
         }
     }
 
-    private func handleConnectionLoss() {
+    private func handleConnectionLoss(error: Error? = nil) {
         cleanupConnection()
+        if let error = error {
+            delegate?.client(self, didFailWithError: error)
+        }
         scheduleReconnection()
     }
 
     private func scheduleReconnection() {
-        guard !isUserInitiatedDisconnect else { return }
+        guard !isUserInitiatedDisconnect, !self.isMonitoringPaused else { return }
 
         let delay = reconnectionPolicy.nextInterval()
         let attempt = reconnectionPolicy.attempt
@@ -694,7 +716,7 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         PulseLog.network.info("Scheduling reconnect attempt \(attempt) in \(delay)s")
 
         queue.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self = self, !self.isUserInitiatedDisconnect else { return }
+            guard let self = self, !self.isUserInitiatedDisconnect, !self.isMonitoringPaused else { return }
             self.startConnection()
         }
     }
@@ -884,6 +906,36 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         DispatchQueue.main.async {
             self.heartbeatTimer?.invalidate()
             self.heartbeatTimer = nil
+            self.pingTimer?.invalidate()
+            self.pingTimer = nil
+        }
+    }
+
+    public func pauseMonitoring() {
+        queue.async {
+            self.isMonitoringPaused = true
+            PulseLog.network.info("Pausing connection monitoring for \(self.host):\(self.port)")
+            DispatchQueue.main.async {
+                self.heartbeatTimer?.invalidate()
+                self.heartbeatTimer = nil
+                self.pingTimer?.invalidate()
+                self.pingTimer = nil
+            }
+        }
+    }
+
+    public func resumeMonitoring() {
+        queue.async {
+            PulseLog.network.info("Resuming connection monitoring for \(self.host):\(self.port)")
+            self.isMonitoringPaused = false
+            self.lastHeartbeatReceivedAt = Date()
+            if self.webSocketTask != nil {
+                self.startHeartbeatMonitor()
+                self.startPingTimer()
+                self.sendWebSocketPing()
+            } else if !self.isUserInitiatedDisconnect {
+                self.startConnection()
+            }
         }
     }
 

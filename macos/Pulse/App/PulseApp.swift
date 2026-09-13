@@ -340,12 +340,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func handleWorkspaceWillSleep() {
         PulseLog.agent.info("Mac is going to sleep: pausing connection monitoring")
+        Task { @MainActor in
+            ServerConnectionPool.shared.prepareForSleep()
+        }
     }
 
     @objc private func handleWorkspaceDidWake() {
-        PulseLog.agent.info("Mac woke up from sleep: reconnecting all servers")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            ServerConnectionPool.shared.reconnectAll()
+        PulseLog.agent.info("Mac woke up from sleep: resuming connection monitoring and verifying links")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            Task { @MainActor in
+                ServerConnectionPool.shared.handleWakeFromSleep()
+            }
         }
     }
 
