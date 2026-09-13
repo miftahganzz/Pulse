@@ -1,0 +1,58 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout 
+  title="Terms of Service — Pulse"
+  description="Pulse Terms of Service: MIT open-source license terms, disclaimer of warranties, and limitation of liability."
+>
+  <div class="page-header">
+    <div class="container">
+      <h1 class="page-title">Terms of Service</h1>
+      <p class="page-subtitle">Effective Date: September 13, 2026 • Version 1.0</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="legal-container">
+      <div class="legal-highlight">
+        <p><strong>Summary:</strong> Pulse is free, open-source software licensed under the MIT License. You are free to use, modify, distribute, and run it on your systems according to the terms below.</p>
+      </div>
+
+      <section class="legal-section">
+        <h2>1. License & Permissions</h2>
+        <p>Pulse (including the macOS application, the Go Linux agent daemon, scripts, and documentation) is licensed under the <strong>MIT License</strong>:</p>
+        <p style="padding: 16px; background: var(--surface-hover); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.85rem; color: #cbd5e1;">
+          Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the conditions stated in the LICENSE file.
+        </p>
+      </section>
+
+      <section class="legal-section">
+        <h2>2. Server Security & User Responsibility</h2>
+        <p>You are solely responsible for:</p>
+        <ul>
+          <li>Securing the Linux servers and workstations where Pulse is deployed.</li>
+          <li>Safeguarding authentication tokens, pairing codes, and TLS private keys.</li>
+          <li>Configuring firewall rules, Tailscale permissions, or Cloudflare Access policies appropriate for your threat model.</li>
+          <li>Ensuring that actions executed through the application (such as service restarts, system reboots, and Docker container termination) comply with your organization's operating guidelines.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section">
+        <h2>3. Disclaimer of Warranty</h2>
+        <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.</p>
+        <p>The developers and contributors do not warrant that Pulse will meet your specific requirements, be uninterrupted, timely, secure, or error-free.</p>
+      </section>
+
+      <section class="legal-section">
+        <h2>4. Limitation of Liability</h2>
+        <p>IN NO EVENT SHALL THE AUTHORS, COPYRIGHT HOLDERS, OR CONTRIBUTORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE, INCLUDING BUT NOT LIMITED TO LOSS OF DATA, SERVER DOWNTIME, OR BUSINESS INTERRUPTION.</p>
+      </section>
+
+      <section class="legal-section">
+        <h2>5. Governing Repository</h2>
+        <p>Source code and updates are maintained at <a href="https://github.com/miftahganzz/Pulse" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/miftahganzz/Pulse</a>. Modifications to these terms will be reflected in the repository history.</p>
+      </section>
+    </div>
+  </div>
+</Layout>

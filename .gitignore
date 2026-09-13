@@ -37,3 +37,11 @@ agent.json
 macos/app-build/
 macos/build/
 macos/build_old/
+
+# Web / Astro / Node
+web/node_modules/
+web/dist/
+web/.astro/
+node_modules/
+.astro/
+dist/
