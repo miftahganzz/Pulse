@@ -9,15 +9,15 @@ const releases = [
     isLatest: true,
     highlights: [
       {
-        title: "Resilient Persistent Connections & Keepalive",
-        desc: "Added active periodic WebSocket pings from client to agent, extended agent write deadlines to 25s, increased client heartbeat timeout tolerance to 30s, and streamlined direct WebSocket connections to prevent dropouts across NATs, firewalls, Cloudflare tunnels, and macOS sleep/wake cycles."
+        title: "Resilient Persistent Connections and Keepalive",
+        desc: "Added periodic WebSocket pings from client to agent, extended agent write deadlines to 25s, increased client heartbeat timeout tolerance to 30s, and streamlined direct WebSocket connections to prevent dropouts across NATs, firewalls, Cloudflare tunnels, and macOS sleep/wake cycles."
       },
       {
         title: "Eliminated Keychain Password Prompts",
-        desc: "Replaced intrusive macOS Keychain prompts on launch and rebuilds with an in-memory fast cache and local secure persistent storage for server tokens, database credentials, and TLS fingerprints."
+        desc: "Replaced repeated macOS Keychain prompts on launch with in-memory fast caching and local persistent storage for server tokens, database credentials, and TLS fingerprints."
       },
       {
-        title: "Docker Detection & Null Ports Decoding Fix",
+        title: "Docker Detection and Null Ports Decoding Fix",
         desc: "Fixed an issue where containers without exposed public ports (e.g. Supabase, private network containers) returning null port arrays caused JSON decoding failures and falsely triggered 'Docker Not Detected'."
       },
       {
@@ -25,12 +25,12 @@ const releases = [
         desc: "The macOS client now gracefully decodes null or missing container metadata fields across Docker engine variants."
       },
       {
-        title: "Docker Error State & Retry",
+        title: "Docker Error State and Retry",
         desc: "Added dedicated failure cards with an actionable retry button when container retrieval encounters network or decode issues."
       },
       {
         title: "Agent Auto-Update Release Binaries",
-        desc: "Restored standalone linux/amd64 and linux/arm64 release binary assets on GitHub Releases for one-command in-place updates via 'pulse update'."
+        desc: "Restored standalone linux/amd64 and linux/arm64 release binary assets on GitHub Releases for in-place updates via 'pulse update'."
       }
     ]
   },
@@ -41,7 +41,7 @@ const releases = [
     isLatest: false,
     highlights: [
       {
-        title: "Brute-Force & Port Scanning Defense",
+        title: "Brute-Force and Port Scanning Defense",
         desc: "Sliding-window rate limiter on the agent that automatically blocks malicious IPs for 15 minutes after repeated failed authentication or pairing attempts."
       },
       {
@@ -49,12 +49,12 @@ const releases = [
         desc: "Immediate revocation and purge of pairing sessions after 5 invalid code attempts."
       },
       {
-        title: "CSWSH & HTTP Security Headers",
+        title: "CSWSH and HTTP Security Headers",
         desc: "Strict Cross-Site WebSocket Hijacking origin verification, plus hardened HTTP security headers (CSP, HSTS, X-Frame-Options, nosniff)."
       },
       {
         title: "Tamper-Resistant Action Audit Trail",
-        desc: "Linux agent records all executed actions, scripts, and runbooks with timestamp, user identity, and status to an append-only audit log (audit.log)."
+        desc: "Linux agent records all executed actions, scripts, and runbooks with timestamp, user identity, and status to an append-only audit log."
       },
       {
         title: "TOFU TLS Certificate Pinning",
@@ -62,7 +62,7 @@ const releases = [
       },
       {
         title: "Biometric Security Gate (Touch ID)",
-        desc: "Optional Touch ID / Apple Watch / Mac Password confirmation before running destructive actions (reboot, service restart, kill container)."
+        desc: "Optional Touch ID, Apple Watch, or Mac password confirmation before running destructive actions (reboot, service restart, container termination)."
       }
     ]
   },
@@ -73,16 +73,16 @@ const releases = [
     isLatest: false,
     highlights: [
       {
-        title: "Add Server UI Redesign",
-        desc: "Prominent Method pickers (Direct IP, Cloudflare Tunnel, Tailscale) and Mode pickers (Root vs. Non-Root) right on the primary screen. No more hidden multi-step wizard."
+        title: "Add Server Screen Redesign",
+        desc: "Direct method selection (Direct IP, Cloudflare Tunnel, Tailscale) and mode selection (Root vs. Non-Root) on the primary screen."
       },
       {
-        title: "Inline 1-Line Setup",
-        desc: "Instant copy button for 1-line setup command with dynamic helper badges and server connection fields all in one clean view."
+        title: "Inline Setup Snippet",
+        desc: "Instant copy button for 1-line setup command with helper badges and server connection fields in one view."
       },
       {
         title: "Universal Non-Root Support",
-        desc: "Standalone non-root options for Direct IP, Tailscale, and Cloudflare Tunnel."
+        desc: "Dedicated non-root options for Direct IP, Tailscale, and Cloudflare Tunnel."
       }
     ]
   },
@@ -94,15 +94,15 @@ const releases = [
     highlights: [
       {
         title: "Non-Root User Mode",
-        desc: "Full standalone support for non-root VPS accounts and shared environments. Installs to ~/.local/bin and ~/.pulse without requiring sudo."
+        desc: "Standalone support for non-root VPS accounts and shared environments. Installs to ~/.local/bin and ~/.pulse without requiring sudo."
       },
       {
-        title: "Cloudflare & Tailscale Non-Root",
-        desc: "All 3 connection methods now provide dedicated one-line non-root scripts without requiring root or open ports."
+        title: "Cloudflare and Tailscale Non-Root",
+        desc: "Dedicated one-line non-root scripts without requiring root or open ports."
       },
       {
-        title: "User-Level Systemd & Crontab Fallback",
-        desc: "Automatically deploys and manages daemon via systemctl --user with auto-linger or crontab @reboot persistence."
+        title: "User-Level Systemd and Crontab Fallback",
+        desc: "Deploys daemon via systemctl --user with auto-linger or crontab @reboot persistence."
       }
     ]
   },
@@ -114,11 +114,11 @@ const releases = [
     highlights: [
       {
         title: "Unified Pulse CLI",
-        desc: "All-in-one command line tool (pulse) on Linux nodes for status, pairing, Tailscale, Cloudflare tunnels, logs, and self-updates."
+        desc: "Command line tool (pulse) on Linux nodes for status, pairing, Tailscale, Cloudflare tunnels, logs, and self-updates."
       },
       {
         title: "Network Offline Auto-Reconnect",
-        desc: "Real-time network monitor that detects Wi-Fi/Ethernet drops and reconnects servers automatically when online."
+        desc: "Real-time network monitor that detects Wi-Fi or Ethernet drops and reconnects servers automatically when online."
       },
       {
         title: "Live Log Streaming Enhancements",
@@ -133,24 +133,24 @@ const releases = [
     isLatest: false,
     highlights: [
       {
-        title: "Live Log Viewer & Streaming (⌘L)",
+        title: "Live Log Viewer and Streaming (Cmd+L)",
         desc: "Real-time WebSocket log streaming for Systemd services and Docker containers with regex search, pause, and auto-scroll."
       },
       {
         title: "Outbound Telegram Alerts",
-        desc: "Direct Bot API push notifications to user IDs and ops channels with 1-click test alert and flapping protection."
+        desc: "Direct Bot API push notifications to user IDs and ops channels with test alert and flapping protection."
       },
       {
-        title: "Disk Space Analyzer (⌘U)",
-        desc: "Instant breakdown of disk usage across /var/log, Docker, cache, and safe 1-click cleaners (vacuum journals, docker prune, clean apt)."
+        title: "Disk Space Analyzer (Cmd+U)",
+        desc: "Breakdown of disk usage across /var/log, Docker, cache, and safe cleaners (vacuum journals, docker prune, clean apt)."
       },
       {
-        title: "Maintenance Runbooks (⌘R)",
-        desc: "1-click execution for reloading web servers (Nginx/Caddy), flushing DNS cache, checking OS updates, and dropping pagecache."
+        title: "Maintenance Runbooks (Cmd+R)",
+        desc: "Execution shortcuts for reloading web servers (Nginx, Caddy), flushing DNS cache, and checking OS updates."
       },
       {
-        title: "Process Network & Disk I/O",
-        desc: "Real-time read/write KB/s throughput and open socket file descriptor audit in the Process table."
+        title: "Process Network and Disk I/O",
+        desc: "Real-time read and write throughput and open socket file descriptor audit in the Process table."
       }
     ]
   },
@@ -161,16 +161,16 @@ const releases = [
     isLatest: false,
     highlights: [
       {
-        title: "Server Tags & Environments",
+        title: "Server Tags and Environments",
         desc: "Group servers in the sidebar by Production, Staging, Development, and Other."
       },
       {
         title: "One-Command Automated Setup",
-        desc: "One-command scripts for Direct IP, Tailscale, and Cloudflare Tunnel with auto-detection of firewall and CPU architecture."
+        desc: "Automated scripts for Direct IP, Tailscale, and Cloudflare Tunnel with auto-detection of firewall and CPU architecture."
       },
       {
-        title: "XXX-XXX Human-Friendly Pairing Code",
-        desc: "New XXX-XXX format code (e.g. 607-019) with 10-minute validity."
+        title: "Human-Friendly Pairing Code",
+        desc: "XXX-XXX format code (e.g. 607-019) with 10-minute validity."
       }
     ]
   },
@@ -181,16 +181,16 @@ const releases = [
     isLatest: false,
     highlights: [
       {
-        title: "Security & Open Ports Inspector",
+        title: "Security and Open Ports Inspector",
         desc: "Real-time socket audit, exposure detection, and UFW firewall checks."
       },
       {
         title: "Sparkle 2 Auto-Updater",
-        desc: "Seamless native background and on-demand app updates with Ed25519 signatures."
+        desc: "Background and on-demand app updates with Ed25519 signatures."
       },
       {
         title: "Custom URL Scheme",
-        desc: "Supported pulse://add deep linking for 1-click server onboarding."
+        desc: "Supported pulse://add deep linking for server onboarding."
       }
     ]
   }
@@ -198,7 +198,7 @@ const releases = [
 ---
 
 <Layout 
-  title="Changelog — Pulse Release History"
+  title="Changelog: Pulse Release History"
   description="Chronological release history and update notes for the Pulse macOS client and Linux agent."
 >
   <div class="page-header">
@@ -209,14 +209,14 @@ const releases = [
   </div>
 
   <section class="section" style="padding-top: 0;">
-    <div class="container" style="max-width: 860px;">
+    <div class="container" style="max-width: 800px;">
       {releases.map((rel) => (
         <article class="changelog-entry">
           <div class="changelog-header">
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
               <h2 class="changelog-version">{rel.version}</h2>
               {rel.isLatest && <span class="changelog-badge">Latest</span>}
-              <span style="font-size: 0.85rem; color: var(--text-muted); font-family: var(--font-mono);">{rel.build}</span>
+              <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">{rel.build}</span>
             </div>
             <time class="changelog-date">{rel.date}</time>
           </div>

@@ -3,46 +3,46 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout 
-  title="Privacy Policy — Pulse"
+  title="Privacy Policy: Pulse"
   description="Pulse Privacy Policy: Local-first architecture, zero telemetry, zero analytical tracking, direct peer-to-peer TLS communication."
 >
   <div class="page-header">
     <div class="container">
       <h1 class="page-title">Privacy Policy</h1>
-      <p class="page-subtitle">Effective Date: September 13, 2026 • Version 1.0</p>
+      <p class="page-subtitle">Effective Date: September 13, 2026 (Version 1.0)</p>
     </div>
   </div>
 
   <div class="container">
     <div class="legal-container">
       <div class="legal-highlight">
-        <p><strong>The short version:</strong> Pulse does not collect, store, transmit, or monetize your personal data. All monitoring traffic travels directly between your Mac and your Linux hosts over encrypted connections. We operate zero cloud relays and collect zero telemetry.</p>
+        <p><strong>Summary:</strong> Pulse does not collect, store, transmit, or monetize personal data. All monitoring traffic travels directly between your Mac and your Linux hosts over encrypted connections. We operate zero cloud relays and collect zero telemetry.</p>
       </div>
 
       <section class="legal-section">
-        <h2>1. Zero Telemetry & Analytics</h2>
-        <p>Pulse (both the macOS application and the Linux agent daemon) contains no tracking code, telemetry SDKs, Google Analytics, Mixpanel, Crashlytics, or third-party analytical beacons. We do not track your IP address, device identifier, hardware configuration, server count, or usage habits.</p>
+        <h2>1. Zero Telemetry and Analytics</h2>
+        <p>Pulse (the macOS application and the Linux agent daemon) contains no tracking code, telemetry SDKs, Google Analytics, Mixpanel, Crashlytics, or third-party beacons. We do not collect IP addresses, device identifiers, hardware configurations, server counts, or usage habits.</p>
       </section>
 
       <section class="legal-section">
         <h2>2. Direct Point-to-Point Architecture</h2>
-        <p>Pulse does not operate a hosted SaaS backend or cloud proxy server. All communications occur strictly point-to-point:</p>
+        <p>Pulse does not operate a centralized backend proxy. Communications occur strictly point-to-point:</p>
         <ul>
-          <li><strong>Direct IP / LAN:</strong> Encrypted WebSocket and TLS 1.3 directly between your Mac and your server's listening port.</li>
-          <li><strong>Tailscale:</strong> End-to-end WireGuard tunnel between devices on your private Tailnet.</li>
-          <li><strong>Cloudflare Tunnel:</strong> Direct tunnel through Cloudflare edge using your own Cloudflare account credentials.</li>
+          <li><strong>Direct IP / LAN:</strong> Encrypted WebSocket and TLS 1.3 directly between your Mac and your server listening port.</li>
+          <li><strong>Tailscale:</strong> Encrypted WireGuard tunnel between devices on your private Tailnet.</li>
+          <li><strong>Cloudflare Tunnel:</strong> Direct tunnel through Cloudflare edge using your configured tunnel credentials.</li>
         </ul>
-        <p>Your server metrics, system logs, Docker container names, and systemd units remain exclusively on your devices.</p>
+        <p>System metrics, logs, Docker container names, and systemd units remain exclusively on your own machines.</p>
       </section>
 
       <section class="legal-section">
         <h2>3. Local Storage of Credentials</h2>
-        <p>All sensitive configuration data is retained locally on your machines:</p>
+        <p>Configuration data is stored locally on your devices:</p>
         <ul>
-          <li>Server authentication tokens, TLS fingerprints (TOFU pinning), and host addresses are saved in your macOS user profile and application storage.</li>
-          <li>On the Linux node, configuration and generated TLS certificates are stored in <code>/etc/pulse-agent</code> (root mode) or <code>~/.pulse</code> (user mode) with strict <code>0600</code> file permissions.</li>
-          <li>Pairing codes (<code>XXX-XXX</code>) are ephemeral with a 10-minute time-to-live and are deleted immediately upon successful pairing or expiration.</li>
-          <li>Tokens copied to your clipboard are purged automatically from memory after 60 seconds.</li>
+          <li>Server authentication tokens, TLS fingerprints (TOFU pinning), and host addresses are saved in macOS local storage.</li>
+          <li>On the Linux node, configuration and TLS certificates are stored in /etc/pulse-agent (root mode) or ~/.pulse (user mode) with strict 0600 file permissions.</li>
+          <li>Pairing codes (format XXX-XXX) are ephemeral with a 10-minute time-to-live and are deleted upon pairing or expiration.</li>
+          <li>Tokens copied to your clipboard are cleared from memory after 60 seconds.</li>
         </ul>
       </section>
 
@@ -50,19 +50,19 @@ import Layout from '../layouts/Layout.astro';
         <h2>4. External Integrations (Optional)</h2>
         <p>If you enable optional third-party integrations:</p>
         <ul>
-          <li><strong>Telegram Bot Notifications:</strong> Outbound alert webhooks connect directly from your Linux agent to the official Telegram Bot API (<code>api.telegram.org</code>) using your own Bot Token. No intermediary server is involved.</li>
-          <li><strong>Software Updates:</strong> The macOS app uses Sparkle 2 to check for updates by fetching the static <code>appcast.xml</code> manifest from GitHub Releases. No identifiers are sent during update checks.</li>
+          <li><strong>Telegram Bot Notifications:</strong> Outbound alert webhooks connect directly from your Linux agent to api.telegram.org using your own Bot Token. No intermediary server is involved.</li>
+          <li><strong>Software Updates:</strong> The macOS app uses Sparkle 2 to check for updates by fetching the static appcast.xml manifest from GitHub Releases. No identifiers are sent during update checks.</li>
         </ul>
       </section>
 
       <section class="legal-section">
         <h2>5. Open Source Verification</h2>
-        <p>Both the macOS client and Linux agent are open source under the MIT License. You are welcome to audit the source code, compile from source, or monitor outgoing network connections via tools like Little Snitch or Wireshark to verify compliance with this policy.</p>
+        <p>Both the macOS client and Linux agent are open source under the MIT License. You can inspect the source code, build from source, or audit outgoing network connections.</p>
       </section>
 
       <section class="legal-section">
         <h2>6. Contact</h2>
-        <p>If you have any questions regarding privacy or security practices, open an issue or discussion on the official GitHub repository at <a href="https://github.com/miftahganzz/Pulse" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">github.com/miftahganzz/Pulse</a>.</p>
+        <p>For questions regarding privacy or security practices, open an issue or discussion on the official GitHub repository at <a href="https://github.com/miftahganzz/Pulse" target="_blank" rel="noopener noreferrer" style="text-decoration: underline;">github.com/miftahganzz/Pulse</a>.</p>
       </section>
     </div>
   </div>
