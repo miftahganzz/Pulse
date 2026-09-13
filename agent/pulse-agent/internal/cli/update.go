@@ -103,11 +103,23 @@ func RunUpdate(configPath string, args []string) {
 
 	dlResp, err := http.Get(downloadURL)
 	if err != nil || dlResp.StatusCode != http.StatusOK {
+		if dlResp != nil {
+			_ = dlResp.Body.Close()
+		}
 		// Try generic latest download URL
 		downloadURL = fmt.Sprintf("https://github.com/miftahganzz/Pulse/releases/latest/download/pulse-agent-linux-%s", arch)
 		dlResp, err = http.Get(downloadURL)
 		if err != nil || dlResp.StatusCode != http.StatusOK {
-			fmt.Printf("  %s✖ Failed to download update binary from GitHub:%s %v\n\n", Red, Reset, err)
+			statusMsg := ""
+			if dlResp != nil {
+				statusMsg = fmt.Sprintf(" (HTTP %d)", dlResp.StatusCode)
+				_ = dlResp.Body.Close()
+			}
+			if err != nil {
+				fmt.Printf("  %s✖ Failed to download update binary from GitHub:%s %v%s\n\n", Red, Reset, err, statusMsg)
+			} else {
+				fmt.Printf("  %s✖ Failed to download update binary from GitHub:%s%s\n\n", Red, Reset, statusMsg)
+			}
 			return
 		}
 	}

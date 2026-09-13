@@ -82,6 +82,27 @@ public struct DockerContainersView: View {
                     Text("Checking Docker engine...").foregroundColor(.secondary).font(.caption)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let err = manager.lastDockerError {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 36))
+                        .foregroundColor(.orange)
+                    Text("Failed to Load Docker")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text(err)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    Button(action: { manager.refreshDocker() }) {
+                        Label("Retry", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+                .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+                .cornerRadius(8)
             } else if !manager.isDockerAvailable {
                 VStack(spacing: 12) {
                     Image(systemName: "shippingbox")

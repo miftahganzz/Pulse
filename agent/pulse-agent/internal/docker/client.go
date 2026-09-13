@@ -130,7 +130,7 @@ func (c *DockerClient) GetStatus() (*DockerStatus, error) {
 			name = strings.TrimPrefix(raw.Names[0], "/")
 		}
 
-		var portStrings []string
+		portStrings := make([]string, 0)
 		for _, p := range raw.Ports {
 			if p.PublicPort > 0 {
 				portStrings = append(portStrings, fmt.Sprintf("%s:%d->%d/%s", p.IP, p.PublicPort, p.PrivatePort, p.Type))

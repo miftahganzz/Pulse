@@ -63,4 +63,38 @@ final class DockerDecodingTests: XCTestCase {
         XCTAssertEqual(res.containerId, "e3b0c44298fc")
         XCTAssertTrue(res.logs.contains("Ready to accept connections"))
     }
+
+    func testDecodeDockerStatusResponseWithNullPortsAndMissingFields() throws {
+        let json = """
+        {
+            "available": true,
+            "version": "29.1.3",
+            "containers": [
+                {
+                    "id": "6c5c5951b584",
+                    "name": "supabase-auth",
+                    "image": "supabase/gotrue:v2.196.0",
+                    "state": "running",
+                    "status": "Up 24 minutes (healthy)",
+                    "created_at": 1789261915,
+                    "ports": null
+                },
+                {
+                    "id": "7a48831524c5",
+                    "image": "supabase/edge-runtime:v1.76.2"
+                }
+            ]
+        }
+        """
+
+        let data = json.data(using: .utf8)!
+        let status = try JSONDecoder().decode(DockerStatusResponse.self, from: data)
+
+        XCTAssertTrue(status.available)
+        XCTAssertEqual(status.containers.count, 2)
+        XCTAssertEqual(status.containers[0].ports, [])
+        XCTAssertEqual(status.containers[0].name, "supabase-auth")
+        XCTAssertEqual(status.containers[1].ports, [])
+        XCTAssertEqual(status.containers[1].name, "")
+    }
 }

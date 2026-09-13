@@ -6,6 +6,29 @@
     <description>Pulse updates and release channel</description>
     <language>en</language>
     <item>
+      <title>Pulse 1.0.5</title>
+      <pubDate>Sun, 13 Sep 2026 08:48:00 +0700</pubDate>
+      <sparkle:version>105</sparkle:version>
+      <sparkle:shortVersionString>1.0.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>Pulse v1.0.5 (Build 105)</h2>
+        <ul>
+          <li><strong>Docker Detection & Null Ports Decoding Fix:</strong> Fixed an issue where containers without exposed public ports (e.g. Supabase, internal networks) returning null port arrays caused Docker decoding failures and falsely triggered "Docker Not Detected".</li>
+          <li><strong>Resilient Container Decoding:</strong> macOS client now gracefully decodes null/missing container metadata fields across all daemon versions.</li>
+          <li><strong>Docker Error State & Retry:</strong> Added dedicated failure card with actionable retry action when container retrieval encounters network or decode issues.</li>
+          <li><strong>Agent Auto-Update Release Binaries:</strong> Restored standalone linux/amd64 and linux/arm64 release binary assets on GitHub Releases for one-command updates.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/miftahganzz/Pulse/releases/download/v1.0.5/Pulse-1.0.5.dmg"
+        length="7834207"
+        sparkle:edSignature="yeBQcEoCl2AWIJkesYuIk/2Pvr26vk+hEMSJMEP6/0WumsvO/AuLeGaTXxuAkvmcaoGIkrOq68PrUXRh7L3PDQ=="
+        sparkle:version="105"
+        sparkle:shortVersionString="1.0.5"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Pulse 1.0.4</title>
       <pubDate>Sun, 13 Sep 2026 01:20:00 +0700</pubDate>
       <sparkle:version>104</sparkle:version>

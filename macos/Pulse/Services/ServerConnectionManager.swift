@@ -21,6 +21,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     @Published public private(set) var dockerContainers: [DockerContainerItem] = []
     @Published public private(set) var isDockerAvailable: Bool = false
     @Published public private(set) var dockerVersion: String? = nil
+    @Published public private(set) var lastDockerError: String? = nil
     @Published public private(set) var isLoadingProcesses = false
     @Published public private(set) var isLoadingServices = false
     @Published public private(set) var isLoadingDocker = false
@@ -697,8 +698,10 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
                     self.isDockerAvailable = status.available
                     self.dockerVersion = status.version
                     self.dockerContainers = status.containers
+                    self.lastDockerError = nil
                 case .failure(let err):
                     PulseLog.agent.error("Failed to fetch docker status: \(err.localizedDescription)")
+                    self.lastDockerError = err.localizedDescription
                 }
             }
         }
