@@ -18,6 +18,18 @@ public struct ServerListView: View {
         store.servers.first { $0.id.uuidString == navState.selectedServerId }
     }
 
+    private var currentDetailTitle: String {
+        if navState.selectedServerId == "ALL_SERVERS" {
+            return "All Servers"
+        } else if navState.selectedServerId == "COMPARE_SERVERS" {
+            return "Compare Servers"
+        } else if let server = selectedServer {
+            return server.name
+        } else {
+            return "Pulse"
+        }
+    }
+
     public var body: some View {
         NavigationSplitView {
             List(selection: $navState.selectedServerId) {
@@ -116,22 +128,53 @@ public struct ServerListView: View {
             .listStyle(.sidebar)
             .navigationSplitViewColumnWidth(min: 210, ideal: 250, max: 320)
             .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Button(action: { settings.isIPMasked.toggle() }) {
-                        Label(settings.isIPMasked ? "Show IP" : "Mask IP", systemImage: settings.isIPMasked ? "eye.slash" : "eye")
+                ToolbarItem(placement: .navigation) {
+                    Button(action: { showAddServerSheet = true }) {
+                        Label("Add Server", systemImage: "plus")
                     }
-                    .help(settings.isIPMasked ? "Show full server IP addresses" : "Mask server IP addresses")
-
+                    .help("Add Server (⌘N)")
+                }
+            }
+        } detail: {
+            Group {
+                if store.servers.isEmpty {
+                    OnboardingView {
+                        showAddServerSheet = true
+                    }
+                } else if navState.selectedServerId == "ALL_SERVERS" {
+                    AllServersOverviewView(selectedServer: Binding(
+                        get: { selectedServer },
+                        set: { navState.selectedServerId = $0?.id.uuidString ?? "ALL_SERVERS" }
+                    ))
+                } else if navState.selectedServerId == "COMPARE_SERVERS" {
+                    ServerCompareView()
+                } else if let server = selectedServer {
+                    ServerDetailView(manager: pool.manager(for: server))
+                } else {
+                    VStack(spacing: 12) {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary.opacity(0.5))
+                        Text("Select a Server")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .navigationTitle(currentDetailTitle)
+            .toolbar {
+                ToolbarItemGroup(placement: .primaryAction) {
                     Button(action: { navState.showCommandPalette = true }) {
                         Label("Quick Search", systemImage: "magnifyingglass")
                     }
                     .help("Quick Search (⌘K)")
                     .keyboardShortcut("k", modifiers: .command)
 
-                    Button(action: { showAddServerSheet = true }) {
-                        Label("Add Server", systemImage: "plus")
+                    Button(action: { settings.isIPMasked.toggle() }) {
+                        Label(settings.isIPMasked ? "Show IP" : "Mask IP", systemImage: settings.isIPMasked ? "eye.slash" : "eye")
                     }
-                    .help("Add Server")
+                    .help(settings.isIPMasked ? "Show full server IP addresses" : "Mask server IP addresses")
 
                     Button(action: { openWindow(id: "pulse-docs") }) {
                         Label("Docs", systemImage: "questionmark.circle")
@@ -144,31 +187,6 @@ public struct ServerListView: View {
                     .help("Settings (⌘,)")
                     .keyboardShortcut(",", modifiers: .command)
                 }
-            }
-        } detail: {
-            if store.servers.isEmpty {
-                OnboardingView {
-                    showAddServerSheet = true
-                }
-            } else if navState.selectedServerId == "ALL_SERVERS" {
-                AllServersOverviewView(selectedServer: Binding(
-                    get: { selectedServer },
-                    set: { navState.selectedServerId = $0?.id.uuidString ?? "ALL_SERVERS" }
-                ))
-            } else if navState.selectedServerId == "COMPARE_SERVERS" {
-                ServerCompareView()
-            } else if let server = selectedServer {
-                ServerDetailView(manager: pool.manager(for: server))
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "server.rack")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary.opacity(0.5))
-                    Text("Select a Server")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .sheet(isPresented: Binding(
