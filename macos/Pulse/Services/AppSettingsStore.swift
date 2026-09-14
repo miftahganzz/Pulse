@@ -26,6 +26,11 @@ public final class AppSettingsStore: ObservableObject {
     private let hasCompletedWelcomeGuideKey = "pulse.settings.has_completed_welcome_guide"
     private let requireBiometricForDestructiveActionsKey = "pulse.settings.require_biometric_destructive"
     private let autoClearClipboardKey = "pulse.settings.auto_clear_clipboard"
+    private let isIPMaskedKey = "pulse.settings.is_ip_masked"
+
+    @Published public var isIPMasked: Bool {
+        didSet { UserDefaults.standard.set(isIPMasked, forKey: isIPMaskedKey) }
+    }
 
     @Published public var requireBiometricForDestructiveActions: Bool {
         didSet { UserDefaults.standard.set(requireBiometricForDestructiveActions, forKey: requireBiometricForDestructiveActionsKey) }
@@ -130,6 +135,7 @@ public final class AppSettingsStore: ObservableObject {
         self.hasCompletedWelcomeGuide = defaults.bool(forKey: hasCompletedWelcomeGuideKey)
         self.requireBiometricForDestructiveActions = defaults.bool(forKey: requireBiometricForDestructiveActionsKey)
         self.autoClearClipboard = defaults.object(forKey: autoClearClipboardKey) as? Bool ?? true
+        self.isIPMasked = defaults.object(forKey: isIPMaskedKey) as? Bool ?? true
     }
 
     public func resetWelcomeGuide() {

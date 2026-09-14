@@ -164,8 +164,41 @@ public struct DockerContainersView: View {
                         .background(stateColor(c.state).opacity(0.12))
                         .clipShape(Capsule())
                     }
-                    .width(min: 80, ideal: 90, max: 105)
+                    .width(min: 75, ideal: 85, max: 95)
 
+                    TableColumn("CPU %") { c in
+                        if c.isRunning {
+                            Text(String(format: "%.1f%%", c.cpuPercent))
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .monospacedDigit()
+                                .foregroundColor(c.cpuPercent > 80 ? .red : (c.cpuPercent > 40 ? .orange : .primary))
+                        } else {
+                            Text("-")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .width(min: 65, ideal: 75, max: 90)
+
+                    TableColumn("Memory") { c in
+                        if c.isRunning && c.memoryUsageBytes > 0 {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(FormatUtils.bytes(c.memoryUsageBytes))
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .monospacedDigit()
+                                if c.memoryLimitBytes > 0 && c.memoryLimitBytes < 1024 * 1024 * 1024 * 1024 {
+                                    Text("/ \(FormatUtils.bytes(c.memoryLimitBytes))")
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        } else {
+                            Text("-")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .width(min: 80, ideal: 95, max: 115)
 
                     TableColumn("Status") { c in
                         Text(c.status)
@@ -173,7 +206,7 @@ public struct DockerContainersView: View {
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
-                    .width(min: 100, ideal: 140)
+                    .width(min: 90, ideal: 120)
 
                     TableColumn("Ports") { c in
                         Text(c.ports.joined(separator: ", "))

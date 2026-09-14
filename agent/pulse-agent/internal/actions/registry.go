@@ -87,6 +87,7 @@ func (e *Executor) GetSupportedActions(providerType string) []ActionDefinition {
 			{ID: "system.reload_webserver", Name: "Reload Web Server", Description: "Gracefully reload Nginx, Caddy, or Apache", Destructive: false},
 			{ID: "system.flush_dns", Name: "Flush DNS Cache", Description: "Flush local systemd DNS resolver cache", Destructive: false},
 			{ID: "system.check_updates", Name: "Check Updates", Description: "Check for available distro system package updates", Destructive: false},
+			{ID: "system.update_agent", Name: "Update Pulse Agent", Description: "Download and install latest pulse-agent release OTA", Destructive: true},
 			{ID: "system.drop_caches", Name: "Free Page Cache", Description: "Flush OS page cache to reclaim inactive memory", Destructive: false},
 		}
 	default:
@@ -383,6 +384,8 @@ func (e *Executor) executeInternal(ctx context.Context, req ActionRequest) Actio
 				Status:  "success",
 				Message: fmt.Sprintf("Update check completed. %s", strings.TrimSpace(string(upgradable))),
 			}
+		case "update_agent":
+			return executeAgentUpdate(ctx)
 		case "drop_caches":
 			_ = exec.CommandContext(ctx, "sync").Run()
 			return ActionResult{

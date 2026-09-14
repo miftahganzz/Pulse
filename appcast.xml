@@ -6,6 +6,29 @@
     <description>Pulse updates and release channel</description>
     <language>en</language>
     <item>
+      <title>Pulse 1.0.6</title>
+      <pubDate>Mon, 14 Sep 2026 06:45:00 +0700</pubDate>
+      <sparkle:version>106</sparkle:version>
+      <sparkle:shortVersionString>1.0.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h2>Pulse v1.0.6 (Build 106)</h2>
+        <ul>
+          <li><strong>Extreme Performance Optimization (Zero Beachballs on Intel Macs):</strong> Replaced heavy synchronous per-second disk writes to UserDefaults with an in-memory sliding ring buffer (360 points) taking microseconds with 0 disk I/O. Added automatic cleanup of bloated legacy history caches on launch.</li>
+          <li><strong>Swift Charts Downsampling:</strong> Downsampled graph series rendering to 60 points, eliminating CPU/GPU lag and spline interpolation freezes on older Intel GPUs.</li>
+          <li><strong>VPS IP &amp; Tunnel Hostname Obfuscation:</strong> Added privacy mode masking IPv4 addresses and tunnel domains by default on app launch, with an interactive eye toggle icon in the sidebar toolbar and server detail header.</li>
+          <li><strong>1-Click Agent OTA Remote Update:</strong> Remote pulse-agent OTA update system over WebSocket without SSH. Automated release detection, binary smoke testing, atomic replacement, and graceful systemd restart.</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/miftahganzz/Pulse/releases/download/v1.0.6/Pulse-1.0.6.dmg"
+        length="8022174"
+        sparkle:edSignature="xEmbzI92/Yrx0zwQ4XRQJoTIzOirV6YkBqOgfnB254ttEFyOZVpF2qlAq86iKrMzLAuMR1xraHfcvByLOl9JDA=="
+        sparkle:version="106"
+        sparkle:shortVersionString="1.0.6"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Pulse 1.0.5</title>
       <pubDate>Sun, 13 Sep 2026 08:48:00 +0700</pubDate>
       <sparkle:version>105</sparkle:version>

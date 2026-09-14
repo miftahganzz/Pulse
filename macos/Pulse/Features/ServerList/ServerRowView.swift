@@ -4,6 +4,7 @@ import SwiftUI
 public struct ServerRowView: View {
     let server: ServerModel
     let manager: ServerConnectionManager
+    @ObservedObject private var settings = AppSettingsStore.shared
 
     public init(server: ServerModel, manager: ServerConnectionManager) {
         self.server = server
@@ -41,7 +42,8 @@ public struct ServerRowView: View {
                 }
 
                 HStack(spacing: 4) {
-                    Text(verbatim: "\(server.address):\(server.port)")
+                    let masked = FormatUtils.maskedAddress(server.address, isMasked: settings.isIPMasked)
+                    Text(verbatim: "\(masked):\(server.port)")
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(.secondary)
 

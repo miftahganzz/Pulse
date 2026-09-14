@@ -8,6 +8,7 @@ struct PulseApp: App {
 
     init() {
         NotificationService.shared.requestAuthorization()
+        MetricsHistoryStore.purgeLegacyUserDefaultsCache()
     }
 
     var body: some Scene {

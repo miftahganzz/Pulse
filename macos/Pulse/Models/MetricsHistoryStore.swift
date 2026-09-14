@@ -43,23 +43,23 @@ public struct TrendAnalysisResult: Sendable {
 }
 
 public enum MetricsHistoryStore {
-    private static let maxDataPoints = 8640 // up to 24h at 10s interval (or downsampled)
+    public static let maxDataPoints = 360 // In-memory sliding buffer (e.g. 30-60m trend)
 
-    public static func loadHistory(forServerId serverId: UUID) -> [HistoricalDataPoint] {
-        let key = "pulse.history.\(serverId.uuidString)"
-        guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
-        do {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([HistoricalDataPoint].self, from: data)
-        } catch {
-            return []
+    /// Purges bloated legacy history from UserDefaults to eliminate disk thrashing on macOS
+    public static func purgeLegacyUserDefaultsCache() {
+        let keys = UserDefaults.standard.dictionaryRepresentation().keys.filter { $0.hasPrefix("pulse.history.") }
+        for key in keys {
+            UserDefaults.standard.removeObject(forKey: key)
         }
     }
 
-    public static func appendSnapshot(_ snapshot: MetricsSnapshot, forServerId serverId: UUID) -> [HistoricalDataPoint] {
-        var existing = loadHistory(forServerId: serverId)
+    public static func loadHistory(forServerId serverId: UUID) -> [HistoricalDataPoint] {
+        // Pure in-memory cache architecture; legacy keys are purged
+        return []
+    }
 
+    /// Appends a new metric point purely in memory without disk or JSON overhead (O(1) execution)
+    public static func appendSnapshot(_ snapshot: MetricsSnapshot, to existing: inout [HistoricalDataPoint]) {
         var totalDiskUsed: Int64 = 0
         var totalDiskCapacity: Int64 = 0
         for d in snapshot.disks {
@@ -81,16 +81,15 @@ public enum MetricsHistoryStore {
         if existing.count > maxDataPoints {
             existing.removeFirst(existing.count - maxDataPoints)
         }
-
-        let key = "pulse.history.\(serverId.uuidString)"
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        if let data = try? encoder.encode(existing) {
-            UserDefaults.standard.set(data, forKey: key)
-        }
-
-        return existing
     }
+
+    /// Overload for existing callers returning modified array
+    public static func appendSnapshot(_ snapshot: MetricsSnapshot, forServerId serverId: UUID, currentHistory: [HistoricalDataPoint] = []) -> [HistoricalDataPoint] {
+        var updated = currentHistory
+        appendSnapshot(snapshot, to: &updated)
+        return updated
+    }
+
 
     /// Calculates resource trends and estimated disk growth over available data points
     public static func analyzeTrends(for dataPoints: [HistoricalDataPoint]) -> TrendAnalysisResult {

@@ -19,6 +19,14 @@ public struct ServerCompareView: View {
             }
             .padding(20)
         }
+        .onAppear {
+            for server in store.servers {
+                let mgr = pool.manager(for: server)
+                if mgr.state == .disconnected {
+                    mgr.connect()
+                }
+            }
+        }
     }
 
     private var headerView: some View {
@@ -75,21 +83,7 @@ public struct ServerCompareView: View {
                 .frame(width: 140, alignment: .leading)
 
             ForEach(store.servers, id: \.id) { (server: ServerModel) in
-                let mgr = pool.manager(for: server)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(server.name)
-                        .font(.system(size: 12, weight: .semibold))
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(mgr.state.isConnected ? (mgr.incidents.contains(where: { $0.status != .resolved }) ? Color.orange : Color.green) : Color.red)
-                            .frame(width: 6, height: 6)
-                        Text(mgr.state.displayStatus)
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
+                CompareHeaderCell(server: server, manager: pool.manager(for: server))
             }
         }
         .padding(.vertical, 10)
@@ -101,13 +95,7 @@ public struct ServerCompareView: View {
         HStack(spacing: 0) {
             rowHeader(title: "CPU Usage", icon: "cpu")
             ForEach(store.servers, id: \.id) { (server: ServerModel) in
-                let mgr = pool.manager(for: server)
-                let cpu = mgr.currentMetrics?.cpu.usagePercent ?? 0
-                Text(String(format: "%.1f%%", cpu))
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundColor(cpu > 85 ? .red : (cpu > 70 ? .orange : .primary))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
+                CompareCPUCell(manager: pool.manager(for: server))
             }
         }
         .padding(.vertical, 10)
@@ -118,14 +106,7 @@ public struct ServerCompareView: View {
         HStack(spacing: 0) {
             rowHeader(title: "Memory", icon: "memorychip")
             ForEach(store.servers, id: \.id) { (server: ServerModel) in
-                let mgr = pool.manager(for: server)
-                let mem = mgr.currentMetrics?.memory.usagePercent ?? 0
-                let usedMB = (mgr.currentMetrics?.memory.usedBytes ?? 0) / 1024 / 1024
-                Text(String(format: "%.1f%% (%d MB)", mem, usedMB))
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(mem > 90 ? .red : (mem > 80 ? .orange : .primary))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
+                CompareMemoryCell(manager: pool.manager(for: server))
             }
         }
         .padding(.vertical, 10)
@@ -136,13 +117,7 @@ public struct ServerCompareView: View {
         HStack(spacing: 0) {
             rowHeader(title: "Disk Usage", icon: "internaldrive")
             ForEach(store.servers, id: \.id) { (server: ServerModel) in
-                let mgr = pool.manager(for: server)
-                let disk = mgr.currentMetrics?.disks.first?.usagePercent ?? 0
-                Text(String(format: "%.1f%%", disk))
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(disk > 85 ? .red : .primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
+                CompareDiskCell(manager: pool.manager(for: server))
             }
         }
         .padding(.vertical, 10)
@@ -153,26 +128,7 @@ public struct ServerCompareView: View {
         HStack(spacing: 0) {
             rowHeader(title: "Incidents", icon: "exclamationmark.octagon")
             ForEach(store.servers, id: \.id) { (server: ServerModel) in
-                let mgr = pool.manager(for: server)
-                let count = mgr.incidents.filter { $0.status != .resolved }.count
-                Group {
-                    if count == 0 {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 11))
-                                .foregroundColor(.green)
-                            Text("Healthy")
-                                .font(.system(size: 11))
-                                .foregroundColor(.green)
-                        }
-                    } else {
-                        Text("\(count) Active")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.red)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
+                CompareIncidentsCell(manager: pool.manager(for: server))
             }
         }
         .padding(.vertical, 10)
@@ -183,12 +139,7 @@ public struct ServerCompareView: View {
         HStack(spacing: 0) {
             rowHeader(title: "Monitors", icon: "waveform.path.ecg")
             ForEach(store.servers, id: \.id) { (server: ServerModel) in
-                let mgr = pool.manager(for: server)
-                Text("\(mgr.monitors.filter { $0.isEnabled }.count) probes")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
+                CompareProbesCell(manager: pool.manager(for: server))
             }
         }
         .padding(.vertical, 10)
@@ -199,14 +150,7 @@ public struct ServerCompareView: View {
         HStack(spacing: 0) {
             rowHeader(title: "Network I/O", icon: "arrow.up.arrow.down")
             ForEach(store.servers, id: \.id) { (server: ServerModel) in
-                let mgr = pool.manager(for: server)
-                let rx = (mgr.currentMetrics?.network.rxBytesPerSec ?? 0) / 1024
-                let tx = (mgr.currentMetrics?.network.txBytesPerSec ?? 0) / 1024
-                Text(String(format: "↓%d KB/s ↑%d KB/s", rx, tx))
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
+                CompareNetworkCell(manager: pool.manager(for: server))
             }
         }
         .padding(.vertical, 10)
@@ -223,5 +167,138 @@ public struct ServerCompareView: View {
                 .font(.system(size: 12, weight: .medium))
         }
         .frame(width: 140, alignment: .leading)
+    }
+}
+
+private struct CompareHeaderCell: View {
+    let server: ServerModel
+    @ObservedObject var manager: ServerConnectionManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(server.name)
+                .font(.system(size: 12, weight: .semibold))
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(manager.state.isConnected ? (manager.incidents.contains(where: { $0.status != .resolved }) ? Color.orange : Color.green) : Color.red)
+                    .frame(width: 6, height: 6)
+                Text(manager.state.displayStatus)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+    }
+}
+
+private struct CompareCPUCell: View {
+    @ObservedObject var manager: ServerConnectionManager
+
+    var body: some View {
+        let cpu = manager.currentMetrics?.cpu.usagePercent ?? 0
+        Text(String(format: "%.1f%%", cpu))
+            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .monospacedDigit()
+            .foregroundColor(cpu > 85 ? .red : (cpu > 70 ? .orange : .primary))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 8)
+    }
+}
+
+private struct CompareMemoryCell: View {
+    @ObservedObject var manager: ServerConnectionManager
+
+    var body: some View {
+        let mem = manager.currentMetrics?.memory.usagePercent ?? 0
+        let usedMB = (manager.currentMetrics?.memory.usedBytes ?? 0) / 1024 / 1024
+        Text(String(format: "%.1f%% (%d MB)", mem, usedMB))
+            .font(.system(size: 12, design: .monospaced))
+            .monospacedDigit()
+            .foregroundColor(mem > 90 ? .red : (mem > 80 ? .orange : .primary))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 8)
+    }
+}
+
+private struct CompareDiskCell: View {
+    @ObservedObject var manager: ServerConnectionManager
+
+    var body: some View {
+        let disk = manager.currentMetrics?.disks.first?.usagePercent ?? 0
+        Text(String(format: "%.1f%%", disk))
+            .font(.system(size: 12, design: .monospaced))
+            .monospacedDigit()
+            .foregroundColor(disk > 85 ? .red : .primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 8)
+    }
+}
+
+private struct CompareIncidentsCell: View {
+    @ObservedObject var manager: ServerConnectionManager
+
+    var body: some View {
+        let count = manager.incidents.filter { $0.status != .resolved }.count
+        Group {
+            if count == 0 {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.green)
+                    Text("Healthy")
+                        .font(.system(size: 11))
+                        .foregroundColor(.green)
+                }
+            } else {
+                Text("\(count) Active")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.red)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+    }
+}
+
+private struct CompareProbesCell: View {
+    @ObservedObject var manager: ServerConnectionManager
+
+    var body: some View {
+        Text("\(manager.monitors.filter { $0.isEnabled }.count) probes")
+            .font(.system(size: 12))
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 8)
+    }
+}
+
+private struct CompareNetworkCell: View {
+    @ObservedObject var manager: ServerConnectionManager
+
+    var body: some View {
+        let rx = manager.currentMetrics?.network.rxBytesPerSec ?? 0
+        let tx = manager.currentMetrics?.network.txBytesPerSec ?? 0
+        HStack(spacing: 6) {
+            HStack(spacing: 2) {
+                Image(systemName: "arrow.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.blue)
+                Text(FormatUtils.rate(rx))
+                    .foregroundColor(.primary)
+            }
+
+            HStack(spacing: 2) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.green)
+                Text(FormatUtils.rate(tx))
+                    .foregroundColor(.primary)
+            }
+        }
+        .font(.system(size: 11, weight: .medium, design: .monospaced))
+        .monospacedDigit()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
     }
 }

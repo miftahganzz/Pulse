@@ -48,16 +48,16 @@ build_arch_dmg() {
 }
 
 # 1. Universal 2
-build_arch_dmg "universal" ".build/apple/Products/Release/Pulse" "dmg_minimal.tiff" "Pulse-1.0.5-Universal.dmg"
+build_arch_dmg "universal" ".build/apple/Products/Release/Pulse" "dmg_minimal.tiff" "Pulse-1.0.6-Universal.dmg"
 
 # 2. Apple Silicon ARM64
-build_arch_dmg "arm64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/arm64/Binary/Pulse" "dmg_minimal.tiff" "Pulse-1.0.5-arm64.dmg"
+build_arch_dmg "arm64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/arm64/Binary/Pulse" "dmg_minimal.tiff" "Pulse-1.0.6-arm64.dmg"
 
 # 3. Intel x86_64
-build_arch_dmg "x86_64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/x86_64/Binary/Pulse" "dmg_minimal.tiff" "Pulse-1.0.5-x86_64.dmg"
+build_arch_dmg "x86_64" ".build/apple/Intermediates.noindex/Pulse.build/Release/Pulse.build/Objects-normal/x86_64/Binary/Pulse" "dmg_minimal.tiff" "Pulse-1.0.6-x86_64.dmg"
 
 # 4. Standard default link
-cp "app-build/Pulse-1.0.5-Universal.dmg" "app-build/Pulse-1.0.5.dmg"
+cp "app-build/Pulse-1.0.6-Universal.dmg" "app-build/Pulse-1.0.6.dmg"
 rm -f "app-build/test-*.dmg"
 
 echo "=== All DMGs created successfully! ==="

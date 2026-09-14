@@ -47,6 +47,12 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
 
     @Published public private(set) var lastError: String?
 
+    // Agent OTA Update State
+    @Published public var latestAvailableAgentVersion: String? = nil
+    @Published public var isCheckingAgentUpdate: Bool = false
+    @Published public var isUpdatingAgent: Bool = false
+    @Published public var agentUpdateStatusMessage: String? = nil
+
     @Published public var alertSettings: ServerAlertSettings
 
     private var client: PulseAgentClient?
@@ -445,6 +451,68 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
                         self.verificationStatuses[mId] = .failedStillDown(reason: err.localizedDescription)
                     }
                     completion?(.failure(err))
+                }
+            }
+        }
+    }
+
+    // MARK: - Agent OTA Remote Update
+    public func checkForAgentUpdate() {
+        guard !isCheckingAgentUpdate else { return }
+        isCheckingAgentUpdate = true
+
+        Task {
+            defer {
+                Task { @MainActor in self.isCheckingAgentUpdate = false }
+            }
+            guard let url = URL(string: "https://api.github.com/repos/miftahganzz/Pulse/releases/latest") else { return }
+            var req = URLRequest(url: url)
+            req.setValue("Pulse-macOS-Client", forHTTPHeaderField: "User-Agent")
+            req.timeoutInterval = 6.0
+
+            do {
+                let (data, resp) = try await URLSession.shared.data(for: req)
+                guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return }
+                struct GHReleaseDTO: Decodable {
+                    let tag_name: String
+                }
+                let rel = try JSONDecoder().decode(GHReleaseDTO.self, from: data)
+                let remoteTag = rel.tag_name.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+                let currentVer = (self.identity?.agentVersion ?? "0.9.0").trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+
+                await MainActor.run {
+                    if remoteTag.compare(currentVer, options: .numeric) == .orderedDescending {
+                        self.latestAvailableAgentVersion = rel.tag_name
+                    } else {
+                        self.latestAvailableAgentVersion = nil
+                    }
+                }
+            } catch {
+                // Ignore network errors or rate limits
+            }
+        }
+    }
+
+    public func updateRemoteAgent() {
+        guard !isUpdatingAgent, state.isConnected else { return }
+        isUpdatingAgent = true
+        agentUpdateStatusMessage = "Downloading and installing latest pulse-agent on server..."
+
+        executeAction(action: "system.update_agent", target: "pulse-agent", actor: "Pulse App") { [weak self] result in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                switch result {
+                case .success:
+                    self.agentUpdateStatusMessage = "Update completed! Service is restarting..."
+                    self.latestAvailableAgentVersion = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        self.isUpdatingAgent = false
+                        self.agentUpdateStatusMessage = nil
+                        self.connect()
+                    }
+                case .failure(let err):
+                    self.isUpdatingAgent = false
+                    self.agentUpdateStatusMessage = "Update failed: \(err.localizedDescription)"
                 }
             }
         }
@@ -900,6 +968,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
         Task { @MainActor in
             self.identity = identity
             PulseLog.agent.info("Received identity for \(self.serverName): \(identity.hostname) (\(identity.os), \(identity.cpuCores) cores)")
+            self.checkForAgentUpdate()
         }
     }
 
@@ -914,7 +983,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
             self.currentMetrics = metrics
             self.lastMetricsReceivedAt = Date()
             self.isStale = false
-            self.metricsHistory = MetricsHistoryStore.appendSnapshot(metrics, forServerId: self.serverId)
+            MetricsHistoryStore.appendSnapshot(metrics, to: &self.metricsHistory)
             self.checkMetricAlerts(metrics)
         }
     }

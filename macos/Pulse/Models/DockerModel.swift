@@ -8,6 +8,9 @@ public struct DockerContainerItem: Identifiable, Codable, Equatable, Sendable {
     public let status: String
     public let createdAt: Int64
     public let ports: [String]
+    public let cpuPercent: Double
+    public let memoryUsageBytes: UInt64
+    public let memoryLimitBytes: UInt64
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -17,6 +20,9 @@ public struct DockerContainerItem: Identifiable, Codable, Equatable, Sendable {
         case status
         case createdAt = "created_at"
         case ports
+        case cpuPercent = "cpu_percent"
+        case memoryUsageBytes = "memory_usage_bytes"
+        case memoryLimitBytes = "memory_limit_bytes"
     }
 
     public init(
@@ -26,7 +32,10 @@ public struct DockerContainerItem: Identifiable, Codable, Equatable, Sendable {
         state: String,
         status: String,
         createdAt: Int64 = 0,
-        ports: [String] = []
+        ports: [String] = [],
+        cpuPercent: Double = 0.0,
+        memoryUsageBytes: UInt64 = 0,
+        memoryLimitBytes: UInt64 = 0
     ) {
         self.id = id
         self.name = name
@@ -35,6 +44,9 @@ public struct DockerContainerItem: Identifiable, Codable, Equatable, Sendable {
         self.status = status
         self.createdAt = createdAt
         self.ports = ports
+        self.cpuPercent = cpuPercent
+        self.memoryUsageBytes = memoryUsageBytes
+        self.memoryLimitBytes = memoryLimitBytes
     }
 
     public init(from decoder: Decoder) throws {
@@ -46,6 +58,9 @@ public struct DockerContainerItem: Identifiable, Codable, Equatable, Sendable {
         self.status = try container.decodeIfPresent(String.self, forKey: .status) ?? ""
         self.createdAt = try container.decodeIfPresent(Int64.self, forKey: .createdAt) ?? 0
         self.ports = try container.decodeIfPresent([String].self, forKey: .ports) ?? []
+        self.cpuPercent = try container.decodeIfPresent(Double.self, forKey: .cpuPercent) ?? 0.0
+        self.memoryUsageBytes = try container.decodeIfPresent(UInt64.self, forKey: .memoryUsageBytes) ?? 0
+        self.memoryLimitBytes = try container.decodeIfPresent(UInt64.self, forKey: .memoryLimitBytes) ?? 0
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -57,6 +72,9 @@ public struct DockerContainerItem: Identifiable, Codable, Equatable, Sendable {
         try container.encode(status, forKey: .status)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(ports, forKey: .ports)
+        try container.encode(cpuPercent, forKey: .cpuPercent)
+        try container.encode(memoryUsageBytes, forKey: .memoryUsageBytes)
+        try container.encode(memoryLimitBytes, forKey: .memoryLimitBytes)
     }
 
     public var isRunning: Bool {

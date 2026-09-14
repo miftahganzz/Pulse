@@ -3,10 +3,34 @@ import Layout from '../layouts/Layout.astro';
 
 const releases = [
   {
+    version: "v1.0.6",
+    build: "Build 106",
+    date: "September 14, 2026",
+    isLatest: true,
+    highlights: [
+      {
+        title: "Extreme Performance Optimization (Zero Beachballs on Intel Macs)",
+        desc: "Replaced heavy synchronous per-second disk writes to UserDefaults with an in-memory sliding ring buffer (360 points) taking microseconds with zero disk I/O. Added automatic purge of bloated legacy history caches on app launch."
+      },
+      {
+        title: "Swift Charts Spline Downsampling",
+        desc: "Downsampled graph series rendering to 60 representative points, eliminating CPU/GPU rendering freezes and maintaining a fluid 60 FPS on older Intel Iris graphics."
+      },
+      {
+        title: "VPS IP and Tunnel Hostname Obfuscation",
+        desc: "Added privacy mode masking IPv4 addresses and tunnel hostnames by default on app launch, with an interactive eye toggle icon in the sidebar toolbar and server detail header."
+      },
+      {
+        title: "1-Click Agent OTA Remote Update",
+        desc: "Remote pulse-agent OTA update system over WebSocket without requiring SSH. Automated release detection, binary smoke testing, atomic replacement, and graceful systemd restart."
+      }
+    ]
+  },
+  {
     version: "v1.0.5",
     build: "Build 105",
     date: "September 13, 2026",
-    isLatest: true,
+    isLatest: false,
     highlights: [
       {
         title: "Resilient Persistent Connections and Keepalive",
@@ -200,7 +224,7 @@ const releases = [
 <Layout 
   title="Changelog: Pulse Release History"
   description="Chronological release history and update notes for the Pulse macOS client and Linux agent."
-  keywords="pulse changelog, pulse releases, pulse updates, macos server monitor release notes, pulse v1.0.5"
+  keywords="pulse changelog, pulse releases, pulse updates, macos server monitor release notes, pulse v1.0.6"
 >
   <div class="page-header">
     <div class="container">

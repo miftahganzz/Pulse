@@ -5,7 +5,23 @@ public struct MetricChartsView: View {
     let history: [HistoricalDataPoint]
     @State private var selectedMetric = 0 // 0: CPU, 1: RAM, 2: Network
 
+    /// Downsamples history points to at most 60 samples to guarantee butter-smooth 60fps rendering on Intel Macs
+    private var chartPoints: [HistoricalDataPoint] {
+        guard history.count > 60 else { return history }
+        let step = max(1, history.count / 60)
+        var sampled: [HistoricalDataPoint] = []
+        sampled.reserveCapacity(65)
+        for i in stride(from: 0, to: history.count, by: step) {
+            sampled.append(history[i])
+        }
+        if let last = history.last, sampled.last?.timestamp != last.timestamp {
+            sampled.append(last)
+        }
+        return sampled
+    }
+
     public var body: some View {
+
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("Historical Trends")
@@ -78,7 +94,7 @@ public struct MetricChartsView: View {
                 }
             }
 
-            Chart(history) { point in
+            Chart(chartPoints) { point in
                 LineMark(
                     x: .value("Time", point.timestamp),
                     y: .value("CPU %", point.cpuPercent)
@@ -120,7 +136,7 @@ public struct MetricChartsView: View {
                 }
             }
 
-            Chart(history) { point in
+            Chart(chartPoints) { point in
                 LineMark(
                     x: .value("Time", point.timestamp),
                     y: .value("RAM %", point.memoryPercent)
@@ -162,7 +178,7 @@ public struct MetricChartsView: View {
                 }
             }
 
-            Chart(history) { point in
+            Chart(chartPoints) { point in
                 LineMark(
                     x: .value("Time", point.timestamp),
                     y: .value("Rx Rate", point.networkRxBytesPerSec),

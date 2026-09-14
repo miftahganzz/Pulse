@@ -87,6 +87,7 @@ public struct AllServersOverviewView: View {
 private struct ServerOverviewCard: View {
     let server: ServerModel
     @ObservedObject var manager: ServerConnectionManager
+    @ObservedObject private var settings = AppSettingsStore.shared
     @State private var isHovered = false
 
     var body: some View {
@@ -95,7 +96,8 @@ private struct ServerOverviewCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(server.name)
                         .font(.system(size: 14, weight: .semibold))
-                    Text(verbatim: "\(server.address):\(server.port)")
+                    let masked = FormatUtils.maskedAddress(server.address, isMasked: settings.isIPMasked)
+                    Text(verbatim: "\(masked):\(server.port)")
                         .font(.system(size: 11, design: .monospaced))
                         .monospacedDigit()
                         .foregroundColor(.secondary)

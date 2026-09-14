@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -150,11 +151,110 @@ func (c *DockerClient) GetStatus() (*DockerStatus, error) {
 		})
 	}
 
+	c.populateStats(containers)
+
 	return &DockerStatus{
 		Available:  true,
 		Version:    version,
 		Containers: containers,
 	}, nil
+}
+
+type containerStatsPayload struct {
+	CPUStats struct {
+		CPUUsage struct {
+			TotalUsage uint64 `json:"total_usage"`
+		} `json:"cpu_usage"`
+		SystemCPUUsage uint64 `json:"system_cpu_usage"`
+		OnlineCPUs     uint32 `json:"online_cpus"`
+	} `json:"cpu_stats"`
+	PreCPUStats struct {
+		CPUUsage struct {
+			TotalUsage uint64 `json:"total_usage"`
+		} `json:"cpu_usage"`
+		SystemCPUUsage uint64 `json:"system_cpu_usage"`
+	} `json:"precpu_stats"`
+	MemoryStats struct {
+		Usage uint64 `json:"usage"`
+		Limit uint64 `json:"limit"`
+		Stats struct {
+			TotalInactiveFile uint64 `json:"total_inactive_file"`
+			InactiveFile      uint64 `json:"inactive_file"`
+		} `json:"stats"`
+	} `json:"memory_stats"`
+}
+
+func (c *DockerClient) populateStats(containers []ContainerInfo) {
+	if len(containers) == 0 {
+		return
+	}
+
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
+	defer cancel()
+
+	for i := range containers {
+		if strings.ToLower(containers[i].State) != "running" {
+			continue
+		}
+
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			cpu, memUsed, memLimit := c.fetchSingleContainerStats(ctx, containers[idx].ID)
+			containers[idx].CPUPercent = cpu
+			containers[idx].MemoryUsageBytes = memUsed
+			containers[idx].MemoryLimitBytes = memLimit
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func (c *DockerClient) fetchSingleContainerStats(ctx context.Context, id string) (float64, uint64, uint64) {
+	url := fmt.Sprintf("http://localhost/containers/%s/stats?stream=false", id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, 0, 0
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return 0, 0, 0
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, 0, 0
+	}
+
+	var s containerStatsPayload
+	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
+		return 0, 0, 0
+	}
+
+	var cpuPercent float64
+	cpuDelta := float64(s.CPUStats.CPUUsage.TotalUsage) - float64(s.PreCPUStats.CPUUsage.TotalUsage)
+	systemDelta := float64(s.CPUStats.SystemCPUUsage) - float64(s.PreCPUStats.SystemCPUUsage)
+
+	if systemDelta > 0 && cpuDelta > 0 {
+		cpus := float64(s.CPUStats.OnlineCPUs)
+		if cpus == 0 {
+			cpus = 1
+		}
+		cpuPercent = (cpuDelta / systemDelta) * cpus * 100.0
+	}
+
+	memUsage := s.MemoryStats.Usage
+	inactiveFile := s.MemoryStats.Stats.TotalInactiveFile
+	if inactiveFile == 0 {
+		inactiveFile = s.MemoryStats.Stats.InactiveFile
+	}
+	if memUsage > inactiveFile {
+		memUsage -= inactiveFile
+	}
+
+	return cpuPercent, memUsage, s.MemoryStats.Limit
 }
 
 func (c *DockerClient) ControlContainer(id string, action string) error {

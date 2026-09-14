@@ -72,6 +72,33 @@ func TestDockerMockSocketParsing(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(containers)
 	})
 
+	mockMux.HandleFunc("/containers/abcdef123456/stats", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		stats := map[string]any{
+			"cpu_stats": map[string]any{
+				"cpu_usage": map[string]any{
+					"total_usage": 200000000,
+				},
+				"system_cpu_usage": 1000000000,
+				"online_cpus":      2,
+			},
+			"precpu_stats": map[string]any{
+				"cpu_usage": map[string]any{
+					"total_usage": 100000000,
+				},
+				"system_cpu_usage": 500000000,
+			},
+			"memory_stats": map[string]any{
+				"usage": 256 * 1024 * 1024,
+				"limit": 1024 * 1024 * 1024,
+				"stats": map[string]any{
+					"inactive_file": 32 * 1024 * 1024,
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(stats)
+	})
+
 	mockMux.HandleFunc("/containers/abcdef123456/restart", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
@@ -110,6 +137,16 @@ func TestDockerMockSocketParsing(t *testing.T) {
 	}
 	if len(c.Ports) != 1 || c.Ports[0] != "0.0.0.0:8080->80/tcp" {
 		t.Errorf("unexpected ports: %v", c.Ports)
+	}
+	if c.CPUPercent <= 0 {
+		t.Errorf("expected CPUPercent > 0, got %f", c.CPUPercent)
+	}
+	expectedMem := uint64((256 - 32) * 1024 * 1024)
+	if c.MemoryUsageBytes != expectedMem {
+		t.Errorf("expected MemoryUsageBytes %d, got %d", expectedMem, c.MemoryUsageBytes)
+	}
+	if c.MemoryLimitBytes != 1024*1024*1024 {
+		t.Errorf("expected MemoryLimitBytes %d, got %d", 1024*1024*1024, c.MemoryLimitBytes)
 	}
 
 	// Test control action

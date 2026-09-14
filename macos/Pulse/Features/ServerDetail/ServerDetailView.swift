@@ -3,9 +3,11 @@ import SwiftUI
 public struct ServerDetailView: View {
     @ObservedObject var manager: ServerConnectionManager
     @ObservedObject private var navState = NavigationState.shared
+    @ObservedObject private var settings = AppSettingsStore.shared
     @State private var showSettingsSheet = false
     @State private var showEditServerSheet = false
     @State private var showRunbooksSheet = false
+    @State private var lastTabForCategory: [DetailTabCategory: Int] = [:]
 
     public init(manager: ServerConnectionManager) {
         self.manager = manager
@@ -24,7 +26,7 @@ public struct ServerDetailView: View {
                             if let server = ServerStore.shared.servers.first(where: { $0.id == manager.serverId }) {
                                 Text(server.environment.rawValue.uppercased())
                                     .font(.system(size: 9, weight: .bold))
-                                    .padding(.horizontal, 6)
+                                    .padding(.horizontal, 5)
                                     .padding(.vertical, 2)
                                     .background(server.environment.color.opacity(0.15))
                                     .foregroundColor(server.environment.color)
@@ -32,10 +34,23 @@ public struct ServerDetailView: View {
                             }
                         }
 
-                        Text(verbatim: "\(manager.address):\(manager.port)")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
+                        HStack(spacing: 6) {
+                            let masked = FormatUtils.maskedAddress(manager.address, isMasked: settings.isIPMasked)
+                            Text(verbatim: "\(masked):\(manager.port)")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+
+                            Button {
+                                settings.isIPMasked.toggle()
+                            } label: {
+                                Image(systemName: settings.isIPMasked ? "eye.slash" : "eye")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .help(settings.isIPMasked ? "Show full IP address" : "Mask IP address")
+                        }
                     }
 
                     Spacer(minLength: 8)
@@ -124,42 +139,141 @@ public struct ServerDetailView: View {
                     .cornerRadius(6)
                 }
 
-                // Responsive Horizontal Tab Switcher
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 2) {
-                            tabButton(title: "Overview", tag: 0)
-                                .id(0)
-                            tabButton(title: "Logs", tag: 9)
-                                .id(9)
-                            tabButton(title: "Storage", tag: 10)
-                                .id(10)
-                            tabButton(title: "Monitors", tag: 1)
-                                .id(1)
-                            let incidentCount = manager.incidents.filter({ $0.status != .resolved }).count
-                            tabButton(title: "Incidents", tag: 2, badge: incidentCount > 0 ? "\(incidentCount)" : nil, badgeColor: .red)
-                                .id(2)
-                            tabButton(title: "Processes", tag: 3)
-                                .id(3)
-                            tabButton(title: "Services", tag: 4)
-                                .id(4)
-                            tabButton(title: "Docker", tag: 5)
-                                .id(5)
-                            let secCount = manager.securitySnapshot?.sensitiveCount ?? 0
-                            tabButton(title: "Security", tag: 8, badge: secCount > 0 ? "\(secCount)" : nil, badgeColor: .red)
-                                .id(8)
-                            tabButton(title: "Map", tag: 7)
-                                .id(7)
-                            tabButton(title: "Activity", tag: 6)
-                                .id(6)
+                // Agent OTA Update Banner
+                if let updateVer = manager.latestAvailableAgentVersion {
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.accentColor)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Pulse Agent Update Available (\(updateVer))")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.primary)
+                            Text("Current: v\(manager.identity?.agentVersion ?? "0.9.0") · 1-click update without SSH")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
                         }
-                        .padding(.horizontal, 2)
-                    }
-                    .onChange(of: navState.selectedDetailTab) { newTab in
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            proxy.scrollTo(newTab, anchor: .center)
+
+                        Spacer()
+
+                        if manager.isUpdatingAgent {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text(manager.agentUpdateStatusMessage ?? "Updating...")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            Button("Update Agent (1-Click)") {
+                                manager.updateRemoteAgent()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
                         }
                     }
+                    .padding(10)
+                    .background(Color.accentColor.opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.2), lineWidth: 1))
+                    .cornerRadius(6)
+                } else if manager.isUpdatingAgent, let status = manager.agentUpdateStatusMessage {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(status)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(10)
+                    .background(Color.accentColor.opacity(0.08))
+                    .cornerRadius(6)
+                }
+
+                // Hierarchical Domain Category & Sub-tab Navigation
+                let currentCategory = DetailTabCategory.category(for: navState.selectedDetailTab)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    // Tier 1: Domain Categories
+                    HStack(spacing: 3) {
+                        ForEach(DetailTabCategory.allCases) { cat in
+                            let isCatActive = currentCategory == cat
+                            let badge = categoryBadge(for: cat)
+
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    let targetTag = lastTabForCategory[cat] ?? cat.tabs.first?.tag ?? 0
+                                    navState.selectedDetailTab = targetTag
+                                }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: cat.icon)
+                                        .font(.system(size: 11, weight: isCatActive ? .semibold : .regular))
+                                    Text(cat.rawValue)
+                                        .font(.system(size: 12, weight: isCatActive ? .semibold : .medium))
+
+                                    if let b = badge {
+                                        Text(b.text)
+                                            .font(.system(size: 9, weight: .bold))
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(b.color.opacity(0.18))
+                                            .foregroundColor(b.color)
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4.5)
+                                .background(isCatActive ? Color.primary.opacity(0.10) : Color.clear)
+                                .foregroundColor(isCatActive ? .primary : .secondary)
+                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Spacer()
+                    }
+
+                    // Tier 2: Sub-tabs under active domain category
+                    HStack(spacing: 2) {
+                        ForEach(currentCategory.tabs) { item in
+                            let isSelected = navState.selectedDetailTab == item.tag
+                            let subBadge = subTabBadge(for: item.tag)
+
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.12)) {
+                                    navState.selectedDetailTab = item.tag
+                                    lastTabForCategory[currentCategory] = item.tag
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(item.title)
+                                        .font(.system(size: 11.5, weight: isSelected ? .semibold : .regular))
+
+                                    if let b = subBadge {
+                                        Text(b.text)
+                                            .font(.system(size: 9, weight: .bold))
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(b.color.opacity(0.18))
+                                            .foregroundColor(b.color)
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3.5)
+                                .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
+                                .foregroundColor(isSelected ? .accentColor : .secondary)
+                                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.leading, 2)
                 }
             }
             .padding([.top, .horizontal], 14)
@@ -219,36 +333,53 @@ public struct ServerDetailView: View {
         }
     }
 
-    private func tabButton(title: String, tag: Int, badge: String? = nil, badgeColor: Color = .red) -> some View {
-        let isSelected = navState.selectedDetailTab == tag
-        return Button {
-            withAnimation(.easeInOut(duration: 0.12)) {
-                navState.selectedDetailTab = tag
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(title)
-                    .font(.system(size: 11.5, weight: isSelected ? .semibold : .medium))
-                    .fixedSize()
+    private struct BadgeInfo {
+        let text: String
+        let color: Color
+    }
 
-                if let b = badge {
-                    Text(b)
-                        .font(.system(size: 9, weight: .bold))
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(badgeColor.opacity(0.18))
-                        .foregroundColor(badgeColor)
-                        .clipShape(Capsule())
-                }
+    private func categoryBadge(for category: DetailTabCategory) -> BadgeInfo? {
+        switch category {
+        case .audit:
+            let count = manager.incidents.filter({ $0.status != .resolved }).count
+            if count > 0 {
+                return BadgeInfo(text: "\(count)", color: .red)
             }
-            .padding(.horizontal, 7)
-            .padding(.vertical, 4)
-            .background(isSelected ? Color.primary.opacity(0.12) : Color.clear)
-            .foregroundColor(isSelected ? .primary : .secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .contentShape(Rectangle())
+            return nil
+        case .infrastructure:
+            let secCount = manager.securitySnapshot?.sensitiveCount ?? 0
+            if secCount > 0 {
+                return BadgeInfo(text: "\(secCount)", color: .orange)
+            }
+            return nil
+        default:
+            return nil
         }
-        .buttonStyle(.plain)
+    }
+
+    private func subTabBadge(for tag: Int) -> BadgeInfo? {
+        switch tag {
+        case 2: // Incidents
+            let count = manager.incidents.filter({ $0.status != .resolved }).count
+            if count > 0 {
+                return BadgeInfo(text: "\(count)", color: .red)
+            }
+            return nil
+        case 8: // Security
+            let secCount = manager.securitySnapshot?.sensitiveCount ?? 0
+            if secCount > 0 {
+                return BadgeInfo(text: "\(secCount)", color: .orange)
+            }
+            return nil
+        case 5: // Docker
+            let count = manager.dockerContainers.count
+            if count > 0 {
+                return BadgeInfo(text: "\(count)", color: .secondary)
+            }
+            return nil
+        default:
+            return nil
+        }
     }
 
     private var overviewContent: some View {
@@ -297,13 +428,6 @@ public struct ServerDetailView: View {
                             Spacer()
 
                             HStack(spacing: 8) {
-                                Text("Load: \(String(format: "%.2f, %.2f, %.2f", metrics.loadAvg.load1, metrics.loadAvg.load5, metrics.loadAvg.load15))")
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.secondary.opacity(0.1))
-                                    .cornerRadius(4)
-
                                 Text("Up: \(formatDuration(seconds: metrics.uptimeSeconds))")
                                     .font(.system(size: 11, design: .monospaced))
                                     .padding(.horizontal, 8)
@@ -313,10 +437,20 @@ public struct ServerDetailView: View {
                             }
                         }
 
-                        // Primary 4 Cards Grid
+                        // Primary Anchor & Secondary Metrics Grid
+                        let cpuHistory = manager.metricsHistory.suffix(30).map { $0.cpuPercent }
+                        let memHistory = manager.metricsHistory.suffix(30).map { $0.memoryPercent }
+
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                            CPUMetricCard(cpu: metrics.cpu)
-                            MemoryMetricCard(mem: metrics.memory)
+                            CPUMetricCard(
+                                cpu: metrics.cpu,
+                                history: cpuHistory,
+                                loadAvg: metrics.loadAvg
+                            )
+                            MemoryMetricCard(
+                                mem: metrics.memory,
+                                history: memHistory
+                            )
 
                             if let primary = metrics.primaryDisk {
                                 DiskMetricCard(disk: primary)
@@ -452,7 +586,30 @@ public struct ServerDetailView: View {
                             Divider().padding(.horizontal, 14).opacity(0.3)
                             ServerIdentityRow(label: "CPU Cores", value: "\(identity.cpuCores) Cores")
                             Divider().padding(.horizontal, 14).opacity(0.3)
-                            ServerIdentityRow(label: "Agent Version", value: "v\(identity.agentVersion)", isMonospace: true)
+                            HStack {
+                                ServerIdentityRow(label: "Agent Version", value: "v\(identity.agentVersion)", isMonospace: true)
+                                if manager.isCheckingAgentUpdate {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else if let updateVer = manager.latestAvailableAgentVersion {
+                                    Button("Update to \(updateVer)") {
+                                        manager.updateRemoteAgent()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.small)
+                                } else {
+                                    Button {
+                                        manager.checkForAgentUpdate()
+                                    } label: {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Check for pulse-agent update")
+                                }
+                            }
+                            .padding(.trailing, 8)
                             Divider().padding(.horizontal, 14).opacity(0.3)
                             ServerIdentityRow(label: "Agent UUID", value: identity.agentID, isMonospace: true, canCopy: true)
                         }
@@ -595,4 +752,67 @@ private struct ServerIdentityRow: View {
         .padding(.vertical, 8)
     }
 }
+
+public enum DetailTabCategory: String, CaseIterable, Identifiable {
+    case telemetry = "Telemetry"
+    case workloads = "Workloads"
+    case infrastructure = "Infrastructure"
+    case audit = "Audit"
+
+    public var id: String { rawValue }
+
+    public var icon: String {
+        switch self {
+        case .telemetry: return "chart.xyaxis.line"
+        case .workloads: return "cpu"
+        case .infrastructure: return "server.rack"
+        case .audit: return "shield.checkered"
+        }
+    }
+
+    public struct TabItem: Identifiable {
+        public let id: Int
+        public let title: String
+        public let tag: Int
+    }
+
+    public var tabs: [TabItem] {
+        switch self {
+        case .telemetry:
+            return [
+                TabItem(id: 0, title: "Overview", tag: 0),
+                TabItem(id: 9, title: "Live Logs", tag: 9),
+                TabItem(id: 1, title: "Monitors", tag: 1)
+            ]
+        case .workloads:
+            return [
+                TabItem(id: 5, title: "Docker", tag: 5),
+                TabItem(id: 3, title: "Processes", tag: 3),
+                TabItem(id: 4, title: "Services", tag: 4)
+            ]
+        case .infrastructure:
+            return [
+                TabItem(id: 10, title: "Storage", tag: 10),
+                TabItem(id: 8, title: "Security", tag: 8),
+                TabItem(id: 7, title: "Network Map", tag: 7)
+            ]
+        case .audit:
+            return [
+                TabItem(id: 2, title: "Incidents", tag: 2),
+                TabItem(id: 6, title: "Activity", tag: 6)
+            ]
+        }
+    }
+
+    public static func category(for tag: Int) -> DetailTabCategory {
+        switch tag {
+        case 0, 1, 9: return .telemetry
+        case 3, 4, 5: return .workloads
+        case 7, 8, 10: return .infrastructure
+        case 2, 6: return .audit
+        default: return .telemetry
+        }
+    }
+}
+
 

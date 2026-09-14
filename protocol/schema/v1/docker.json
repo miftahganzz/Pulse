@@ -21,7 +21,10 @@
           "ports": {
             "type": "array",
             "items": { "type": "string" }
-          }
+          },
+          "cpu_percent": { "type": "number" },
+          "memory_usage_bytes": { "type": "integer" },
+          "memory_limit_bytes": { "type": "integer" }
         }
       }
     }

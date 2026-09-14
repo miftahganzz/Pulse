@@ -14,7 +14,7 @@ import (
 	"github.com/pulse/pulse-agent/internal/system"
 )
 
-const CurrentAgentVersion = "1.0.5"
+const CurrentAgentVersion = "1.0.6"
 
 type Config struct {
 	AgentID       string `json:"agent_id"`

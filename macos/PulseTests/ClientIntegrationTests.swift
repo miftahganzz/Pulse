@@ -9,12 +9,15 @@ final class ClientIntegrationTests: XCTestCase, @unchecked Sendable, PulseAgentC
     var receivedIdentity: AgentIdentity?
     var receivedMetrics: MetricsSnapshot?
 
+    private var didFulfillState = false
     private var didFulfillIdentity = false
+    private var didFulfillHeartbeat = false
     private var didFulfillMetrics = false
     private var agentProcess: Process?
 
     func client(_ client: PulseAgentClient, didUpdateState state: ConnectionState) {
-        if state == .connected {
+        if state == .connected && !didFulfillState {
+            didFulfillState = true
             stateExpectation?.fulfill()
         }
     }
@@ -28,7 +31,10 @@ final class ClientIntegrationTests: XCTestCase, @unchecked Sendable, PulseAgentC
     }
 
     func client(_ client: PulseAgentClient, didReceiveHeartbeat heartbeat: HeartbeatPayload) {
-        heartbeatExpectation?.fulfill()
+        if !didFulfillHeartbeat {
+            didFulfillHeartbeat = true
+            heartbeatExpectation?.fulfill()
+        }
     }
 
     func client(_ client: PulseAgentClient, didReceiveMetrics metrics: MetricsSnapshot) {

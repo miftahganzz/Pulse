@@ -6,8 +6,11 @@ type ContainerInfo struct {
 	Image     string   `json:"image"`
 	State     string   `json:"state"`
 	Status    string   `json:"status"`
-	CreatedAt int64    `json:"created_at"`
-	Ports     []string `json:"ports"`
+	CreatedAt        int64    `json:"created_at"`
+	Ports            []string `json:"ports"`
+	CPUPercent       float64  `json:"cpu_percent"`
+	MemoryUsageBytes uint64   `json:"memory_usage_bytes"`
+	MemoryLimitBytes uint64   `json:"memory_limit_bytes"`
 }
 
 type DockerStatus struct {

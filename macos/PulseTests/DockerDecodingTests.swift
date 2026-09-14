@@ -15,7 +15,10 @@ final class DockerDecodingTests: XCTestCase {
                     "state": "running",
                     "status": "Up 3 days",
                     "created_at": 1700000000,
-                    "ports": ["0.0.0.0:6379->6379/tcp"]
+                    "ports": ["0.0.0.0:6379->6379/tcp"],
+                    "cpu_percent": 12.5,
+                    "memory_usage_bytes": 134217728,
+                    "memory_limit_bytes": 1073741824
                 },
                 {
                     "id": "a1b2c3d4e5f6",
@@ -43,10 +46,15 @@ final class DockerDecodingTests: XCTestCase {
         XCTAssertTrue(redis.isRunning)
         XCTAssertFalse(redis.isPaused)
         XCTAssertEqual(redis.ports, ["0.0.0.0:6379->6379/tcp"])
+        XCTAssertEqual(redis.cpuPercent, 12.5)
+        XCTAssertEqual(redis.memoryUsageBytes, 134217728)
+        XCTAssertEqual(redis.memoryLimitBytes, 1073741824)
 
         let postgres = status.containers[1]
         XCTAssertEqual(postgres.name, "postgres-staging")
         XCTAssertFalse(postgres.isRunning)
+        XCTAssertEqual(postgres.cpuPercent, 0.0)
+        XCTAssertEqual(postgres.memoryUsageBytes, 0)
     }
 
     func testDecodeDockerLogsResponse() throws {

@@ -117,6 +117,11 @@ public struct ServerListView: View {
             .navigationSplitViewColumnWidth(min: 210, ideal: 250, max: 320)
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
+                    Button(action: { settings.isIPMasked.toggle() }) {
+                        Label(settings.isIPMasked ? "Show IP" : "Mask IP", systemImage: settings.isIPMasked ? "eye.slash" : "eye")
+                    }
+                    .help(settings.isIPMasked ? "Show full server IP addresses" : "Mask server IP addresses")
+
                     Button(action: { navState.showCommandPalette = true }) {
                         Label("Quick Search", systemImage: "magnifyingglass")
                     }

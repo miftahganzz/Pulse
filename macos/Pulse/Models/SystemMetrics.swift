@@ -226,4 +226,24 @@ public enum FormatUtils {
             return String(format: "%.0f B/s", bytesPerSec)
         }
     }
+
+    public static func maskedAddress(_ address: String, isMasked: Bool = true) -> String {
+        guard isMasked else { return address }
+        let parts = address.split(separator: ".")
+        if parts.count == 4 && parts.allSatisfy({ Int($0) != nil }) {
+            return "\(parts[0]).\(parts[1]).•••.••"
+        }
+        if address.contains(".") {
+            let components = address.split(separator: ".")
+            if let first = components.first, components.count >= 2 {
+                let prefix = first.prefix(4)
+                let suffix = components.dropFirst().joined(separator: ".")
+                return "\(prefix)•••••.\(suffix)"
+            }
+        }
+        if address.count > 6 {
+            return "\(address.prefix(4))••••"
+        }
+        return "••••••"
+    }
 }

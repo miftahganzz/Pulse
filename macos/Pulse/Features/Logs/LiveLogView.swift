@@ -476,7 +476,27 @@ public struct LiveLogView: View {
             }
             .frame(maxWidth: 500)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
+                if manager.isUpdatingAgent {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text(manager.agentUpdateStatusMessage ?? "Updating pulse-agent...")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Button {
+                        manager.updateRemoteAgent()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text("Update Agent Now (1-Click OTA)")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+
                 Button {
                     errorMessage = nil
                     startStreaming()
@@ -486,7 +506,7 @@ public struct LiveLogView: View {
                         Text("Retry Stream")
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .controlSize(.small)
             }
         }
