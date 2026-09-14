@@ -4,10 +4,14 @@ import Layout from '../layouts/Layout.astro';
 const releases = [
   {
     version: "v1.0.6",
-    build: "Build 106",
+    build: "Build 107",
     date: "September 14, 2026",
     isLatest: true,
     highlights: [
+      {
+        title: "Clean & Balanced Native macOS Window Toolbar",
+        desc: "Redesigned top navigation and toolbar following Apple HIG & Anti-Slop principles. Separated sidebar action ([+] Add Server) to the leading edge, added dynamic center title, and aligned operator tools (Quick Search, IP Mask, Docs, Settings) to the trailing edge."
+      },
       {
         title: "Extreme Performance Optimization (Zero Beachballs on Intel Macs)",
         desc: "Replaced heavy synchronous per-second disk writes to UserDefaults with an in-memory sliding ring buffer (360 points) taking microseconds with zero disk I/O. Added automatic purge of bloated legacy history caches on app launch."
