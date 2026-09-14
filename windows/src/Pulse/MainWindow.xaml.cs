@@ -23,6 +23,13 @@ public partial class MainWindow : Window
         // Extend content into titlebar
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
+
+        // Set native Windows window icon
+        try
+        {
+            AppWindow.SetIcon("Assets/AppIcon.ico");
+        }
+        catch { }
     }
 
     private void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
