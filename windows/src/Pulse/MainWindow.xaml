@@ -1,0 +1,84 @@
+<Window
+    x:Class="Pulse.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Pulse">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Custom Mica-Integrated Titlebar -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Height="48" Padding="16,0,16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Leading Toolbar (Sidebar Scope) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock Text="Pulse" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Button x:Name="AddServerBtn" Content="+ Add Server" Style="{StaticResource AccentButtonStyle}" ToolTipService.ToolTip="Add Server (Ctrl+N)" Click="OnAddServerClick" />
+            </StackPanel>
+
+            <!-- Center Dynamic Navigation Title -->
+            <TextBlock x:Name="TitleBarHeading" Grid.Column="1" Text="All Servers" FontWeight="Medium"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+            <!-- Trailing Toolbar (Operator Utility Actions) -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button x:Name="SearchBtn" ToolTipService.ToolTip="Quick Search (Ctrl+K)" Click="OnSearchClick">
+                    <FontIcon Glyph="&#xE721;" FontSize="14" />
+                </Button>
+                <Button x:Name="MaskIpBtn" ToolTipService.ToolTip="Toggle IP Masking" Click="OnMaskIpClick">
+                    <FontIcon Glyph="&#xE890;" FontSize="14" />
+                </Button>
+                <Button x:Name="DocsBtn" ToolTipService.ToolTip="Pulse Documentation (F1)" Click="OnDocsClick">
+                    <FontIcon Glyph="&#xE897;" FontSize="14" />
+                </Button>
+                <Button x:Name="SettingsBtn" ToolTipService.ToolTip="Settings (Ctrl+,)" Click="OnSettingsClick">
+                    <FontIcon Glyph="&#xE713;" FontSize="14" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main NavigationSplit / NavigationView Content Area -->
+        <NavigationView x:Name="NavView" Grid.Row="1" PaneDisplayMode="Left" IsBackButtonVisible="Collapsed"
+                        IsSettingsVisible="False" SelectionChanged="OnNavSelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="All Servers" Tag="ALL_SERVERS">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE809;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Compare Servers" Tag="COMPARE_SERVERS">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9D2;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Infrastructure Map" Tag="INFRA_MAP">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xEB51;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItemSeparator />
+                <NavigationViewItemHeader Content="SERVERS" />
+            </NavigationView.MenuItems>
+
+            <ScrollViewer Padding="24">
+                <StackPanel x:Name="MainContentPanel" Spacing="24">
+                    <!-- Dynamic view loaded on selection -->
+                    <TextBlock Text="Select a server from the sidebar or click '+ Add Server'" 
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,80,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </NavigationView>
+    </Grid>
+</Window>
