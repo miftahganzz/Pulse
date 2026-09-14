@@ -277,6 +277,11 @@ Compare load averages, CPU throttling, memory leaks, and network throughput acro
 - **Docker stdout/stderr**: Real-time streaming from active containers with ISO timestamp formatting.
 - **Interactive console controls**: Instant keyword regex search, pause/resume auto-scroll, and 1-click clipboard export.
 
+<div align="center" style="margin: 16px 0 24px;">
+  <img src="docs/images/pulse-live-logs.png" alt="Pulse Live Log Streaming" width="840" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 12px 36px rgba(0,0,0,0.35);" />
+  <p><em>Live Logs: Encrypted WebSocket stream for systemd journals and Docker stdout with instant regex search.</em></p>
+</div>
+
 ### Outbound Alerts: Telegram Integration (v1.0.0)
 - **Zero-proxy notifications**: Direct push alerts sent straight to your Telegram from your server daemon or Mac app.
 - **Simple 3-step setup**: Add Bot Token from `@BotFather`, enter recipient user/chat IDs, and test with one click.
@@ -290,6 +295,11 @@ Compare load averages, CPU throttling, memory leaks, and network throughput acro
   - `Docker Prune`: Cleans stopped containers, dangling images, and build caches without touching running services.
   - `Clean APT Cache`: Frees gigabytes from `/var/cache/apt/archives` on Debian/Ubuntu.
 
+<div align="center" style="margin: 16px 0 24px;">
+  <img src="docs/images/pulse-disk-analyzer.png" alt="Pulse Disk Space Analyzer and Safe Cleaners" width="840" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 12px 36px rgba(0,0,0,0.35);" />
+  <p><em>Disk Storage Analyzer: Reclaimable storage detection with 1-click safe maintenance cleaners.</em></p>
+</div>
+
 ### Maintenance Runbooks (v1.0.0 — ⌘R)
 - **Pre-approved operational tasks**: Trigger essential sysadmin routines directly from macOS.
   - Reload Webserver (`systemctl reload nginx / caddy`) without dropping connections.
@@ -298,15 +308,30 @@ Compare load averages, CPU throttling, memory leaks, and network throughput acro
   - Safely drop memory pagecache (`echo 3 > /proc/sys/vm/drop_caches`).
 - **Live Terminal Console**: Review realtime stdout/stderr output and command exit codes.
 
+<div align="center" style="margin: 16px 0 24px;">
+  <img src="docs/images/pulse-runbooks.png" alt="Pulse Maintenance Runbooks Modal" width="720" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 12px 36px rgba(0,0,0,0.35);" />
+  <p><em>Maintenance Runbooks (⌘R): Pre-approved operational sysadmin commands with live console execution.</em></p>
+</div>
+
 ### Process Network & Disk I/O (v1.0.0)
 - **Per-process bandwidth**: Live disk read/write throughput (KB/s or MB/s) parsed directly from Linux `/proc/[pid]/io`.
 - **Open socket auditing**: Displays active network file descriptors per process to spot connection leaks early.
+
+<div align="center" style="margin: 16px 0 24px;">
+  <img src="docs/images/pulse-processes.png" alt="Pulse Process Manager" width="840" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 12px 36px rgba(0,0,0,0.35);" />
+  <p><em>Process Manager: Real-time PID inspection sorted by CPU, memory, and disk I/O throughput.</em></p>
+</div>
 
 ### Menu Bar and Inspector
 - **Live Menu Bar widget**: Shows real-time CPU, RAM, and alert badges without occupying dock space.
 - **Menu Bar metrics ticker**: Optionally display live `CPU xx%  RAM xx%` metrics in macOS status bar.
 - **Process manager**: Sort processes by CPU, memory, or disk I/O; send `SIGTERM` or `SIGKILL` directly from the UI.
 - **Hardware telemetry**: Load averages, disk write spikes, network throughput, and memory pressure breakdown.
+
+<div align="center" style="margin: 16px 0 24px;">
+  <img src="docs/images/pulse-menu-bar.png" alt="Pulse macOS Menu Bar Status Popover" width="480" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 12px 36px rgba(0,0,0,0.35);" />
+  <p><em>Menu Bar Popover: Instant macOS status bar glance for node connectivity and active incident alerts.</em></p>
+</div>
 
 ### Container and Service Discovery
 - **Docker engine integration**: Track container status, inspect memory limits, and stream live stdout/stderr logs.

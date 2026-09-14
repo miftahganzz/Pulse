@@ -162,7 +162,7 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
-  <!-- Interface Showcase Section -->
+  <!-- Interface Showcase Carousel Section -->
   <section class="section" id="interface">
     <div class="container">
       <div class="section-header">
@@ -171,70 +171,246 @@ import Layout from '../layouts/Layout.astro';
         <p>A fast, fluid interface built with macOS design principles. No electron bloat, no clunky browser tabs, instant keyboard navigation.</p>
       </div>
 
-      <div class="interface-gallery-grid">
-        <!-- Gallery 1: Fleet Overview -->
-        <div class="gallery-card">
-          <div class="gallery-media">
-            <img 
-              src="/images/pulse-fleet-overview.png" 
-              alt="Pulse All Servers fleet overview with masked IPs and health vitals" 
-              width="600" 
-              height="380"
-              loading="lazy"
-            />
+      <div class="carousel-container" role="region" aria-roledescription="carousel" aria-label="Pulse Interface Showcase">
+        <!-- Slide Navigation Tabs (Top) -->
+        <div class="carousel-nav" role="tablist">
+          <button type="button" class="carousel-tab active" data-slide="0" role="tab" aria-selected="true" aria-controls="slide-0">
+            <span>Fleet Overview</span>
+          </button>
+          <button type="button" class="carousel-tab" data-slide="1" role="tab" aria-selected="false" aria-controls="slide-1">
+            <span>Live Logs</span>
+          </button>
+          <button type="button" class="carousel-tab" data-slide="2" role="tab" aria-selected="false" aria-controls="slide-2">
+            <span>Process Manager</span>
+          </button>
+          <button type="button" class="carousel-tab" data-slide="3" role="tab" aria-selected="false" aria-controls="slide-3">
+            <span>Storage & Cleaners</span>
+          </button>
+          <button type="button" class="carousel-tab" data-slide="4" role="tab" aria-selected="false" aria-controls="slide-4">
+            <span>Maintenance Runbooks</span>
+          </button>
+          <button type="button" class="carousel-tab" data-slide="5" role="tab" aria-selected="false" aria-controls="slide-5">
+            <span>Menu Bar Extra</span>
+          </button>
+          <button type="button" class="carousel-tab" data-slide="6" role="tab" aria-selected="false" aria-controls="slide-6">
+            <span>Compare Matrix</span>
+          </button>
+          <button type="button" class="carousel-tab" data-slide="7" role="tab" aria-selected="false" aria-controls="slide-7">
+            <span>Add Server Modal</span>
+          </button>
+        </div>
+
+        <!-- Carousel Track / Slides Viewport -->
+        <div class="carousel-viewport">
+          <!-- Slide 0: Fleet Overview -->
+          <div class="carousel-slide active" id="slide-0" role="tabpanel" aria-label="1 of 8: Fleet Overview">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-fleet-overview.png" 
+                alt="Pulse fleet overview showing all connected servers with masked IPs and health badges" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Fleet-Wide Multi-Server Overview</h3>
+                <p>Unified pane of glass for bare-metal, VPS, and cloud nodes with aggregate metrics, health badges, and one-click IP address privacy masking.</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">All Servers</span>
+                <span class="caption-tag">Privacy Mask</span>
+                <span class="caption-tag">Health Badges</span>
+              </div>
+            </div>
           </div>
-          <div class="gallery-body">
-            <h3>Fleet-Wide Multi-Server View</h3>
-            <p>Unified pane of glass for bare-metal, VPS, and cloud nodes with aggregate metrics, health badges, and one-click IP address privacy masking.</p>
-            <div class="caption-tags">
-              <span class="caption-tag">All Servers</span>
-              <span class="caption-tag">Privacy Mask</span>
-              <span class="caption-tag">Health Badges</span>
+
+          <!-- Slide 1: Live Logs -->
+          <div class="carousel-slide" id="slide-1" role="tabpanel" aria-label="2 of 8: Live Logs">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-live-logs.png" 
+                alt="Sub-second WebSocket live log streaming for systemd journal and Docker containers" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Sub-Second Live Log Streaming</h3>
+                <p>Stream systemd service logs and Docker container stdout/stderr directly over encrypted WebSockets without SSH sessions or terminal windows.</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">journalctl -u</span>
+                <span class="caption-tag">Docker stdout</span>
+                <span class="caption-tag">Keyword Search</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 2: Process Manager -->
+          <div class="carousel-slide" id="slide-2" role="tabpanel" aria-label="3 of 8: Process Manager">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-processes.png" 
+                alt="Linux process manager with live CPU, memory, and disk I/O metrics" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Process Manager & Resource Auditing</h3>
+                <p>Real-time PID inspection sorted by CPU, memory, and disk throughput directly from Linux /proc. Kill rogue processes with safe confirmation.</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">/proc/[pid]/io</span>
+                <span class="caption-tag">Memory & CPU</span>
+                <span class="caption-tag">SIGTERM / SIGKILL</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3: Storage & Cleaners -->
+          <div class="carousel-slide" id="slide-3" role="tabpanel" aria-label="4 of 8: Storage & Cleaners">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-disk-analyzer.png" 
+                alt="Disk space breakdown and safe reclamation cleaners" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Disk Storage Analyzer & 1-Click Cleaners</h3>
+                <p>Instant directory consumption breakdown for /var/log, Docker, and system caches with safe reclamation tools (vacuum journals, prune Docker, clean APT).</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">Safe Cleaners</span>
+                <span class="caption-tag">Docker Prune</span>
+                <span class="caption-tag">Journal Vacuum</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 4: Runbooks -->
+          <div class="carousel-slide" id="slide-4" role="tabpanel" aria-label="5 of 8: Maintenance Runbooks">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-runbooks.png" 
+                alt="Maintenance runbooks modal for pre-approved sysadmin operational actions" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Operational Maintenance Runbooks (⌘R)</h3>
+                <p>Trigger pre-approved sysadmin tasks directly from macOS: gracefully reload webservers, flush DNS resolver caches, test updates, or free memory pagecache.</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">⌘R Runbooks</span>
+                <span class="caption-tag">Webserver Reload</span>
+                <span class="caption-tag">DNS Flush</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 5: Menu Bar Extra -->
+          <div class="carousel-slide" id="slide-5" role="tabpanel" aria-label="6 of 8: Menu Bar Extra">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-menu-bar.png" 
+                alt="Native macOS menu bar status popover showing active incidents and server status" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Native macOS Menu Bar Status Popover</h3>
+                <p>Lightweight status bar item providing immediate awareness of node connectivity, server health vitals, active incidents, and quick reconnect controls.</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">Menu Bar Extra</span>
+                <span class="caption-tag">Active Incidents</span>
+                <span class="caption-tag">⌘O / ⇧⌘R</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 6: Compare Servers -->
+          <div class="carousel-slide" id="slide-6" role="tabpanel" aria-label="7 of 8: Compare Servers">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-compare-servers.png" 
+                alt="Side-by-side server performance comparison matrix" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Side-by-Side Comparison Matrix</h3>
+                <p>Compare real-time CPU spikes, memory saturation, load averages, and network throughput side-by-side across staging and production clusters.</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">Benchmarking</span>
+                <span class="caption-tag">Multi-Node</span>
+                <span class="caption-tag">Cluster Vitals</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 7: Add Server Modal -->
+          <div class="carousel-slide" id="slide-7" role="tabpanel" aria-label="8 of 8: Add Server Modal">
+            <div class="slide-media">
+              <img 
+                src="/images/pulse-add-server.png" 
+                alt="Pulse Add Linux VPS onboarding modal" 
+                width="1040" 
+                height="650"
+                loading="lazy"
+              />
+            </div>
+            <div class="slide-caption">
+              <div class="caption-text">
+                <h3>Frictionless Server Onboarding</h3>
+                <p>Connect servers in seconds with 1-line curl commands, temporary pairing codes, native Tailscale mesh discovery, or Cloudflare Tunnels.</p>
+              </div>
+              <div class="caption-tags">
+                <span class="caption-tag">1-Line Setup</span>
+                <span class="caption-tag">Tailscale</span>
+                <span class="caption-tag">Non-Root</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Gallery 2: Compare Servers -->
-        <div class="gallery-card">
-          <div class="gallery-media">
-            <img 
-              src="/images/pulse-compare-servers.png" 
-              alt="Pulse side-by-side server comparison matrix" 
-              width="600" 
-              height="380"
-              loading="lazy"
-            />
+        <!-- Carousel Controls (Prev, Next, Counter) -->
+        <div class="carousel-footer">
+          <div class="carousel-arrows">
+            <button type="button" class="btn-carousel-ctrl prev" id="carousel-prev" aria-label="Previous screenshot">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <button type="button" class="btn-carousel-ctrl next" id="carousel-next" aria-label="Next screenshot">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
           </div>
-          <div class="gallery-body">
-            <h3>Side-by-Side Comparison Matrix</h3>
-            <p>Compare real-time CPU spikes, memory saturation, load averages, and network throughput side-by-side across staging and production clusters.</p>
-            <div class="caption-tags">
-              <span class="caption-tag">Benchmarking</span>
-              <span class="caption-tag">Multi-Node</span>
-              <span class="caption-tag">Vitals Matrix</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Gallery 3: Add Server Modal -->
-        <div class="gallery-card">
-          <div class="gallery-media">
-            <img 
-              src="/images/pulse-add-server.png" 
-              alt="Pulse Add Linux VPS onboarding modal" 
-              width="600" 
-              height="380"
-              loading="lazy"
-            />
-          </div>
-          <div class="gallery-body">
-            <h3>Frictionless Server Onboarding</h3>
-            <p>Connect servers in seconds with 1-line curl commands, temporary pairing codes, native Tailscale mesh discovery, or Cloudflare Tunnels.</p>
-            <div class="caption-tags">
-              <span class="caption-tag">1-Line Setup</span>
-              <span class="caption-tag">Tailscale</span>
-              <span class="caption-tag">Non-Root</span>
-            </div>
+          <div class="carousel-counter" aria-live="polite">
+            <span id="carousel-current">1</span> / <span id="carousel-total">8</span>
           </div>
         </div>
       </div>
@@ -477,5 +653,96 @@ import Layout from '../layouts/Layout.astro';
         });
       }
     });
+
+    // Interface Showcase Carousel Logic (Antislop UI)
+    const carouselTabs = document.querySelectorAll('.carousel-tab');
+    const carouselSlides = document.querySelectorAll('.carousel-slide');
+    const carouselPrev = document.getElementById('carousel-prev');
+    const carouselNext = document.getElementById('carousel-next');
+    const carouselCurrent = document.getElementById('carousel-current');
+    const carouselTotal = document.getElementById('carousel-total');
+
+    let currentIndex = 0;
+    const totalSlides = carouselSlides.length;
+    if (carouselTotal) {
+      carouselTotal.textContent = String(totalSlides);
+    }
+
+    function goToSlide(index: number) {
+      if (index < 0) {
+        index = totalSlides - 1;
+      } else if (index >= totalSlides) {
+        index = 0;
+      }
+      currentIndex = index;
+
+      // Update tabs
+      carouselTabs.forEach((tab, i) => {
+        const isActive = i === currentIndex;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', String(isActive));
+        if (isActive) {
+          tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      });
+
+      // Update slides
+      carouselSlides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === currentIndex);
+      });
+
+      // Update counter
+      if (carouselCurrent) {
+        carouselCurrent.textContent = String(currentIndex + 1);
+      }
+    }
+
+    carouselTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const slideIdx = parseInt(tab.getAttribute('data-slide') || '0', 10);
+        goToSlide(slideIdx);
+      });
+    });
+
+    if (carouselPrev) {
+      carouselPrev.addEventListener('click', () => goToSlide(currentIndex - 1));
+    }
+    if (carouselNext) {
+      carouselNext.addEventListener('click', () => goToSlide(currentIndex + 1));
+    }
+
+    // Keyboard navigation when carousel is focused
+    const carouselRegion = document.querySelector('.carousel-container');
+    if (carouselRegion) {
+      carouselRegion.addEventListener('keydown', (e: Event) => {
+        const keyEvent = e as KeyboardEvent;
+        if (keyEvent.key === 'ArrowLeft') {
+          goToSlide(currentIndex - 1);
+        } else if (keyEvent.key === 'ArrowRight') {
+          goToSlide(currentIndex + 1);
+        }
+      });
+    }
+
+    // Touch swipe support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const viewport = document.querySelector('.carousel-viewport');
+    if (viewport) {
+      viewport.addEventListener('touchstart', (e: Event) => {
+        const touchEvent = e as TouchEvent;
+        touchStartX = touchEvent.changedTouches[0].screenX;
+      }, { passive: true });
+
+      viewport.addEventListener('touchend', (e: Event) => {
+        const touchEvent = e as TouchEvent;
+        touchEndX = touchEvent.changedTouches[0].screenX;
+        if (touchStartX - touchEndX > 50) {
+          goToSlide(currentIndex + 1);
+        } else if (touchEndX - touchStartX > 50) {
+          goToSlide(currentIndex - 1);
+        }
+      }, { passive: true });
+    }
   </script>
 </Layout>
