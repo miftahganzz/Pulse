@@ -34,14 +34,21 @@ import Layout from '../layouts/Layout.astro';
       </div>
 
       <div class="quick-install-box">
-        <div class="quick-install-label">
-          <span class="cmd-prefix">Linux agent install:</span>
-          <code>curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash</code>
+        <div class="quick-install-main">
+          <div class="privilege-switch" role="group" aria-label="Installation Privilege Level">
+            <button type="button" class="btn-privilege active" id="btn-hero-root">Root (sudo)</button>
+            <button type="button" class="btn-privilege" id="btn-hero-user">Non-Root (User)</button>
+          </div>
+          <div class="quick-install-label">
+            <span class="cmd-prefix" id="hero-cmd-prefix">Linux agent install (Root):</span>
+            <code id="hero-install-cmd">curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash</code>
+          </div>
         </div>
         <button 
           type="button" 
           class="btn-copy" 
-          onclick="window.copySnippet('curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash', this)"
+          id="btn-hero-copy"
+          onclick="window.copySnippet(document.getElementById('hero-install-cmd').textContent, this)"
           aria-label="Copy installation command"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -426,26 +433,36 @@ import Layout from '../layouts/Layout.astro';
         <p>Supports Debian, Ubuntu, RHEL, CentOS, Fedora, Arch, Alpine, openSUSE, and any systemd Linux. Available in root and non-root user modes.</p>
       </div>
 
-      <div class="setup-tabs" role="tablist">
-        <button type="button" class="tab-btn active" data-tab="tab-direct" role="tab" aria-selected="true">
-          <span>Direct IP / LAN</span>
-        </button>
-        <button type="button" class="tab-btn" data-tab="tab-tailscale" role="tab" aria-selected="false">
-          <span>Tailscale (Zero Open Ports)</span>
-        </button>
-        <button type="button" class="tab-btn" data-tab="tab-cloudflare" role="tab" aria-selected="false">
-          <span>Cloudflare Tunnel (Zero Open Ports)</span>
-        </button>
+      <div class="setup-controls">
+        <div class="setup-tabs" role="tablist">
+          <button type="button" class="tab-btn active" data-tab="tab-direct" role="tab" aria-selected="true">
+            <span>Direct IP / LAN</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tab-tailscale" role="tab" aria-selected="false">
+            <span>Tailscale (Zero Open Ports)</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="tab-cloudflare" role="tab" aria-selected="false">
+            <span>Cloudflare Tunnel (Zero Open Ports)</span>
+          </button>
+        </div>
+
+        <div class="setup-mode-switch">
+          <span class="setup-mode-label">Mode:</span>
+          <div class="privilege-switch" role="group" aria-label="Installation Mode">
+            <button type="button" class="btn-privilege active" id="btn-setup-root">Root (sudo)</button>
+            <button type="button" class="btn-privilege" id="btn-setup-user">Non-Root (User)</button>
+          </div>
+        </div>
       </div>
 
       <!-- Tab 1: Direct IP -->
       <div class="tab-content active" id="tab-direct" role="tabpanel">
         <div class="code-snippet-box">
-          <code>curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash</code>
+          <code id="cmd-direct">curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash</code>
           <button 
             type="button" 
             class="btn-copy" 
-            onclick="window.copySnippet('curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash', this)"
+            onclick="window.copySnippet(document.getElementById('cmd-direct').textContent, this)"
             aria-label="Copy Direct IP install command"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -453,9 +470,9 @@ import Layout from '../layouts/Layout.astro';
           </button>
         </div>
         <div class="step-list">
-          <div class="step-item">Downloads static binary for your architecture (x86_64 or arm64).</div>
-          <div class="step-item">Generates TLS certificates and configures systemd service.</div>
-          <div class="step-item">Adjusts firewall (UFW, firewalld, iptables) for port 9876.</div>
+          <div class="step-item" id="desc-direct-1">Downloads static binary for your architecture (x86_64 or arm64).</div>
+          <div class="step-item" id="desc-direct-2">Root mode: installs system systemd service and opens firewall port 8443 automatically.</div>
+          <div class="step-item" id="desc-direct-3">Non-root mode: installs to ~/.local/bin and creates user systemd unit or crontab @reboot without sudo.</div>
           <div class="step-item">Generates temporary pairing code valid for 10 minutes.</div>
         </div>
       </div>
@@ -463,11 +480,11 @@ import Layout from '../layouts/Layout.astro';
       <!-- Tab 2: Tailscale -->
       <div class="tab-content" id="tab-tailscale" role="tabpanel">
         <div class="code-snippet-box">
-          <code>curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash</code>
+          <code id="cmd-tailscale">curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash</code>
           <button 
             type="button" 
             class="btn-copy" 
-            onclick="window.copySnippet('curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash', this)"
+            onclick="window.copySnippet(document.getElementById('cmd-tailscale').textContent, this)"
             aria-label="Copy Tailscale install command"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -478,17 +495,18 @@ import Layout from '../layouts/Layout.astro';
           <div class="step-item">Binds Pulse exclusively to the host Tailscale interface (100.x.y.z).</div>
           <div class="step-item">No public ports are opened. Accessible only by devices in your private Tailnet.</div>
           <div class="step-item">Encrypted WireGuard transport with automatic roaming.</div>
+          <div class="step-item" id="desc-tailscale-priv">Root mode auto-locks UFW/firewalld; Non-root mode runs seamlessly in user space.</div>
         </div>
       </div>
 
       <!-- Tab 3: Cloudflare Tunnel -->
       <div class="tab-content" id="tab-cloudflare" role="tabpanel">
         <div class="code-snippet-box">
-          <code>curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | sudo bash</code>
+          <code id="cmd-cloudflare">curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | sudo bash</code>
           <button 
             type="button" 
             class="btn-copy" 
-            onclick="window.copySnippet('curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | sudo bash', this)"
+            onclick="window.copySnippet(document.getElementById('cmd-cloudflare').textContent, this)"
             aria-label="Copy Cloudflare install command"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -499,6 +517,7 @@ import Layout from '../layouts/Layout.astro';
           <div class="step-item">Establishes an outbound-only Cloudflare quick tunnel without opening incoming ports.</div>
           <div class="step-item">Provides a trycloudflare.com URL or your configured domain.</div>
           <div class="step-item">Persistent keepalive and edge SSL termination.</div>
+          <div class="step-item" id="desc-cloudflare-priv">Root mode registers cloudflared system service; Non-root mode runs user daemon with crontab persistence.</div>
         </div>
       </div>
     </div>
@@ -607,7 +626,7 @@ import Layout from '../layouts/Layout.astro';
 
   <!-- Client-side Scripts for Setup Tabs & FAQ Accordion -->
   <script>
-    // Setup Tabs
+    // Setup Tabs (Topology)
     const setupTabs = document.querySelectorAll('.setup-tabs .tab-btn');
     const setupContents: Record<string, HTMLElement | null> = {
       'tab-direct': document.getElementById('tab-direct'),
@@ -637,6 +656,74 @@ import Layout from '../layouts/Layout.astro';
         });
       });
     });
+
+    // Hero Quick Install Privilege Switcher (Root vs Non-Root)
+    const btnHeroRoot = document.getElementById('btn-hero-root');
+    const btnHeroUser = document.getElementById('btn-hero-user');
+    const heroCmdPrefix = document.getElementById('hero-cmd-prefix');
+    const heroInstallCmd = document.getElementById('hero-install-cmd');
+
+    const heroCommands = {
+      root: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash',
+      user: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash'
+    };
+
+    function setHeroMode(isRoot: boolean) {
+      if (btnHeroRoot && btnHeroUser && heroCmdPrefix && heroInstallCmd) {
+        btnHeroRoot.classList.toggle('active', isRoot);
+        btnHeroUser.classList.toggle('active', !isRoot);
+        heroCmdPrefix.textContent = isRoot ? 'Linux agent install (Root):' : 'Linux agent install (Non-Root):';
+        heroInstallCmd.textContent = isRoot ? heroCommands.root : heroCommands.user;
+      }
+    }
+
+    if (btnHeroRoot && btnHeroUser) {
+      btnHeroRoot.addEventListener('click', () => setHeroMode(true));
+      btnHeroUser.addEventListener('click', () => setHeroMode(false));
+    }
+
+    // Setup Section Privilege Switcher (Root vs Non-Root)
+    const btnSetupRoot = document.getElementById('btn-setup-root');
+    const btnSetupUser = document.getElementById('btn-setup-user');
+    const cmdDirect = document.getElementById('cmd-direct');
+    const cmdTailscale = document.getElementById('cmd-tailscale');
+    const cmdCloudflare = document.getElementById('cmd-cloudflare');
+
+    const setupCommands = {
+      direct: {
+        root: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash',
+        user: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash'
+      },
+      tailscale: {
+        root: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | sudo bash',
+        user: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-tailscale.sh | bash'
+      },
+      cloudflare: {
+        root: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | sudo bash',
+        user: 'curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/setup-cloudflare.sh | bash'
+      }
+    };
+
+    function setSetupMode(isRoot: boolean) {
+      if (btnSetupRoot && btnSetupUser) {
+        btnSetupRoot.classList.toggle('active', isRoot);
+        btnSetupUser.classList.toggle('active', !isRoot);
+      }
+      if (cmdDirect) {
+        cmdDirect.textContent = isRoot ? setupCommands.direct.root : setupCommands.direct.user;
+      }
+      if (cmdTailscale) {
+        cmdTailscale.textContent = isRoot ? setupCommands.tailscale.root : setupCommands.tailscale.user;
+      }
+      if (cmdCloudflare) {
+        cmdCloudflare.textContent = isRoot ? setupCommands.cloudflare.root : setupCommands.cloudflare.user;
+      }
+    }
+
+    if (btnSetupRoot && btnSetupUser) {
+      btnSetupRoot.addEventListener('click', () => setSetupMode(true));
+      btnSetupUser.addEventListener('click', () => setSetupMode(false));
+    }
 
     // FAQ Accordion
     const faqItems = document.querySelectorAll('.faq-item');

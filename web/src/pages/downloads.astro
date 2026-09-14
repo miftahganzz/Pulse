@@ -174,21 +174,37 @@ import Layout from '../layouts/Layout.astro';
         </div>
 
         <div class="legal-section">
-          <h2>Server setup via curl</h2>
-          <p>To install the agent and configure the systemd unit in one step, execute:</p>
-          <div class="code-snippet-box" style="margin-top: 14px;">
+          <h2>Server setup via curl (Root & Non-Root)</h2>
+          <p>Execute the automated installer in either root system-wide mode or non-root unprivileged user mode:</p>
+          
+          <p style="margin-top: 14px; font-size: 0.85rem; font-weight: 600; color: var(--text-primary);">Option 1: Root / System-Wide (Default)</p>
+          <div class="code-snippet-box" style="margin-top: 6px;">
             <code>curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash</code>
             <button 
               type="button" 
               class="btn-copy" 
               onclick="window.copySnippet('curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | sudo bash', this)"
-              aria-label="Copy install script"
+              aria-label="Copy Root install script"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <span>Copy</span>
             </button>
           </div>
-          <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);">For non-root user environments, omit <code>sudo bash</code> to install to <code>~/.local/bin</code>.</p>
+
+          <p style="margin-top: 14px; font-size: 0.85rem; font-weight: 600; color: var(--text-primary);">Option 2: Non-Root / User Mode (No sudo required)</p>
+          <div class="code-snippet-box" style="margin-top: 6px;">
+            <code>curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash</code>
+            <button 
+              type="button" 
+              class="btn-copy" 
+              onclick="window.copySnippet('curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash', this)"
+              aria-label="Copy Non-Root install script"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);">Non-root mode downloads static binary to <code>~/.local/bin</code> and registers user-level systemd service (<code>systemctl --user</code>) or crontab <code>@reboot</code> autostart.</p>
         </div>
       </div>
     </div>
