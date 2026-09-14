@@ -51,6 +51,27 @@ import Layout from '../layouts/Layout.astro';
           <span>Copy</span>
         </button>
       </div>
+
+      <!-- Hero Interface Preview -->
+      <div class="hero-preview">
+        <div class="screenshot-frame">
+          <img 
+            src="/images/pulse-server-detail.png" 
+            alt="Pulse native macOS desktop client showing live server telemetry, masked IP, container vitals, and agent OTA update banner" 
+            width="1040" 
+            height="650"
+            loading="eager"
+          />
+          <div class="screenshot-caption">
+            <span>Server detail view: live telemetry streaming, masked IP addresses, systemd & container controls, and 1-click Agent OTA upgrades.</span>
+            <div class="caption-tags">
+              <span class="caption-tag">SwiftUI</span>
+              <span class="caption-tag">Go Daemon</span>
+              <span class="caption-tag">Encrypted WSS</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -136,6 +157,85 @@ import Layout from '../layouts/Layout.astro';
           </div>
           <h3 class="card-title">Maintenance Runbooks</h3>
           <p class="card-desc">Single-action commands to vacuum system journals, prune unused Docker images, flush local DNS caches, and inspect disk space.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interface Showcase Section -->
+  <section class="section" id="interface">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Interface & Workflow</span>
+        <h2>Designed for operators. Native, responsive, zero-friction.</h2>
+        <p>A fast, fluid interface built with macOS design principles. No electron bloat, no clunky browser tabs, instant keyboard navigation.</p>
+      </div>
+
+      <div class="interface-gallery-grid">
+        <!-- Gallery 1: Fleet Overview -->
+        <div class="gallery-card">
+          <div class="gallery-media">
+            <img 
+              src="/images/pulse-fleet-overview.png" 
+              alt="Pulse All Servers fleet overview with masked IPs and health vitals" 
+              width="600" 
+              height="380"
+              loading="lazy"
+            />
+          </div>
+          <div class="gallery-body">
+            <h3>Fleet-Wide Multi-Server View</h3>
+            <p>Unified pane of glass for bare-metal, VPS, and cloud nodes with aggregate metrics, health badges, and one-click IP address privacy masking.</p>
+            <div class="caption-tags">
+              <span class="caption-tag">All Servers</span>
+              <span class="caption-tag">Privacy Mask</span>
+              <span class="caption-tag">Health Badges</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gallery 2: Compare Servers -->
+        <div class="gallery-card">
+          <div class="gallery-media">
+            <img 
+              src="/images/pulse-compare-servers.png" 
+              alt="Pulse side-by-side server comparison matrix" 
+              width="600" 
+              height="380"
+              loading="lazy"
+            />
+          </div>
+          <div class="gallery-body">
+            <h3>Side-by-Side Comparison Matrix</h3>
+            <p>Compare real-time CPU spikes, memory saturation, load averages, and network throughput side-by-side across staging and production clusters.</p>
+            <div class="caption-tags">
+              <span class="caption-tag">Benchmarking</span>
+              <span class="caption-tag">Multi-Node</span>
+              <span class="caption-tag">Vitals Matrix</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gallery 3: Add Server Modal -->
+        <div class="gallery-card">
+          <div class="gallery-media">
+            <img 
+              src="/images/pulse-add-server.png" 
+              alt="Pulse Add Linux VPS onboarding modal" 
+              width="600" 
+              height="380"
+              loading="lazy"
+            />
+          </div>
+          <div class="gallery-body">
+            <h3>Frictionless Server Onboarding</h3>
+            <p>Connect servers in seconds with 1-line curl commands, temporary pairing codes, native Tailscale mesh discovery, or Cloudflare Tunnels.</p>
+            <div class="caption-tags">
+              <span class="caption-tag">1-Line Setup</span>
+              <span class="caption-tag">Tailscale</span>
+              <span class="caption-tag">Non-Root</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

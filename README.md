@@ -28,6 +28,11 @@ Pulse takes a different approach:
 - **Low memory footprint**: The Go daemon uses under 15 MB of RSS memory on Linux. It runs comfortably on 512 MB VPS instances.
 - **Controlled operations**: Inspect Docker logs, restart crashed processes, or trigger safe remediation rules directly from your menu bar.
 
+<div align="center" style="margin: 24px 0 32px;">
+  <img src="docs/images/pulse-server-detail.png" alt="Pulse Native macOS Server Detail with Realtime Telemetry, Masked IP, and Agent OTA Updates" width="880" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 40px rgba(0,0,0,0.4);" />
+  <p><em>Pulse Server Detail: Real-time telemetry, masked IP addresses, health vitals, Docker & systemd controls, and in-app Agent OTA upgrades.</em></p>
+</div>
+
 ---
 
 ## Quick Start
@@ -114,6 +119,11 @@ If you prefer not to pass tokens over command-line arguments:
    Validity:         10 minutes (Single-use)
    ```
 3. In Pulse on your Mac, select **XXX-XXX Pair Code**, enter your server's public IP and the code `653-557`, then click **Verify & Pair**.
+
+<div align="center" style="margin: 20px 0 28px;">
+  <img src="docs/images/pulse-add-server.png" alt="Pulse Add Linux VPS Modal" width="720" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 12px 36px rgba(0,0,0,0.35);" />
+  <p><em>Add Linux VPS modal: 1-Line command generation, Tailscale zero-port mesh, Cloudflare tunnels, and Non-Root mode.</em></p>
+</div>
 
 ---
 
@@ -244,6 +254,22 @@ When clicked in Safari, Slack, or terminal (`open "pulse://..."`), Pulse automat
 ---
 
 ## Features
+
+### Fleet-Wide Overview & Multi-Server Dashboard
+Monitor your entire fleet across clouds, private networks, and bare-metal nodes in a single pane of glass. Mask sensitive public IPs with one click, track aggregate CPU/memory/network utilization, and surface incidents before they escalate.
+
+<div align="center" style="margin: 20px 0 28px;">
+  <img src="docs/images/pulse-fleet-overview.png" alt="Pulse Fleet Overview Dashboard" width="880" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 40px rgba(0,0,0,0.4);" />
+  <p><em>Fleet Overview: All servers view with masked IP addresses, health badges, aggregate metrics, and zero-trust connection states.</em></p>
+</div>
+
+### Multi-Server Comparison Matrix
+Compare load averages, CPU throttling, memory leaks, and network throughput across nodes side-by-side to isolate misconfigurations or identify imbalance in your load-balanced clusters.
+
+<div align="center" style="margin: 20px 0 28px;">
+  <img src="docs/images/pulse-compare-servers.png" alt="Pulse Multi-Server Side-by-Side Comparison" width="880" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 40px rgba(0,0,0,0.4);" />
+  <p><em>Compare Servers: Side-by-side real-time vitals matrix for instant performance benchmarking across staging, production, and backup nodes.</em></p>
+</div>
 
 ### Live Log Viewer & Streaming (v1.0.0)
 - **Sub-second WebSocket log streaming**: Stream live logs directly to your Mac without SSH sessions.
