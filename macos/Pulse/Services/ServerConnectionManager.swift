@@ -52,6 +52,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     @Published public var isCheckingAgentUpdate: Bool = false
     @Published public var isUpdatingAgent: Bool = false
     @Published public var agentUpdateStatusMessage: String? = nil
+    @Published public var agentUpdateErrorMessage: String? = nil
 
     @Published public var alertSettings: ServerAlertSettings
 
@@ -362,16 +363,18 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     public func executeAction(
         action: String,
         target: String,
+        timeoutSeconds: Int = 30,
         actor: String = "User",
         completion: (@Sendable (Result<String, Error>) -> Void)? = nil
     ) {
-        executeServiceAction(action: action, target: target, actor: actor, completion: completion)
+        executeServiceAction(action: action, target: target, timeoutSeconds: timeoutSeconds, actor: actor, completion: completion)
     }
 
     public func executeServiceAction(
         action: String,
         target: String,
         monitorId: String? = nil,
+        timeoutSeconds: Int = 30,
         actor: String = "User",
         completion: (@Sendable (Result<String, Error>) -> Void)? = nil
     ) {
@@ -387,7 +390,7 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
             verificationStatuses[mId] = .pending
         }
 
-        client.executeAction(action: action, target: target) { [weak self] result in
+        client.executeAction(action: action, target: target, timeoutSeconds: timeoutSeconds) { [weak self] result in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.isExecutingAction = false
@@ -494,25 +497,34 @@ public final class ServerConnectionManager: ObservableObject, PulseAgentClientDe
     }
 
     public func updateRemoteAgent() {
-        guard !isUpdatingAgent, state.isConnected else { return }
+        guard !isUpdatingAgent else { return }
+
+        guard state.isConnected else {
+            agentUpdateErrorMessage = "Cannot update: Server is offline or disconnected. Please ensure server is running."
+            return
+        }
+
+        agentUpdateErrorMessage = nil
         isUpdatingAgent = true
         agentUpdateStatusMessage = "Downloading and installing latest pulse-agent on server..."
 
-        executeAction(action: "system.update_agent", target: "pulse-agent", actor: "Pulse App") { [weak self] result in
+        executeAction(action: "system.update_agent", target: "pulse-agent", timeoutSeconds: 90, actor: "Pulse App") { [weak self] result in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 switch result {
                 case .success:
                     self.agentUpdateStatusMessage = "Update completed! Service is restarting..."
                     self.latestAvailableAgentVersion = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    self.agentUpdateErrorMessage = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
                         self.isUpdatingAgent = false
                         self.agentUpdateStatusMessage = nil
                         self.connect()
                     }
                 case .failure(let err):
                     self.isUpdatingAgent = false
-                    self.agentUpdateStatusMessage = "Update failed: \(err.localizedDescription)"
+                    self.agentUpdateStatusMessage = nil
+                    self.agentUpdateErrorMessage = "Update failed: \(err.localizedDescription)"
                 }
             }
         }

@@ -391,8 +391,9 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = TimeInterval(max(timeoutSeconds, 90))
 
-        let payload = ActionRequestPayload(action: action, target: target, timeoutSeconds: timeoutSeconds)
+        let payload = ActionRequestPayload(action: action, target: target, timeoutSeconds: max(timeoutSeconds, 90))
         do {
             request.httpBody = try JSONEncoder().encode(payload)
         } catch {

@@ -141,41 +141,62 @@ public struct ServerDetailView: View {
 
                 // Agent OTA Update Banner
                 if let updateVer = manager.latestAvailableAgentVersion {
-                    HStack(spacing: 12) {
-                        Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.accentColor)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.accentColor)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Pulse Agent Update Available (\(updateVer))")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.primary)
-                            Text("Current: v\(manager.identity?.agentVersion ?? "0.9.0") · 1-click update without SSH")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        if manager.isUpdatingAgent {
-                            HStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text(manager.agentUpdateStatusMessage ?? "Updating...")
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Pulse Agent Update Available (\(updateVer))")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                Text("Current: v\(manager.identity?.agentVersion ?? "0.9.0") · 1-click update without SSH")
                                     .font(.system(size: 11))
                                     .foregroundColor(.secondary)
                             }
-                        } else {
-                            Button("Update Agent (1-Click)") {
-                                manager.updateRemoteAgent()
+
+                            Spacer()
+
+                            if manager.isUpdatingAgent {
+                                HStack(spacing: 6) {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Text(manager.agentUpdateStatusMessage ?? "Updating...")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Button("Update Agent (1-Click)") {
+                                    manager.updateRemoteAgent()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
+                        }
+
+                        if let errMsg = manager.agentUpdateErrorMessage {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.red)
+                                Text(errMsg)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.red)
+                                    .lineLimit(2)
+                                Spacer()
+                                Button("Dismiss") {
+                                    manager.agentUpdateErrorMessage = nil
+                                }
+                                .font(.system(size: 10))
+                                .buttonStyle(.borderless)
+                            }
+                            .padding(.top, 2)
                         }
                     }
                     .padding(10)
-                    .background(Color.accentColor.opacity(0.08))
-                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.2), lineWidth: 1))
+                    .background(manager.agentUpdateErrorMessage != nil ? Color.red.opacity(0.08) : Color.accentColor.opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(manager.agentUpdateErrorMessage != nil ? Color.red.opacity(0.3) : Color.accentColor.opacity(0.2), lineWidth: 1))
                     .cornerRadius(6)
                 } else if manager.isUpdatingAgent, let status = manager.agentUpdateStatusMessage {
                     HStack(spacing: 8) {
@@ -183,7 +204,6 @@ public struct ServerDetailView: View {
                             .controlSize(.small)
                         Text(status)
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
                     }
                     .padding(10)
                     .background(Color.accentColor.opacity(0.08))
@@ -588,9 +608,16 @@ public struct ServerDetailView: View {
                             Divider().padding(.horizontal, 14).opacity(0.3)
                             HStack {
                                 ServerIdentityRow(label: "Agent Version", value: "v\(identity.agentVersion)", isMonospace: true)
-                                if manager.isCheckingAgentUpdate {
-                                    ProgressView()
-                                        .controlSize(.small)
+                                if manager.isCheckingAgentUpdate || manager.isUpdatingAgent {
+                                    HStack(spacing: 6) {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                        if manager.isUpdatingAgent {
+                                            Text(manager.agentUpdateStatusMessage ?? "Updating...")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
                                 } else if let updateVer = manager.latestAvailableAgentVersion {
                                     Button("Update to \(updateVer)") {
                                         manager.updateRemoteAgent()
