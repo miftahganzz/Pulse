@@ -20,6 +20,7 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
     private var session: URLSession!
     private var reconnectionPolicy = ReconnectionPolicy()
     private var isUserInitiatedDisconnect = false
+    private var isConnectionEstablished = false
 
     private var heartbeatTimer: Timer?
     private var pingTimer: Timer?
@@ -565,9 +566,7 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
 
-        reconnectionPolicy.reset()
-        delegate?.client(self, didUpdateState: .connected)
-        PulseLog.network.info("WebSocket connected to \(self.host):\(self.port)")
+        PulseLog.network.info("WebSocket connection initiated to \(self.host):\(self.port)")
 
         startHeartbeatMonitor()
         startPingTimer()
@@ -639,6 +638,13 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
         do {
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
             guard let type = json?["type"] as? String else { return }
+
+            if !isConnectionEstablished {
+                isConnectionEstablished = true
+                reconnectionPolicy.reset()
+                delegate?.client(self, didUpdateState: .connected)
+                PulseLog.network.info("WebSocket connected to \(self.host):\(self.port)")
+            }
 
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .custom { decoder in
@@ -902,6 +908,7 @@ public final class PulseAgentClient: NSObject, @unchecked Sendable {
     }
 
     private func cleanupConnection() {
+        isConnectionEstablished = false
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         DispatchQueue.main.async {
