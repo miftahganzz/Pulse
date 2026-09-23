@@ -350,6 +350,10 @@ DETECTED_IP=$(curl -s4 --connect-timeout 2 ifconfig.me 2>/dev/null || curl -s4 -
 AGENT_TOKEN=$(python3 -c "import json; print(json.load(open('$CONFIG_DIR/agent.json')).get('auth_token',''))" 2>/dev/null || true)
 AGENT_ID=$(python3 -c "import json; print(json.load(open('$CONFIG_DIR/agent.json')).get('agent_id',''))" 2>/dev/null || true)
 
+if [ "${PULSE_NO_SUMMARY:-0}" = "1" ]; then
+  exit 0
+fi
+
 echo ""
 echo -e "  ${CLR_BOLD}${CLR_GREEN}✔  Pulse Agent is running & ready to connect${CLR_RESET}"
 echo ""

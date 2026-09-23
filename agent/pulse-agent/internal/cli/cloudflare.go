@@ -24,6 +24,17 @@ func RunCloudflare(configPath string, args []string) {
 
 	if tInfo.CloudflaredActive {
 		fmt.Printf("  %sStatus:%s   %s● cloudflared service is running%s\n\n", Bold, Reset, Green, Reset)
+		if tInfo.CloudflareURL != "" {
+			identity := agent.CollectIdentity(cfg.AgentID)
+			fmt.Printf("  %s%sActive Tunnel Host:%s  %s%s%s %s(Zero Open Ports)%s\n", Bold, Green, Reset, Bold, tInfo.CloudflareURL, Reset, Dim, Reset)
+			fmt.Printf("  %sListen Port:%s         443\n", Bold, Reset)
+			fmt.Printf("  %sAuth Token:%s          %s%s%s\n\n", Bold, Reset, Yellow, cfg.AuthToken, Reset)
+			fmt.Printf("  %s1-Click Deep Link for Mac:%s\n", Bold, Reset)
+			fmt.Printf("  %spulse://add?name=%s&host=%s&port=443&token=%s%s\n\n", Cyan, identity.Hostname, tInfo.CloudflareURL, cfg.AuthToken, Reset)
+			fmt.Printf("  %sIn Pulse Mac App:%s Select 'Cloudflare Tunnel', set Host to %s%s%s and Port to %s443%s.\n\n",
+				Bold, Reset, Cyan, tInfo.CloudflareURL, Reset, Bold, Reset)
+			return
+		}
 	} else {
 		fmt.Printf("  %sStatus:%s   %s○ cloudflared is not active%s\n\n", Bold, Reset, Dim, Reset)
 	}

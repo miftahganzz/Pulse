@@ -55,25 +55,34 @@ func RunPair(configPath string, args []string) {
 	}
 
 	tInfo := tunnel.DetectPrivateNetworks(cfg.Port)
-	hostIP := tInfo.TailscaleIP
-	if hostIP == "" {
+	portToUse := cfg.Port
+	var hostLabel string = "Suggested IP:"
+	hostIP := ""
+	if tInfo.CloudflareURL != "" {
+		hostIP = tInfo.CloudflareURL
+		portToUse = 443
+		hostLabel = "Tunnel Host: "
+	} else if tInfo.TailscaleIP != "" {
+		hostIP = tInfo.TailscaleIP
+		hostLabel = "Tailscale IP:"
+	} else {
 		hostIP = getPublicIP()
-	}
-	if hostIP == "" {
-		hostIP = getLocalLANIP()
+		if hostIP == "" {
+			hostIP = getLocalLANIP()
+		}
 	}
 
 	fmt.Printf("  %s%sPair Code Ready:%s  %s%s%s\n\n", Bold, Green, Reset, Bold, pairCode, Reset)
 	fmt.Printf("  %sServer Host:%s      %s\n", Bold, Reset, identity.Hostname)
-	fmt.Printf("  %sSuggested IP:%s     %s%s%s\n", Bold, Reset, Cyan, hostIP, Reset)
-	fmt.Printf("  %sPort:%s             %d\n", Bold, Reset, cfg.Port)
+	fmt.Printf("  %s%s     %s%s%s\n", Bold, hostLabel, Cyan, hostIP, Reset)
+	fmt.Printf("  %sPort:%s             %d\n", Bold, Reset, portToUse)
 	fmt.Printf("  %sValidity:%s         10 minutes (Single-use)\n", Bold, Reset)
 
 	fmt.Println()
 	fmt.Printf("  %s%sHow to Pair with Pulse Mac App:%s\n", Bold, Yellow, Reset)
 	fmt.Printf("  1. Open %sPulse%s on your Mac and click %sAdd Server (+) / ⌘N%s\n", Bold, Reset, Cyan, Reset)
 	fmt.Printf("  2. Select %s'🔢 XXX-XXX Pair Code'%s tab\n", Bold, Reset)
-	fmt.Printf("  3. Enter IP: %s%s%s (Port: %d)\n", Cyan, hostIP, Reset, cfg.Port)
+	fmt.Printf("  3. Enter Host: %s%s%s (Port: %d)\n", Cyan, hostIP, Reset, portToUse)
 	fmt.Printf("  4. Enter Pairing Code: %s%s%s\n", Bold, pairCode, Reset)
 	fmt.Printf("  5. Click %s'Pair & Connect'%s — Pulse will securely retrieve and store the auth token!\n", Bold, Reset)
 	fmt.Println()

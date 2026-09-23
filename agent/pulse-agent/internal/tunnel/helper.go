@@ -3,7 +3,10 @@ package tunnel
 import (
 	"fmt"
 	"net"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -12,6 +15,7 @@ type TunnelInfo struct {
 	TailscaleIP       string
 	TailscaleDNS      string
 	CloudflaredActive bool
+	CloudflareURL     string
 	SuggestedHost     string
 	SuggestedPort     int
 }
@@ -67,7 +71,57 @@ func DetectPrivateNetworks(agentPort int) TunnelInfo {
 		}
 	}
 
+	if info.CloudflaredActive {
+		info.CloudflareURL = findCloudflareURL()
+		if info.CloudflareURL != "" {
+			if info.SuggestedHost == "" {
+				info.SuggestedHost = info.CloudflareURL
+				info.SuggestedPort = 443
+			}
+		}
+	}
+
 	return info
+}
+
+// findCloudflareURL attempts to find active quick tunnel or named domain
+func findCloudflareURL() string {
+	// 1. Check tunnel_url state files
+	urlPaths := []string{"/etc/pulse/tunnel_url"}
+	if home, err := os.UserHomeDir(); err == nil {
+		urlPaths = append([]string{filepath.Join(home, ".pulse", "tunnel_url")}, urlPaths...)
+	}
+	for _, p := range urlPaths {
+		if data, err := os.ReadFile(p); err == nil {
+			clean := strings.TrimSpace(string(data))
+			clean = strings.TrimPrefix(clean, "https://")
+			clean = strings.TrimPrefix(clean, "http://")
+			clean = strings.TrimRight(clean, "/")
+			if clean != "" {
+				return clean
+			}
+		}
+	}
+
+	// 2. Scan cloudflared logs for trycloudflare.com
+	logPaths := []string{"/var/log/cloudflared.log"}
+	if home, err := os.UserHomeDir(); err == nil {
+		logPaths = append([]string{filepath.Join(home, ".pulse", "cloudflared.log")}, logPaths...)
+	}
+	re := regexp.MustCompile(`https://([a-zA-Z0-9.-]+\.trycloudflare\.com)`)
+	for _, lp := range logPaths {
+		if data, err := os.ReadFile(lp); err == nil {
+			matches := re.FindAllStringSubmatch(string(data), -1)
+			if len(matches) > 0 {
+				last := matches[len(matches)-1]
+				if len(last) > 1 {
+					return last[1]
+				}
+			}
+		}
+	}
+
+	return ""
 }
 
 // GenerateCloudflareIngressConfig outputs ready-to-use ingress snippet
@@ -114,6 +168,12 @@ func PrintTunnelGuide(agentPort int) {
 
 	if info.CloudflaredActive {
 		fmt.Println("✔ Cloudflare Tunnel (cloudflared) Detected!")
+		if info.CloudflareURL != "" {
+			fmt.Printf("  Active Tunnel URL: https://%s\n", info.CloudflareURL)
+			fmt.Printf("  • Address in Mac Pulse: %s\n", info.CloudflareURL)
+			fmt.Println("  • Port:                 443")
+			fmt.Println("----------------------------------------------------------------")
+		}
 	} else {
 		fmt.Println("Cloudflare Tunnel (Zero Trust):")
 	}

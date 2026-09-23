@@ -63,7 +63,7 @@ fi
 
 # ── 1. Install Pulse Agent ─────────────────────────────────────
 step "Installing Pulse Agent..."
-curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash
+PULSE_NO_SUMMARY=1 curl -fsSL https://raw.githubusercontent.com/miftahganzz/Pulse/main/agent/pulse-agent/scripts/install.sh | bash
 ok "Pulse Agent installed and running"
 
 PORT="8443"
@@ -114,24 +114,37 @@ if [ -n "$TUNNEL_NAME" ] && [ -n "$DOMAIN" ]; then
   warn "Named tunnel configured for domain: $DOMAIN"
   TUNNEL_URL="https://$DOMAIN"
   PORT_TO_USE="443"
+  echo "$DOMAIN" > "$CONFIG_DIR/tunnel_url" 2>/dev/null || true
 else
   # Quick tunnel (trycloudflare.com — no account required)
-  warn "Starting quick tunnel (temporary trycloudflare.com URL, zero open ports required)..."
+  step "Connecting to Cloudflare Edge (zero open ports required)..."
   pkill -f "cloudflared tunnel" 2>/dev/null || true
   nohup "$CF_BIN" tunnel --url "https://localhost:${PORT}" --no-tls-verify > "$LOG_FILE" 2>&1 &
   CF_PID=$!
-  sleep 4
+
   TUNNEL_URL=""
-  for i in {1..12}; do
-    TUNNEL_URL=$(grep -o 'https://[a-zA-Z0-9.-]*\.trycloudflare\.com' "$LOG_FILE" 2>/dev/null | head -1 || echo "")
-    [ -n "$TUNNEL_URL" ] && break
+  echo -ne "    Waiting for Cloudflare Tunnel URL..."
+  for i in {1..30}; do
+    if [ -f "$LOG_FILE" ]; then
+      TUNNEL_URL=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' "$LOG_FILE" 2>/dev/null | tail -1 || echo "")
+      if [ -n "$TUNNEL_URL" ]; then
+        echo -e "\r    ${CLR_GREEN}✔${CLR_RESET} Tunnel connected in ${i}s!                              "
+        break
+      fi
+    fi
+    echo -ne "\r    Waiting for Cloudflare Tunnel URL... (${i}/30s) "
     sleep 1
   done
+
   PORT_TO_USE="443"
   if [ -n "$TUNNEL_URL" ]; then
-    ok "Quick tunnel running (PID $CF_PID): $TUNNEL_URL"
+    CLEAN_HOST=$(echo "$TUNNEL_URL" | sed -e 's|^https://||' -e 's|/$||')
+    echo "$CLEAN_HOST" > "$CONFIG_DIR/tunnel_url" 2>/dev/null || true
+    ok "Quick tunnel active (PID $CF_PID): $TUNNEL_URL"
   else
-    warn "Quick tunnel launched (PID $CF_PID). URL will appear in $LOG_FILE"
+    echo ""
+    warn "Quick tunnel started (PID $CF_PID). Checking log output:"
+    tail -n 10 "$LOG_FILE" 2>/dev/null || true
   fi
 fi
 
@@ -140,18 +153,34 @@ if [ "$IS_ROOT" = false ] && command -v crontab >/dev/null 2>&1; then
   (crontab -l 2>/dev/null | grep -v 'cloudflared' ; echo "@reboot nohup $CF_BIN tunnel --url https://localhost:${PORT} --no-tls-verify > $LOG_FILE 2>&1 &") | crontab - 2>/dev/null || true
 fi
 
-echo ""
-echo -e "  ${CLR_BOLD}${CLR_GREEN}✔  Ready — Connect via Cloudflare Tunnel${CLR_RESET}"
-echo ""
-echo -e "  ${CLR_BOLD}Tunnel URL:${CLR_RESET}     ${CLR_CYAN}${TUNNEL_URL:-"check $LOG_FILE"}${CLR_RESET}"
-echo -e "  ${CLR_BOLD}Listen Port:${CLR_RESET}    ${PORT_TO_USE} (Cloudflare terminates SSL)"
-echo -e "  ${CLR_BOLD}Auth Token:${CLR_RESET}     ${CLR_YELLOW}${AGENT_TOKEN}${CLR_RESET}"
-echo ""
+CLEAN_HOST=""
 if [ -n "$TUNNEL_URL" ]; then
-  CLEAN_HOST=$(echo "$TUNNEL_URL" | sed 's|https://||')
-  echo -e "  ${CLR_BOLD}1-Click Deep Link:${CLR_RESET}"
-  echo -e "  ${CLR_DIM}pulse://add?name=$(hostname -s)&host=${CLEAN_HOST}&port=${PORT_TO_USE}&token=${AGENT_TOKEN}${CLR_RESET}"
+  CLEAN_HOST=$(echo "$TUNNEL_URL" | sed -e 's|^https://||' -e 's|/$||')
+elif [ -f "$CONFIG_DIR/tunnel_url" ]; then
+  CLEAN_HOST=$(cat "$CONFIG_DIR/tunnel_url" | tr -d '[:space:]')
+fi
+
+echo ""
+echo -e "  ${CLR_BOLD}${CLR_GREEN}================================================================${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_GREEN}✔  Cloudflare Tunnel is Active & Ready! (Zero Open Ports)${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_GREEN}================================================================${CLR_RESET}"
+echo ""
+if [ -n "$CLEAN_HOST" ]; then
+  echo -e "  ${CLR_BOLD}Enter in your Mac Pulse App (Add Server):${CLR_RESET}"
+  echo -e "  ${CLR_DIM}Host Address:${CLR_RESET}  ${CLR_BOLD}${CLR_CYAN}${CLEAN_HOST}${CLR_RESET} ${CLR_YELLOW}(Do NOT enter server IP)${CLR_RESET}"
+  echo -e "  ${CLR_DIM}Listen Port:${CLR_RESET}   ${CLR_BOLD}443${CLR_RESET}"
+  echo -e "  ${CLR_DIM}Auth Token:${CLR_RESET}    ${CLR_YELLOW}${AGENT_TOKEN}${CLR_RESET}"
+  echo ""
+  echo -e "  ${CLR_PURPLE}🚀 1-Click Deep Link for Mac (Click or paste into Safari):${CLR_RESET}"
+  echo -e "  ${CLR_CYAN}pulse://add?name=$(hostname -s)&host=${CLEAN_HOST}&port=443&token=${AGENT_TOKEN}${CLR_RESET}"
+else
+  echo -e "  ${CLR_BOLD}Tunnel Log:${CLR_RESET}    $LOG_FILE"
+  echo -e "  ${CLR_BOLD}Listen Port:${CLR_RESET}   443"
+  echo -e "  ${CLR_BOLD}Auth Token:${CLR_RESET}    ${CLR_YELLOW}${AGENT_TOKEN}${CLR_RESET}"
+  echo ""
+  echo -e "  Run ${CLR_CYAN}pulse cloudflare${CLR_RESET} to view active tunnel details."
 fi
 echo ""
-echo -e "  ${CLR_BOLD}Note:${CLR_RESET} Zero open ports required! Traffic is securely proxied via Cloudflare."
+echo -e "  ${CLR_DIM}Tip: Run ${CLR_RESET}${CLR_CYAN}pulse status${CLR_RESET}${CLR_DIM} or ${CLR_RESET}${CLR_CYAN}pulse cloudflare${CLR_RESET}${CLR_DIM} anytime to see your tunnel URL.${CLR_RESET}"
+echo -e "  ${CLR_BOLD}${CLR_GREEN}================================================================${CLR_RESET}"
 echo ""

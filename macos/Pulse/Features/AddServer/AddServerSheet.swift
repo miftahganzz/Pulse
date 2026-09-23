@@ -428,6 +428,18 @@ public struct AddServerSheet: View {
             }
             .formStyle(.grouped)
 
+            if connectionNetwork == .cloudflare {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 11))
+                    Text("Cloudflare Tunnel uses the *.trycloudflare.com domain from the script, NOT your server IP.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 4)
+            }
+
             if let err = errorMessage {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -617,6 +629,12 @@ public struct AddServerSheet: View {
 
         let cleanAddress = normalizedHost
 
+        if connectionNetwork == .cloudflare && isIPAddress(cleanAddress) {
+            errorMessage = "Cloudflare Tunnel requires your *.trycloudflare.com tunnel domain (or custom domain), not an IP address. Switch Method to 'Direct IP' if connecting directly via IP."
+            withAnimation { step = .enterDetails }
+            return
+        }
+
         let client = PulseAgentClient(
             host: cleanAddress,
             port: port,
@@ -643,7 +661,11 @@ public struct AddServerSheet: View {
                         withAnimation { self.step = .enterDetails }
                     }
                 case .failure(let err):
-                    self.errorMessage = "Connection failed: \(err.localizedDescription). Ensure the agent is running and port \(portString) is open."
+                    if connectionNetwork == .cloudflare {
+                        self.errorMessage = "Connection failed: \(err.localizedDescription). Check that Cloudflare Tunnel is running on your VPS (run 'pulse cloudflare') and port is 443."
+                    } else {
+                        self.errorMessage = "Connection failed: \(err.localizedDescription). Ensure the agent is running and port \(portString) is open."
+                    }
                     withAnimation { self.step = .enterDetails }
                 }
             }

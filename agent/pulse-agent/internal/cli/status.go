@@ -95,6 +95,9 @@ func RunStatus(configPath string, compact bool) {
 
 	fmt.Println()
 	fmt.Printf("  %s%sNetwork Addresses:%s\n", Bold, Yellow, Reset)
+	if tInfo.CloudflareURL != "" {
+		fmt.Printf("    %s• Cloudflare Tunnel:%s %shttps://%s%s %s(Port 443, Zero-Port)%s\n", Cyan, Reset, Bold, tInfo.CloudflareURL, Reset, Dim, Reset)
+	}
 	if tInfo.TailscaleActive && tInfo.TailscaleIP != "" {
 		fmt.Printf("    %s• Tailscale (P2P):%s  %s%s%s\n", Cyan, Reset, Bold, tInfo.TailscaleIP, Reset)
 	}
@@ -120,16 +123,23 @@ func RunStatus(configPath string, compact bool) {
 		fmt.Printf("    %sAuth Token:%s   %s%s%s\n", Dim, Reset, Yellow, cfg.AuthToken, Reset)
 
 		fmt.Println()
-		primaryHost := tInfo.TailscaleIP
+		primaryHost := tInfo.CloudflareURL
+		primaryPort := 443
+		if primaryHost == "" {
+			primaryHost = tInfo.TailscaleIP
+			primaryPort = cfg.Port
+		}
 		if primaryHost == "" {
 			primaryHost = publicIP
+			primaryPort = cfg.Port
 		}
 		if primaryHost == "" {
 			primaryHost = lanIP
+			primaryPort = cfg.Port
 		}
 		if primaryHost != "" {
 			fmt.Printf("  %s1-Click Deep Link for Mac:%s\n", Bold, Reset)
-			fmt.Printf("  %spulse://add?name=%s&host=%s&port=%d&token=%s%s\n", Cyan, identity.Hostname, primaryHost, cfg.Port, cfg.AuthToken, Reset)
+			fmt.Printf("  %spulse://add?name=%s&host=%s&port=%d&token=%s%s\n", Cyan, identity.Hostname, primaryHost, primaryPort, cfg.AuthToken, Reset)
 		}
 	} else {
 		fmt.Println()
