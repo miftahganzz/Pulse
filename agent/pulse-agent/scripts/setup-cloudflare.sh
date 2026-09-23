@@ -119,7 +119,7 @@ else
   # Quick tunnel (trycloudflare.com — no account required)
   step "Connecting to Cloudflare Edge (zero open ports required)..."
   pkill -f "cloudflared tunnel" 2>/dev/null || true
-  nohup "$CF_BIN" tunnel --url "https://localhost:${PORT}" --no-tls-verify > "$LOG_FILE" 2>&1 &
+  nohup "$CF_BIN" tunnel --config /dev/null --url "https://localhost:${PORT}" --no-tls-verify > "$LOG_FILE" 2>&1 &
   CF_PID=$!
 
   TUNNEL_URL=""
@@ -150,7 +150,7 @@ fi
 
 # Auto-start persistence in crontab for non-root
 if [ "$IS_ROOT" = false ] && command -v crontab >/dev/null 2>&1; then
-  (crontab -l 2>/dev/null | grep -v 'cloudflared' ; echo "@reboot nohup $CF_BIN tunnel --url https://localhost:${PORT} --no-tls-verify > $LOG_FILE 2>&1 &") | crontab - 2>/dev/null || true
+  (crontab -l 2>/dev/null | grep -v 'cloudflared' ; echo "@reboot nohup $CF_BIN tunnel --config /dev/null --url https://localhost:${PORT} --no-tls-verify > $LOG_FILE 2>&1 &") | crontab - 2>/dev/null || true
 fi
 
 CLEAN_HOST=""
