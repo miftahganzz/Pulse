@@ -86,7 +86,29 @@ func DetectPrivateNetworks(agentPort int) TunnelInfo {
 
 // findCloudflareURL attempts to find active quick tunnel or named domain
 func findCloudflareURL() string {
-	// 1. Check tunnel_url state files
+	// 1. Scan live cloudflared logs for the latest active trycloudflare.com URL
+	logPaths := []string{"/var/log/cloudflared.log"}
+	if home, err := os.UserHomeDir(); err == nil {
+		logPaths = append([]string{filepath.Join(home, ".pulse", "cloudflared.log")}, logPaths...)
+	}
+	re := regexp.MustCompile(`https://([a-zA-Z0-9.-]+\.trycloudflare\.com)`)
+	for _, lp := range logPaths {
+		if data, err := os.ReadFile(lp); err == nil {
+			matches := re.FindAllStringSubmatch(string(data), -1)
+			if len(matches) > 0 {
+				last := matches[len(matches)-1]
+				if len(last) > 1 && last[1] != "" {
+					activeURL := last[1]
+					// Sync to tunnel_url state file
+					tunnelFile := filepath.Join(filepath.Dir(lp), "tunnel_url")
+					_ = os.WriteFile(tunnelFile, []byte(activeURL), 0644)
+					return activeURL
+				}
+			}
+		}
+	}
+
+	// 2. Fallback to tunnel_url state files
 	urlPaths := []string{"/etc/pulse/tunnel_url"}
 	if home, err := os.UserHomeDir(); err == nil {
 		urlPaths = append([]string{filepath.Join(home, ".pulse", "tunnel_url")}, urlPaths...)
@@ -99,24 +121,6 @@ func findCloudflareURL() string {
 			clean = strings.TrimRight(clean, "/")
 			if clean != "" {
 				return clean
-			}
-		}
-	}
-
-	// 2. Scan cloudflared logs for trycloudflare.com
-	logPaths := []string{"/var/log/cloudflared.log"}
-	if home, err := os.UserHomeDir(); err == nil {
-		logPaths = append([]string{filepath.Join(home, ".pulse", "cloudflared.log")}, logPaths...)
-	}
-	re := regexp.MustCompile(`https://([a-zA-Z0-9.-]+\.trycloudflare\.com)`)
-	for _, lp := range logPaths {
-		if data, err := os.ReadFile(lp); err == nil {
-			matches := re.FindAllStringSubmatch(string(data), -1)
-			if len(matches) > 0 {
-				last := matches[len(matches)-1]
-				if len(last) > 1 {
-					return last[1]
-				}
 			}
 		}
 	}
